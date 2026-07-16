@@ -1,0 +1,50 @@
+@import "tailwindcss";
+@import "@scoutx/ui/globals.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+@theme {
+  --font-sans: var(--font-sora), "Segoe UI", sans-serif;
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --color-background: var(--scoutx-background);
+  --color-foreground: var(--scoutx-foreground);
+  --color-primary: var(--scoutx-primary);
+  --color-muted: var(--scoutx-muted-foreground);
+  --color-border: var(--scoutx-border);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 12% 18%, rgba(29, 122, 92, 0.14), transparent 42%),
+      radial-gradient(circle at 88% 8%, rgba(26, 95, 138, 0.12), transparent 36%),
+      linear-gradient(180deg, #eef5f1 0%, var(--scoutx-background) 48%, #e8f0eb 100%);
+    color: var(--scoutx-foreground);
+    font-family: var(--font-sans);
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .section-shell {
+    margin-inline: auto;
+    width: min(1120px, calc(100% - 2rem));
+  }
+}
