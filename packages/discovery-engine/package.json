@@ -1,0 +1,32 @@
+{
+  "name": "@scoutx/discovery-engine",
+  "version": "0.1.0",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@scoutx/domain": "workspace:*",
+    "@scoutx/matching-engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@scoutx/typescript-config": "workspace:*",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

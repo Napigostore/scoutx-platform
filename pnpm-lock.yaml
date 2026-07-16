@@ -132,6 +132,25 @@ importers:
 
   config/typescript: {}
 
+  packages/discovery-engine:
+    dependencies:
+      '@scoutx/domain':
+        specifier: workspace:*
+        version: link:../domain
+      '@scoutx/matching-engine':
+        specifier: workspace:*
+        version: link:../matching-engine
+    devDependencies:
+      '@scoutx/typescript-config':
+        specifier: workspace:*
+        version: link:../../config/typescript
+      typescript:
+        specifier: ^5.7.3
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.20.1)(lightningcss@1.32.0)
+
   packages/domain:
     devDependencies:
       '@scoutx/typescript-config':
