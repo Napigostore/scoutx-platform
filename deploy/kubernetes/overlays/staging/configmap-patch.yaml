@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scoutx-config
+data:
+  NODE_ENV: "staging"
+  LOG_LEVEL: "debug"

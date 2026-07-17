@@ -1,0 +1,35 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: scoutx-migration
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      serviceAccountName: scoutx-web
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1001
+        runAsGroup: 1001
+      containers:
+        - name: migration
+          image: scoutx-platform:latest
+          command: ["pnpm", "db:migrate:deploy"]
+          envFrom:
+            - configMapRef:
+                name: scoutx-config
+            - secretRef:
+                name: scoutx-runtime
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}

@@ -106,3 +106,26 @@ docker compose up -d
 ### Health Endpoints
 - Liveness: `http://localhost:3000/api/health/live`
 - Readiness: `http://localhost:3000/api/health/ready`
+
+
+## Kubernetes Deployment
+
+### Render Manifests bằng Kustomize
+- Staging:
+  ```bash
+  kubectl kustomize deploy/kubernetes/overlays/staging
+  ```
+- Production:
+  ```bash
+  kubectl kustomize deploy/kubernetes/overlays/production
+  ```
+
+### Triển khai lên Cluster
+- Staging:
+  ```bash
+  kubectl apply -k deploy/kubernetes/overlays/staging
+  ```
+- Production:
+  ```bash
+  kubectl apply -k deploy/kubernetes/overlays/production
+  ```
