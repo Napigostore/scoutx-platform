@@ -38,6 +38,9 @@ export class DefaultFeedBuilder implements FeedBuilder {
     });
 
     const pageSize = request.pageSize ?? sorted.length;
+    if (pageSize > 100) {
+      throw new FeedError("pageSize cannot exceed 100");
+    }
     const cursor = request.cursor ? Number.parseInt(request.cursor, 10) : 0;
     const start = Number.isNaN(cursor) ? 0 : cursor;
     const sliced = sorted.slice(start, start + pageSize);

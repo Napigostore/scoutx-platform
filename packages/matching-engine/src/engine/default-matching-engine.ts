@@ -67,7 +67,15 @@ export class DefaultMatchingEngine implements MatchingEngine {
       (candidate) => candidate.profileId !== context.requesterId,
     );
 
+    if (filtered.length === 0) {
+      return [];
+    }
+
     const results = filtered.map((candidate) => this.scorer.score(candidate, context));
+
+    if (filtered.length === 1) {
+      return results;
+    }
 
     const sorted = [...results].sort((left, right) => {
       if (right.score === left.score) {

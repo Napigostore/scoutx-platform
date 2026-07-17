@@ -1,4 +1,4 @@
-import type { MatchResult } from "@scoutx/discovery-engine";
+import type { MatchResult } from "@scoutx/matching-engine";
 
 export interface FeedItem {
   readonly id: string;

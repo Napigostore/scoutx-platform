@@ -135,6 +135,8 @@ model Mission {
 
   @@index([status, expiresAt])
   @@index([locationId])
+  @@index([requesterId])
+  @@index([assignedScoutId])
   @@map("missions")
 }
 
@@ -156,5 +158,8 @@ model MissionSubmission {
   user    User         @relation(fields: [userId], references: [id])
 
   @@index([missionId])
+  @@index([scoutId])
+  @@index([userId])
   @@map("mission_submissions")
 }
+
