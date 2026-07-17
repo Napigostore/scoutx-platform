@@ -129,3 +129,15 @@ docker compose up -d
   ```bash
   kubectl apply -k deploy/kubernetes/overlays/production
   ```
+
+
+## Observability & Monitoring
+
+### Khởi động Observability Stack cục bộ
+```bash
+docker compose -f docker-compose.yml -f deploy/observability/docker-compose.observability.yml up -d
+```
+
+### Các dịch vụ giám sát
+- Prometheus: `http://localhost:9090`
+- Grafana: `http://localhost:3001` (Tài khoản mặc định: `admin` / `admin`)

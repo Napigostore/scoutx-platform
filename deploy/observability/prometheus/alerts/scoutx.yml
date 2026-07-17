@@ -1,0 +1,12 @@
+groups:
+  - name: scoutx-alerts
+    rules:
+      - alert: HighErrorRate
+        expr: sum(rate(scoutx_http_errors_total[1m])) / sum(rate(scoutx_http_requests_total[1m])) * 100 > 5
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High HTTP Error Rate detected"
+          description: "HTTP error rate is above 5% for the last 1 minute."
+          runbook_url: "https://github.com/scoutx/scoutx-platform/blob/main/docs/operations/runbooks/high-error-rate.md"
