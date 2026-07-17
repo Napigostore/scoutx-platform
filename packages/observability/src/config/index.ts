@@ -11,7 +11,7 @@ export const ConfigSchema = z.object({
 export type TypedConfig = z.infer<typeof ConfigSchema>;
 
 export class EnvironmentValidator {
-  static validate(env: Record<string, any>): TypedConfig {
+  static validate(env: Record<string, unknown>): TypedConfig {
     const result = ConfigSchema.safeParse(env);
     if (!result.success) {
       const errors = result.error.format();

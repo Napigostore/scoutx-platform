@@ -89,3 +89,20 @@ Typed fixtures used by the landing page, demos, and local development.
 ## License
 
 MIT — see [LICENSE](./LICENSE).
+
+
+## Docker & Deployment
+
+### Build Docker Image
+```bash
+docker build -t scoutx-platform:local .
+```
+
+### Chạy bằng Docker Compose
+```bash
+docker compose up -d
+```
+
+### Health Endpoints
+- Liveness: `http://localhost:3000/api/health/live`
+- Readiness: `http://localhost:3000/api/health/ready`

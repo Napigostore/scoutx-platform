@@ -3,15 +3,15 @@ export class AppError extends Error {
     public readonly code: string,
     message: string,
     public readonly statusCode: number = 500,
-    public readonly details: Record<string, any> = {},
-    public readonly correlationId?: string
+    public readonly details: Record<string, unknown> = {},
+    public readonly correlationId?: string,
   ) {
     super(message);
     this.name = this.constructor.name;
     Error.captureStackTrace(this, this.constructor);
   }
 
-  toPayload(): Record<string, any> {
+  toPayload(): Record<string, unknown> {
     return {
       success: false,
       error: {
@@ -28,7 +28,9 @@ export class AppError extends Error {
 export class GlobalErrorMapper {
   static map(error: unknown, correlationId?: string): AppError {
     if (error instanceof AppError) {
-      return correlationId ? new AppError(error.code, error.message, error.statusCode, error.details, correlationId) : error;
+      return correlationId
+        ? new AppError(error.code, error.message, error.statusCode, error.details, correlationId)
+        : error;
     }
 
     const message = error instanceof Error ? error.message : String(error);

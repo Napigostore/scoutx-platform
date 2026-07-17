@@ -1,14 +1,14 @@
 export interface Logger {
-  debug(message: string, context?: Record<string, any>): void;
-  info(message: string, context?: Record<string, any>): void;
-  warn(message: string, context?: Record<string, any>): void;
-  error(message: string, error?: Error | unknown, context?: Record<string, any>): void;
-  child(context: Record<string, any>): Logger;
+  debug(message: string, context?: Record<string, unknown>): void;
+  info(message: string, context?: Record<string, unknown>): void;
+  warn(message: string, context?: Record<string, unknown>): void;
+  error(message: string, error?: Error | unknown, context?: Record<string, unknown>): void;
+  child(context: Record<string, unknown>): Logger;
 }
 
 export class ConsoleLogger implements Logger {
   constructor(
-    protected context: Record<string, any> = {},
+    protected context: Record<string, unknown> = {},
     protected minLevel: "debug" | "info" | "warn" | "error" = "info",
   ) {}
 
@@ -17,20 +17,20 @@ export class ConsoleLogger implements Logger {
     return levels[level] >= levels[this.minLevel];
   }
 
-  protected sanitize(obj: Record<string, any>): Record<string, any> {
+  protected sanitize(obj: Record<string, unknown>): Record<string, unknown> {
     const sensitiveKeys = ["password", "token", "secret", "authorization"];
     const sanitized = { ...obj };
     for (const key of Object.keys(sanitized)) {
       if (sensitiveKeys.some((k) => key.toLowerCase().includes(k))) {
         sanitized[key] = "[REDACTED]";
       } else if (typeof sanitized[key] === "object" && sanitized[key] !== null) {
-        sanitized[key] = this.sanitize(sanitized[key]);
+        sanitized[key] = this.sanitize(sanitized[key] as Record<string, unknown>);
       }
     }
     return sanitized;
   }
 
-  debug(message: string, context?: Record<string, any>): void {
+  debug(message: string, context?: Record<string, unknown>): void {
     if (!this.shouldLog("debug")) return;
     console.debug(
       JSON.stringify({
@@ -41,21 +41,21 @@ export class ConsoleLogger implements Logger {
     );
   }
 
-  info(message: string, context?: Record<string, any>): void {
+  info(message: string, context?: Record<string, unknown>): void {
     if (!this.shouldLog("info")) return;
     console.info(
       JSON.stringify({ level: "info", message, ...this.sanitize({ ...this.context, ...context }) }),
     );
   }
 
-  warn(message: string, context?: Record<string, any>): void {
+  warn(message: string, context?: Record<string, unknown>): void {
     if (!this.shouldLog("warn")) return;
     console.warn(
       JSON.stringify({ level: "warn", message, ...this.sanitize({ ...this.context, ...context }) }),
     );
   }
 
-  error(message: string, error?: Error | unknown, context?: Record<string, any>): void {
+  error(message: string, error?: Error | unknown, context?: Record<string, unknown>): void {
     if (!this.shouldLog("error")) return;
     const errObj =
       error instanceof Error ? { error: error.message, stack: error.stack } : { error };
@@ -69,14 +69,14 @@ export class ConsoleLogger implements Logger {
     );
   }
 
-  child(context: Record<string, any>): Logger {
+  child(context: Record<string, unknown>): Logger {
     return new ConsoleLogger({ ...this.context, ...context }, this.minLevel);
   }
 }
 
 export class StructuredLogger extends ConsoleLogger {
   constructor(
-    context: Record<string, any> = {},
+    context: Record<string, unknown> = {},
     minLevel: "debug" | "info" | "warn" | "error" = "info",
   ) {
     super(context, minLevel);
