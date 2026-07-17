@@ -1,5 +1,9 @@
 # ScoutX
 
+[![CI Pipeline](https://github.com/scoutx/scoutx-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/scoutx/scoutx-platform/actions/workflows/ci.yml)
+[![Security Scan](https://github.com/scoutx/scoutx-platform/actions/workflows/security.yml/badge.svg)](https://github.com/scoutx/scoutx-platform/actions/workflows/security.yml)
+[![Release Pipeline](https://github.com/scoutx/scoutx-platform/actions/workflows/release.yml/badge.svg)](https://github.com/scoutx/scoutx-platform/actions/workflows/release.yml)
+
 A global marketplace for real-world information discovery.
 
 ScoutX connects people who need on-the-ground answers with scouts who can observe, verify, and deliver real-world information — from street conditions and venue availability to local events and physical presence checks.

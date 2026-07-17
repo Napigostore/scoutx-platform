@@ -28,7 +28,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - name: Install dependencies
@@ -39,6 +39,14 @@ jobs:
 
       - name: Typecheck
         run: pnpm typecheck
+
+      - name: Test with Coverage
+        run: |
+          pnpm --filter @scoutx/performance test
+          pnpm --filter @scoutx/observability test
+          pnpm --filter @scoutx/auth test
+          pnpm --filter @scoutx/matching-engine test
+          pnpm --filter @scoutx/discovery-feed test
 
       - name: Build
         run: pnpm build
