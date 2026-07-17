@@ -5,6 +5,7 @@ Tài liệu này hướng dẫn cách chạy kịch bản kiểm thử tải (Lo
 ## 1. Cài đặt K6
 
 Tải và cài đặt K6 theo hệ điều hành của bạn:
+
 - **Windows (PowerShell)**:
   ```powershell
   winget install grafana.k6
@@ -23,7 +24,28 @@ Tải và cài đặt K6 theo hệ điều hành của bạn:
 
 ## 2. Chạy kịch bản kiểm thử tải
 
-Chạy kịch bản kiểm thử tải hướng tới môi trường local hoặc staging:
+Bạn có thể chạy kiểm thử tải với nhiều kịch bản khác nhau bằng cách truyền biến môi trường `SCENARIO`:
+
+### 2.1. Load Test (Tải thông thường)
+
 ```bash
-k6 run -e BASE_URL=http://localhost:3000 tests/load/k6-load-test.js
+k6 run -e BASE_URL=http://localhost:3000 -e SCENARIO=load tests/load/k6-load-test.js
+```
+
+### 2.2. Stress Test (Tải cực hạn để tìm điểm gãy)
+
+```bash
+k6 run -e BASE_URL=http://localhost:3000 -e SCENARIO=stress tests/load/k6-load-test.js
+```
+
+### 2.3. Spike Test (Tải tăng đột biến trong thời gian ngắn)
+
+```bash
+k6 run -e BASE_URL=http://localhost:3000 -e SCENARIO=spike tests/load/k6-load-test.js
+```
+
+### 2.4. Soak Test (Tải duy trì liên tục để phát hiện rò rỉ bộ nhớ)
+
+```bash
+k6 run -e BASE_URL=http://localhost:3000 -e SCENARIO=soak tests/load/k6-load-test.js
 ```
