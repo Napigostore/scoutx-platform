@@ -54,6 +54,7 @@ model User {
   email            String   @unique
   displayName      String
   role             UserRole
+  passwordHash     String
   avatarUrl        String?
   reliabilityScore Float    @default(50)
   createdAt        DateTime @default(now())
@@ -62,6 +63,7 @@ model User {
   scoutProfile     ScoutProfile?
   requestedMissions Mission[]      @relation("RequestedMissions")
   submissions      MissionSubmission[]
+  sessions          Session[]
 
   @@map("users")
 }
@@ -131,7 +133,7 @@ model Mission {
   location      Location           @relation(fields: [locationId], references: [id])
   requester     User               @relation("RequestedMissions", fields: [requesterId], references: [id])
   assignedScout ScoutProfile?      @relation("AssignedScout", fields: [assignedScoutId], references: [id])
-  submissions   MissionSubmission[]
+  submission    MissionSubmission?
 
   @@index([status, expiresAt])
   @@index([locationId])
@@ -142,7 +144,7 @@ model Mission {
 
 model MissionSubmission {
   id          String   @id @default(uuid()) @db.Uuid
-  missionId   String   @db.Uuid
+  missionId   String   @unique @db.Uuid
   scoutId     String   @db.Uuid
   userId      String   @db.Uuid
   summary     String
@@ -163,3 +165,16 @@ model MissionSubmission {
   @@map("mission_submissions")
 }
 
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  refreshToken String   @unique
+  expiresAt    DateTime
+  revoked      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}

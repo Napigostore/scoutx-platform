@@ -20,7 +20,9 @@
   "dependencies": {
     "@scoutx/domain": "workspace:*",
     "@scoutx/auth": "workspace:*",
-    "@scoutx/infrastructure": "workspace:*"
+    "@scoutx/infrastructure": "workspace:*",
+    "@scoutx/types": "workspace:*",
+    "@prisma/client": "^6.2.1"
   },
   "devDependencies": {
     "@scoutx/typescript-config": "workspace:*",

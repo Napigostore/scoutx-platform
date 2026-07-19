@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  PrismaIdentityRepository,
-} from "@scoutx/infrastructure";
+import { PrismaIdentityRepository } from "@scoutx/infrastructure";
 import {
   SimplePasswordHasher,
   SimpleTokenVerifier,
@@ -31,14 +29,17 @@ describe("Application Layer Use Cases", () => {
   it("performs full authentication and authorization flow", async () => {
     // 1. Seed user
     await identityRepo.saveUser({
-      id: "user-1",
+      id: "00000000-0000-0000-0000-000000000033",
       email: "user@test.com",
       passwordHash: "hashed:password123",
-      role: "user",
+      role: "REQUESTER",
     });
 
     // 2. Sign In
-    const { accessToken, refreshToken } = await signInUseCase.execute("user@test.com", "password123");
+    const { accessToken, refreshToken } = await signInUseCase.execute(
+      "user@test.com",
+      "password123",
+    );
     expect(accessToken.token).toBeDefined();
     expect(refreshToken).toBeDefined();
 
@@ -48,7 +49,10 @@ describe("Application Layer Use Cases", () => {
 
     // 4. Authorize Action
     expect(() =>
-      authorizeActionUseCase.execute({ ...principal, permissions: ["profile:read"] }, "profile:read")
+      authorizeActionUseCase.execute(
+        { ...principal, permissions: ["profile:read"] },
+        "profile:read",
+      ),
     ).not.toThrow();
 
     // 5. Refresh Session (Rotation)
@@ -58,6 +62,8 @@ describe("Application Layer Use Cases", () => {
 
     // 6. Sign Out
     await signOutUseCase.execute(refreshed.newRefreshToken);
-    await expect(refreshSessionUseCase.execute(refreshed.newRefreshToken)).rejects.toThrow(AuthenticationError);
+    await expect(refreshSessionUseCase.execute(refreshed.newRefreshToken)).rejects.toThrow(
+      AuthenticationError,
+    );
   });
 });

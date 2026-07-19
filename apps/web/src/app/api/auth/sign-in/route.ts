@@ -8,14 +8,6 @@ const passwordHasher = new SimplePasswordHasher();
 const tokenVerifier = new SimpleTokenVerifier(process.env.JWT_SECRET || "default-secret");
 const signInUseCase = new SignInUseCase(identityRepo, passwordHasher, tokenVerifier);
 
-// Seed a mock user for testing
-identityRepo.saveUser({
-  id: "user-1",
-  email: "user@test.com",
-  passwordHash: "hashed:password123",
-  role: "user",
-});
-
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -32,7 +24,7 @@ export async function POST(request: Request) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 7 * 24 * 3600, // 7 days
+      maxAge: 7 * 24 * 3600,
     });
 
     return response;

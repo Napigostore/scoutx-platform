@@ -4,7 +4,6 @@ import {
   SimplePasswordHasher,
   SimpleTokenVerifier,
   getPermissionsForRole,
-  AuthenticationError,
   AuthorizationError,
   type AuthenticatedPrincipal,
 } from "../src/index.js";
@@ -12,12 +11,12 @@ import {
 describe("Auth Package Core Tests", () => {
   describe("RBAC & Permissions", () => {
     it("returns correct permissions for roles", () => {
-      const userPerms = getPermissionsForRole("user");
-      expect(userPerms).toContain("profile:read");
-      expect(userPerms).toContain("mission:create");
-      expect(userPerms).not.toContain("administration:manage");
+      const requesterPerms = getPermissionsForRole("REQUESTER");
+      expect(requesterPerms).toContain("profile:read");
+      expect(requesterPerms).toContain("mission:create");
+      expect(requesterPerms).not.toContain("administration:manage");
 
-      const adminPerms = getPermissionsForRole("admin");
+      const adminPerms = getPermissionsForRole("ADMIN");
       expect(adminPerms).toContain("administration:manage");
     });
   });
@@ -29,55 +28,56 @@ describe("Auth Package Core Tests", () => {
       const principal: AuthenticatedPrincipal = {
         id: "user-1",
         email: "user@test.com",
-        role: "user",
+        role: "REQUESTER",
         permissions: ["profile:read"],
       };
 
-      expect(() =>
-        authService.authorize({ principal }, "profile:read")
-      ).not.toThrow();
+      expect(() => authService.authorize({ principal }, "profile:read")).not.toThrow();
     });
 
     it("denies access when principal lacks permission", () => {
       const principal: AuthenticatedPrincipal = {
         id: "user-1",
         email: "user@test.com",
-        role: "user",
+        role: "REQUESTER",
         permissions: ["profile:read"],
       };
 
-      expect(() =>
-        authService.authorize({ principal }, "administration:manage")
-      ).toThrow(AuthorizationError);
+      expect(() => authService.authorize({ principal }, "administration:manage")).toThrow(
+        AuthorizationError,
+      );
     });
 
     it("enforces ownership for self-scoped permissions", () => {
       const principal: AuthenticatedPrincipal = {
         id: "user-1",
         email: "user@test.com",
-        role: "user",
+        role: "REQUESTER",
         permissions: ["profile:update:self"],
       };
 
       // Own resource -> Allowed
       expect(() =>
-        authService.authorize({ principal, resourceOwnerId: "user-1" }, "profile:update:self")
+        authService.authorize({ principal, resourceOwnerId: "user-1" }, "profile:update:self"),
       ).not.toThrow();
 
       // Other resource -> Denied
       expect(() =>
-        authService.authorize({ principal, resourceOwnerId: "user-2" }, "profile:update:self")
+        authService.authorize({ principal, resourceOwnerId: "user-2" }, "profile:update:self"),
       ).toThrow(AuthorizationError);
 
       // Admin can bypass ownership
       const adminPrincipal: AuthenticatedPrincipal = {
         id: "admin-1",
         email: "admin@test.com",
-        role: "admin",
+        role: "ADMIN",
         permissions: ["profile:update:self"],
       };
       expect(() =>
-        authService.authorize({ principal: adminPrincipal, resourceOwnerId: "user-2" }, "profile:update:self")
+        authService.authorize(
+          { principal: adminPrincipal, resourceOwnerId: "user-2" },
+          "profile:update:self",
+        ),
       ).not.toThrow();
     });
   });
@@ -100,7 +100,7 @@ describe("Auth Package Core Tests", () => {
       const principal: AuthenticatedPrincipal = {
         id: "user-1",
         email: "user@test.com",
-        role: "user",
+        role: "REQUESTER",
         permissions: ["profile:read"],
       };
 
@@ -113,7 +113,7 @@ describe("Auth Package Core Tests", () => {
       const principal: AuthenticatedPrincipal = {
         id: "user-1",
         email: "user@test.com",
-        role: "user",
+        role: "REQUESTER",
         permissions: ["profile:read"],
       };
 

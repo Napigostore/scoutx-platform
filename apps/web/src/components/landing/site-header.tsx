@@ -10,14 +10,21 @@ const navItems = [
 
 export function SiteHeader() {
   return (
-    <header className="sticky top-0 z-40 border-b border-[var(--scoutx-border)]/70 bg-[color-mix(in_srgb,var(--scoutx-background)_82%,white)] backdrop-blur-md">
+    <header className="border-[var(--scoutx-border)]/70 sticky top-0 z-40 border-b bg-[color-mix(in_srgb,var(--scoutx-background)_82%,white)] backdrop-blur-md">
       <div className="section-shell flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="font-display text-xl tracking-tight text-[var(--scoutx-hero-from)]">
+        <Link
+          href="/"
+          className="font-display text-xl tracking-tight text-[var(--scoutx-hero-from)]"
+        >
           ScoutX
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-[var(--scoutx-muted-foreground)] md:flex">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className="transition-colors hover:text-[var(--scoutx-foreground)]">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="transition-colors hover:text-[var(--scoutx-foreground)]"
+            >
               {item.label}
             </Link>
           ))}

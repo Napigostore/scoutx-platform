@@ -40,7 +40,7 @@ export class SignInUseCase {
     const refreshToken = `refresh-${Math.random().toString(36).substring(2)}`;
 
     const session: Session = {
-      id: `session-${Math.random().toString(36).substring(2)}`,
+      id: crypto.randomUUID(),
       userId: user.id,
       refreshToken,
       expiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000), // 7 days

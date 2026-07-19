@@ -7,7 +7,7 @@ import {
   MemoryCacheProvider,
   InMemoryEventPublisher,
 } from "../src/index.js";
-import type { ScoutProfile } from "@scoutx/types";
+import type { ScoutProfile, MissionCategory } from "@scoutx/types";
 
 describe("Infrastructure Layer Tests", () => {
   describe("Mappers", () => {
@@ -17,11 +17,9 @@ describe("Infrastructure Layer Tests", () => {
         score: 0.95,
         reason: "Verified Venue",
       });
-
       const prismaData = DiscoveryMapper.toPrisma(signal);
       expect(prismaData.id).toBe(signal.id);
       expect(prismaData.score).toBe(0.95);
-
       const domainData = DiscoveryMapper.toDomain(prismaData);
       expect(domainData).toEqual(signal);
     });
@@ -35,18 +33,15 @@ describe("Infrastructure Layer Tests", () => {
         availability: "AVAILABLE",
         reliabilityScore: 85,
         completedMissions: 10,
-        categories: ["VENUE_STATUS" as any],
+        categories: ["VENUE_STATUS" as MissionCategory],
         tags: ["tag1"],
         currentCoordinates: { latitude: 10, longitude: 20 },
         maxRadiusMeters: 3000,
         createdAt: new Date(),
-        categories: ["VENUE_STATUS"],
       };
-
       const prismaData = ProfileMapper.toPrisma(profile, "home-1");
       expect(prismaData.id).toBe(profile.id);
       expect(prismaData.currentLatitude).toBe(10);
-
       const domainData = ProfileMapper.toDomain({
         ...prismaData,
         createdAt: profile.createdAt,
@@ -65,14 +60,11 @@ describe("Infrastructure Layer Tests", () => {
         score: 0.8,
         reason: "High Reward",
       });
-
       await repo.save(signal);
       const found = await repo.findById(signal.id);
       expect(found).toEqual(signal);
-
       const all = await repo.findAll();
       expect(all).toHaveLength(1);
-
       await repo.delete(signal.id);
       const foundAfterDelete = await repo.findById(signal.id);
       expect(foundAfterDelete).toBeNull();
@@ -84,7 +76,6 @@ describe("Infrastructure Layer Tests", () => {
       const cache = new MemoryCacheProvider();
       await cache.set("key1", "value1");
       expect(await cache.get("key1")).toBe("value1");
-
       await cache.delete("key1");
       expect(await cache.get("key1")).toBeNull();
     });
@@ -97,7 +88,6 @@ describe("Infrastructure Layer Tests", () => {
       publisher.subscribe("test-topic", (event) => {
         received = event;
       });
-
       await publisher.publish("test-topic", { hello: "world" });
       expect(received).toEqual({ hello: "world" });
     });
@@ -108,31 +98,28 @@ describe("PrismaIdentityRepository", () => {
   it("saves and retrieves user identities and sessions", async () => {
     const { PrismaIdentityRepository } = await import("../src/index.js");
     const repo = new PrismaIdentityRepository();
-
     const user = {
-      id: "user-1",
+      id: "00000000-0000-0000-0000-000000000011",
       email: "test@scoutx.com",
       passwordHash: "hashed:password",
-      role: "user" as const,
+      role: "REQUESTER" as const,
     };
-
     await repo.saveUser(user);
     const foundUser = await repo.findUserByEmail("test@scoutx.com");
     expect(foundUser).toEqual(user);
 
     const session = {
-      id: "session-1",
-      userId: "user-1",
+      id: "00000000-0000-0000-0000-000000000022",
+      userId: "00000000-0000-0000-0000-000000000011",
       refreshToken: "refresh-token-123",
       expiresAt: new Date(Date.now() + 3600 * 1000),
       revoked: false,
     };
-
     await repo.saveSession(session);
     const foundSession = await repo.findSessionByToken("refresh-token-123");
     expect(foundSession).toEqual(session);
 
-    await repo.revokeSession("session-1");
+    await repo.revokeSession("00000000-0000-0000-0000-000000000022");
     const revokedSession = await repo.findSessionByToken("refresh-token-123");
     expect(revokedSession?.revoked).toBe(true);
   });

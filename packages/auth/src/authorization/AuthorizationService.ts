@@ -23,7 +23,7 @@ export class AuthorizationService {
       if (!context.resourceOwnerId) {
         throw new AuthorizationError("Resource owner ID is required for self-scoped actions");
       }
-      if (context.principal.id !== context.resourceOwnerId && context.principal.role !== "admin") {
+      if (context.principal.id !== context.resourceOwnerId && context.principal.role !== "ADMIN") {
         throw new AuthorizationError("You do not own this resource");
       }
     }

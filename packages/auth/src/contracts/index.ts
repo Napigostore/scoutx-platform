@@ -1,4 +1,4 @@
-export type Role = "user" | "moderator" | "admin" | "service";
+export type Role = "REQUESTER" | "SCOUT" | "ADMIN";
 
 export type Permission =
   | "profile:read"

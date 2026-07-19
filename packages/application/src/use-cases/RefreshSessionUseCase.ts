@@ -8,7 +8,9 @@ export class RefreshSessionUseCase {
     private readonly tokenVerifier: TokenVerifier,
   ) {}
 
-  async execute(refreshToken: string): Promise<{ accessToken: AccessToken; newRefreshToken: string }> {
+  async execute(
+    refreshToken: string,
+  ): Promise<{ accessToken: AccessToken; newRefreshToken: string }> {
     const session = await this.identityRepo.findSessionByToken(refreshToken);
     if (!session || session.revoked || session.expiresAt.getTime() < Date.now()) {
       throw new AuthenticationError("Invalid or expired refresh token");
@@ -33,7 +35,7 @@ export class RefreshSessionUseCase {
     const newRefreshToken = `refresh-${Math.random().toString(36).substring(2)}`;
 
     const newSession: Session = {
-      id: `session-${Math.random().toString(36).substring(2)}`,
+      id: crypto.randomUUID(),
       userId: user.id,
       refreshToken: newRefreshToken,
       expiresAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
