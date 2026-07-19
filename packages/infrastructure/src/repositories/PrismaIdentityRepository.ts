@@ -32,7 +32,6 @@ export interface IdentityRepository {
   saveUser(user: UserIdentity): Promise<void>;
   findUserByEmail(email: string): Promise<UserIdentity | null>;
   findUserById(id: string): Promise<UserIdentity | null>;
-
   saveSession(session: Session): Promise<void>;
   findSessionByToken(token: string): Promise<Session | null>;
   revokeSession(id: string): Promise<void>;
@@ -41,7 +40,6 @@ export interface IdentityRepository {
 export class PrismaIdentityRepository implements IdentityRepository {
   async saveUser(user: UserIdentity): Promise<void> {
     const fallbackDisplayName = user.email.split("@")[0] ?? user.email;
-
     await prisma.user.upsert({
       where: { email: user.email },
       update: {
@@ -98,7 +96,9 @@ export class PrismaIdentityRepository implements IdentityRepository {
   }
 
   async findSessionByToken(token: string): Promise<Session | null> {
-    const row = await prisma.session.findUnique({ where: { refreshToken: token } });
+    const row = await prisma.session.findUnique({
+      where: { refreshToken: token },
+    });
     if (!row) return null;
     return {
       id: row.id,

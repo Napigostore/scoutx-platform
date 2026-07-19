@@ -258,12 +258,14 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
                     <span className="font-semibold text-green-800">Evidence Images:</span>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       {mission.submission.mediaUrls.map((url, idx) => (
-                        <img
-                          key={idx}
-                          src={url}
-                          alt="Evidence"
-                          className="max-h-48 rounded-lg border border-green-100 object-cover"
-                        />
+                        <div key={idx}>
+                          {}
+                          <img
+                            src={url}
+                            alt="Evidence"
+                            className="max-h-48 rounded-lg border border-green-100 object-cover"
+                          />
+                        </div>
                       ))}
                     </div>
                   </div>

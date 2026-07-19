@@ -19,7 +19,10 @@ export async function POST(request: Request) {
 
     const result = await signInUseCase.execute(email, password);
 
-    const response = NextResponse.json({ accessToken: result.accessToken });
+    const response = NextResponse.json({
+      accessToken: result.accessToken,
+    });
+
     response.cookies.set("refreshToken", result.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
