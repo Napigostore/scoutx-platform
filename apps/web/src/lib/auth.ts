@@ -5,6 +5,67 @@ import type { AuthenticatedPrincipal } from "@scoutx/auth";
 import { authConfig } from "./auth.config";
 
 /**
+ * Production environment validation for auth bootstrap.
+ *
+ * Auth.js v5 requires AUTH_SECRET (or NEXTAUTH_SECRET as fallback).
+ * Without it the /api/auth/* endpoints throw opaque 500 errors.
+ *
+ * This runs at module-load time so missing vars are surfaced immediately
+ * in Vercel build logs and runtime cold-start logs — never silently.
+ */
+function validateAuthEnv(): void {
+  const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+
+  if (!authSecret) {
+    throw new Error(
+      "[Auth] STARTUP FAILURE: Missing required environment variable.\n" +
+        "  AUTH_SECRET (or NEXTAUTH_SECRET) must be set in Vercel → Settings → Environment Variables.\n" +
+        "  Generate one with: openssl rand -base64 32",
+    );
+  }
+
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error(
+      "[Auth] STARTUP FAILURE: Missing required environment variable.\n" +
+        "  DATABASE_URL must be set in Vercel → Settings → Environment Variables.\n" +
+        "  Example: postgresql://user:password@host:5432/dbname?sslmode=require",
+    );
+  }
+
+  // AUTH_URL / NEXTAUTH_URL — required in production for correct callback URLs
+  if (process.env.NODE_ENV === "production") {
+    const authUrl =
+      process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+    if (!authUrl) {
+      throw new Error(
+        "[Auth] STARTUP FAILURE: Missing required environment variable in production.\n" +
+          "  Set one of: AUTH_URL | NEXTAUTH_URL | NEXT_PUBLIC_APP_URL\n" +
+          "  Example: https://fiwokan.com",
+      );
+    }
+  }
+}
+
+// Validate eagerly — surfaces missing vars in Vercel logs at cold-start.
+// Skipped during `next build` (NEXT_PHASE=phase-production-build) because
+// env vars are injected at runtime, not at build time on Vercel.
+if (process.env.NEXT_PHASE !== "phase-production-build") {
+  validateAuthEnv();
+}
+
+// Support both AUTH_SECRET (Auth.js v5 standard) and NEXTAUTH_SECRET (legacy)
+if (!process.env.AUTH_SECRET && process.env.NEXTAUTH_SECRET) {
+  process.env.AUTH_SECRET = process.env.NEXTAUTH_SECRET;
+}
+if (!process.env.AUTH_URL && process.env.NEXTAUTH_URL) {
+  process.env.AUTH_URL = process.env.NEXTAUTH_URL;
+}
+if (!process.env.AUTH_URL && process.env.NEXT_PUBLIC_APP_URL) {
+  process.env.AUTH_URL = process.env.NEXT_PUBLIC_APP_URL;
+}
+
+/**
  * NextAuth (Auth.js v5) instance with:
  * - Credentials provider (email + password via existing auth API)
  * - Google OAuth provider
@@ -32,7 +93,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         try {
           // Use the existing sign-in API endpoint
           const res = await fetch(
-            `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/auth/sign-in`,
+            `${process.env.AUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/auth/sign-in`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
