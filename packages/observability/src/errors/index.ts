@@ -8,8 +8,16 @@ export class AppError extends Error {
   ) {
     super(message);
     this.name = this.constructor.name;
-    if (Error.captureStackTrace) {
-      Error.captureStackTrace(this, this.constructor);
+    const capture = (
+      Error as unknown as {
+        captureStackTrace?: (
+          target: object,
+          constructorOpt?: (...args: unknown[]) => unknown,
+        ) => void;
+      }
+    ).captureStackTrace;
+    if (typeof capture === "function") {
+      capture(this, this.constructor as (...args: unknown[]) => unknown);
     }
   }
 
