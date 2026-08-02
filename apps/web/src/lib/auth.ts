@@ -117,9 +117,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           // Decode the token payload to extract user info
           let principal: AuthenticatedPrincipal;
           try {
-            const decoded = JSON.parse(
-              Buffer.from(data.accessToken.token, "base64").toString("utf-8"),
-            );
+            const tokenStr =
+              typeof data.accessToken === "string" ? data.accessToken : data.accessToken.token;
+            const payloadSegment = tokenStr.split(".")[0];
+            const decoded = JSON.parse(Buffer.from(payloadSegment, "base64url").toString("utf-8"));
             principal = decoded;
           } catch {
             return null;
