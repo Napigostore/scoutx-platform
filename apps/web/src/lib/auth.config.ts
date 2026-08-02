@@ -9,6 +9,7 @@ import type { NextAuthConfig } from "next-auth";
  * Sessions are persisted via JWT (no database sessions).
  */
 export const authConfig: NextAuthConfig = {
+  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
   providers: [],
   pages: {
     signIn: "/sign-in",
