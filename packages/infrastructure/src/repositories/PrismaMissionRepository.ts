@@ -1,4 +1,3 @@
-import { MissionStatus as PrismaStatus } from "@prisma/client";
 import type { Mission, MissionCategory, MissionUrgency, MissionStatus } from "@scoutx/types";
 import { prisma } from "../lib/prisma";
 import type {
@@ -7,50 +6,50 @@ import type {
   ResubmitSubmissionInput,
 } from "./MissionRepository";
 
-function toPrismaStatus(status: string): PrismaStatus {
+function toPrismaStatus(status: string): string {
   switch (status) {
     case "DRAFT":
-      return PrismaStatus.DRAFT;
+      return "DRAFT";
     case "OPEN":
-      return PrismaStatus.OPEN;
+      return "OPEN";
     case "MATCHED":
-      return PrismaStatus.MATCHED;
+      return "MATCHED";
     case "IN_PROGRESS":
-      return PrismaStatus.IN_PROGRESS;
+      return "IN_PROGRESS";
     case "SUBMITTED":
-      return PrismaStatus.SUBMITTED;
+      return "SUBMITTED";
     case "VERIFIED":
-      return PrismaStatus.VERIFIED;
+      return "VERIFIED";
     case "COMPLETED":
-      return PrismaStatus.COMPLETED;
+      return "COMPLETED";
     case "EXPIRED":
-      return PrismaStatus.EXPIRED;
+      return "EXPIRED";
     case "CANCELLED":
-      return PrismaStatus.CANCELLED;
+      return "CANCELLED";
     default:
-      return PrismaStatus.DRAFT;
+      return "DRAFT";
   }
 }
 
-function toDomainStatus(status: PrismaStatus): string {
+function toDomainStatus(status: string): string {
   switch (status) {
-    case PrismaStatus.DRAFT:
+    case "DRAFT":
       return "DRAFT";
-    case PrismaStatus.OPEN:
+    case "OPEN":
       return "OPEN";
-    case PrismaStatus.MATCHED:
+    case "MATCHED":
       return "MATCHED";
-    case PrismaStatus.IN_PROGRESS:
+    case "IN_PROGRESS":
       return "IN_PROGRESS";
-    case PrismaStatus.SUBMITTED:
+    case "SUBMITTED":
       return "SUBMITTED";
-    case PrismaStatus.VERIFIED:
+    case "VERIFIED":
       return "VERIFIED";
-    case PrismaStatus.COMPLETED:
+    case "COMPLETED":
       return "COMPLETED";
-    case PrismaStatus.EXPIRED:
+    case "EXPIRED":
       return "EXPIRED";
-    case PrismaStatus.CANCELLED:
+    case "CANCELLED":
       return "CANCELLED";
     default:
       return "DRAFT";
@@ -65,7 +64,8 @@ export class PrismaMissionRepository implements MissionRepository {
         title: mission.title,
         description: mission.description,
         category: mission.category,
-        status: toPrismaStatus(mission.status),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        status: toPrismaStatus(mission.status) as any,
         urgency: mission.urgency,
         budgetCents: mission.budget.amountCents,
         currency: mission.budget.currency,
@@ -152,7 +152,8 @@ export class PrismaMissionRepository implements MissionRepository {
         title: mission.title,
         description: mission.description,
         category: mission.category,
-        status: toPrismaStatus(mission.status),
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        status: toPrismaStatus(mission.status) as any,
         urgency: mission.urgency,
         budgetCents: mission.budget.amountCents,
         currency: mission.budget.currency,
@@ -171,7 +172,7 @@ export class PrismaMissionRepository implements MissionRepository {
   async findAvailable(): Promise<readonly Mission[]> {
     const rows = await prisma.mission.findMany({
       where: {
-        status: PrismaStatus.OPEN,
+        status: "OPEN",
         assignedScoutId: null,
         expiresAt: { gt: new Date() },
       },
@@ -214,12 +215,12 @@ export class PrismaMissionRepository implements MissionRepository {
     const result = await prisma.mission.updateMany({
       where: {
         id: missionId,
-        status: PrismaStatus.OPEN,
+        status: "OPEN",
         assignedScoutId: null,
         expiresAt: { gt: new Date() },
       },
       data: {
-        status: PrismaStatus.MATCHED,
+        status: "MATCHED",
         assignedScoutId: scoutProfile.id,
       },
     });
@@ -275,11 +276,11 @@ export class PrismaMissionRepository implements MissionRepository {
     const result = await prisma.mission.updateMany({
       where: {
         id: missionId,
-        status: PrismaStatus.MATCHED,
+        status: "MATCHED",
         assignedScoutId: scoutProfile.id,
       },
       data: {
-        status: PrismaStatus.IN_PROGRESS,
+        status: "IN_PROGRESS",
       },
     });
     return result.count > 0;
@@ -305,11 +306,11 @@ export class PrismaMissionRepository implements MissionRepository {
       const result = await tx.mission.updateMany({
         where: {
           id: missionId,
-          status: PrismaStatus.IN_PROGRESS,
+          status: "IN_PROGRESS",
           assignedScoutId: scoutProfile.id,
         },
         data: {
-          status: PrismaStatus.SUBMITTED,
+          status: "SUBMITTED",
         },
       });
 
@@ -350,10 +351,10 @@ export class PrismaMissionRepository implements MissionRepository {
         where: {
           id: missionId,
           requesterId,
-          status: PrismaStatus.SUBMITTED,
+          status: "SUBMITTED",
         },
         data: {
-          status: PrismaStatus.VERIFIED,
+          status: "VERIFIED",
         },
       });
 
@@ -390,10 +391,10 @@ export class PrismaMissionRepository implements MissionRepository {
         where: {
           id: missionId,
           requesterId,
-          status: PrismaStatus.SUBMITTED,
+          status: "SUBMITTED",
         },
         data: {
-          status: PrismaStatus.IN_PROGRESS,
+          status: "IN_PROGRESS",
         },
       });
 
@@ -434,11 +435,11 @@ export class PrismaMissionRepository implements MissionRepository {
       const missionResult = await tx.mission.updateMany({
         where: {
           id: missionId,
-          status: PrismaStatus.IN_PROGRESS,
+          status: "IN_PROGRESS",
           assignedScoutId: scoutProfile.id,
         },
         data: {
-          status: PrismaStatus.SUBMITTED,
+          status: "SUBMITTED",
         },
       });
 

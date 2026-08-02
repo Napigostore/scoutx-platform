@@ -1,5 +1,4 @@
 import { prisma } from "../lib/prisma";
-import type { Prisma } from "@prisma/client";
 import type {
   TimelineEntryRecord,
   CreateTimelineEntryInput,
@@ -22,7 +21,8 @@ export class PrismaTimelineRepository implements TimelineRepository {
         eventType: input.eventType,
         summary: input.summary,
         actorId: input.actorId ?? null,
-        metadata: (input.metadata ?? undefined) as Prisma.InputJsonValue,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        metadata: (input.metadata ?? undefined) as any,
       },
     });
     return {

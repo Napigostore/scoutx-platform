@@ -214,6 +214,9 @@ importers:
       '@scoutx/typescript-config':
         specifier: workspace:*
         version: link:../../config/typescript
+      '@types/node':
+        specifier: ^22.13.0
+        version: 22.20.1
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -336,6 +339,9 @@ importers:
       '@scoutx/typescript-config':
         specifier: workspace:*
         version: link:../../config/typescript
+      '@types/node':
+        specifier: ^22.13.0
+        version: 22.20.1
       prisma:
         specifier: ^6.2.1
         version: 6.19.3(typescript@5.9.3)
@@ -456,6 +462,9 @@ importers:
       '@scoutx/typescript-config':
         specifier: workspace:*
         version: link:../../config/typescript
+      '@types/node':
+        specifier: ^22.13.0
+        version: 22.20.1
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
