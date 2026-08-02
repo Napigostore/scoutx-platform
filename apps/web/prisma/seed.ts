@@ -134,6 +134,31 @@ async function main() {
   });
   console.log("Seeded Coin Transaction:", coinTx2.id);
 
+  // 6.5. Seed Sample Mission (referenced by evidence, timeline, and trust actions)
+  const mission = await prisma.mission.upsert({
+    where: { id: "44444444-4444-4444-8444-444444444401" },
+    update: {},
+    create: {
+      id: "44444444-4444-4444-8444-444444444401",
+      title: "Sample Shibuya Crossing Mission",
+      description: "Verify pedestrian density at Shibuya scramble crossing.",
+      category: "CROWD_DENSITY",
+      status: "OPEN",
+      urgency: "NORMAL",
+      budgetCents: 5000,
+      currency: "USD",
+      locationId: location.id,
+      latitude: 35.6595,
+      longitude: 139.7005,
+      radiusMeters: 1500,
+      requesterId: requester.id,
+      assignedScoutId: scoutProfile.id,
+      requiredTags: ["shibuya", "photo"],
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+  console.log("Seeded Mission:", mission.id);
+
   // 7. Seed Evidence
   const evidence = await prisma.evidence.upsert({
     where: { id: "00000000-0000-0000-0000-000000000020" },
