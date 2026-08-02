@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { PrismaMissionRepository } from "@scoutx/infrastructure";
 import { ClaimMissionUseCase } from "@scoutx/application";
-import { SimpleTokenVerifier } from "@scoutx/auth";
+import { SimpleTokenVerifier, requireEnv } from "@scoutx/auth";
 import { GetCurrentUserUseCase } from "@scoutx/application";
 
-const tokenVerifier = new SimpleTokenVerifier(process.env.JWT_SECRET || "default-secret");
+const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
 const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
 const missionRepo = new PrismaMissionRepository();
 const claimMissionUseCase = new ClaimMissionUseCase(missionRepo);

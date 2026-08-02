@@ -9,6 +9,7 @@ import {
   ResilienceHelper,
   SecurityService,
 } from "../index";
+import { requireEnv } from "@scoutx/auth";
 
 /* ─── PART 4: Unified Configuration System ─── */
 
@@ -29,8 +30,14 @@ export class ConfigService {
     this.config = {
       env,
       port: Number(envVars.PORT) || 3000,
-      databaseUrl: envVars.DATABASE_URL || "postgresql://localhost:5432/scoutx",
-      jwtSecret: envVars.JWT_SECRET || "default-enterprise-secret-key-12345",
+      databaseUrl:
+        envVars.DATABASE_URL ||
+        (env === "production"
+          ? requireEnv("DATABASE_URL")
+          : "postgresql://localhost:5432/fiwokan_dev"),
+      jwtSecret:
+        envVars.JWT_SECRET ||
+        (env === "production" ? requireEnv("JWT_SECRET") : "dev_jwt_secret_key_12345"),
       enableAnalytics: envVars.ENABLE_ANALYTICS !== "false",
       enableScheduler: envVars.ENABLE_SCHEDULER !== "false",
     };

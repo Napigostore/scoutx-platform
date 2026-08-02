@@ -1,11 +1,7 @@
 import { NextResponse } from "next/server";
 import { PrismaIdentityRepository } from "@scoutx/infrastructure";
-import { SimpleTokenVerifier } from "@scoutx/auth";
+import { SimpleTokenVerifier, requireEnv } from "@scoutx/auth";
 import { RefreshSessionUseCase } from "@scoutx/application";
-
-const identityRepo = new PrismaIdentityRepository();
-const tokenVerifier = new SimpleTokenVerifier(process.env.JWT_SECRET || "default-secret");
-const refreshSessionUseCase = new RefreshSessionUseCase(identityRepo, tokenVerifier);
 
 export async function POST(request: Request) {
   try {
@@ -18,6 +14,10 @@ export async function POST(request: Request) {
     if (!refreshToken) {
       return NextResponse.json({ error: "Refresh token is missing" }, { status: 401 });
     }
+
+    const identityRepo = new PrismaIdentityRepository();
+    const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
+    const refreshSessionUseCase = new RefreshSessionUseCase(identityRepo, tokenVerifier);
 
     const result = await refreshSessionUseCase.execute(refreshToken);
 

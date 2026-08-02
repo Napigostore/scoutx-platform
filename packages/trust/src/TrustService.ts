@@ -52,6 +52,16 @@ export class TrustService {
    * Handle a domain event and apply any trust adjustments.
    */
   async handleEvent(event: MissionDomainEvent): Promise<void> {
+    // Anti-Abuse: Prevent self-dealing trust score farming (same user as requester and scout)
+    if (
+      "scoutId" in event &&
+      "requesterId" in event &&
+      event.scoutId &&
+      event.scoutId === event.requesterId
+    ) {
+      return;
+    }
+
     const adjustment = this.policy.evaluate(event);
     if (!adjustment) {
       return;

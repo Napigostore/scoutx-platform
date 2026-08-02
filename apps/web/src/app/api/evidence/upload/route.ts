@@ -3,15 +3,24 @@ import { authenticate } from "@/lib/auth-helpers";
 import { apiError } from "@/lib/error-mapper";
 import { InMemoryEventBus } from "@scoutx/events";
 import { LocalStorageProvider, UploadService } from "@scoutx/storage";
+import { EvidenceFileValidator } from "@scoutx/application";
+import { prisma } from "@/lib/prisma";
+import path from "node:path";
 
 const storageProvider = new LocalStorageProvider("./data/evidence");
 const eventBus = new InMemoryEventBus();
 const uploadService = new UploadService({ storageProvider, eventBus });
 
 export async function POST(request: Request) {
+  // 1. Authentication check
   const principal = await authenticate(request);
   if (!principal) {
     return apiError("Unauthorized", 401);
+  }
+
+  // 2. Authorization check: Only scouts (or admins) can upload evidence
+  if (principal.role !== "SCOUT" && principal.role !== "ADMIN") {
+    return apiError("Forbidden: Only scouts can upload mission evidence", 403);
   }
 
   try {
@@ -23,11 +32,40 @@ export async function POST(request: Request) {
       return apiError("file and missionId are required", 422);
     }
 
+    // 3. Mission ownership & assignment check
+    if (principal.role === "SCOUT") {
+      const mission = await prisma.mission.findUnique({
+        where: { id: missionId },
+        select: { id: true, assignedScoutId: true, status: true },
+      });
+
+      if (!mission) {
+        return apiError("Mission not found", 404);
+      }
+
+      if (mission.assignedScoutId && mission.assignedScoutId !== principal.id) {
+        return apiError("Forbidden: Mission is assigned to another scout", 403);
+      }
+    }
+
+    // 4. File sanitization & path traversal prevention
+    const sanitizedFileName = path.basename(file.name).replace(/[^a-zA-Z0-9._-]/g, "_");
+
+    // 5. File type and size validation
+    const mimeType = file.type || "application/octet-stream";
     const buffer = Buffer.from(await file.arrayBuffer());
 
+    try {
+      EvidenceFileValidator.validate(sanitizedFileName, mimeType, buffer.length);
+    } catch (valErr) {
+      const message = valErr instanceof Error ? valErr.message : "Invalid evidence file";
+      return apiError(message, 422);
+    }
+
+    // 6. Execute secure upload
     const result = await uploadService.upload(buffer, {
-      fileName: file.name,
-      mimeType: file.type || "application/octet-stream",
+      fileName: sanitizedFileName,
+      mimeType,
       bytes: buffer.length,
       missionId,
       scoutId: principal.id,

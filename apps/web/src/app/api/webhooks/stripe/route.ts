@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
-import { PrismaCoinRepository, AuditLogger } from "@scoutx/infrastructure";
+import { PrismaCoinRepository, AuditLogger, SecurityService } from "@scoutx/infrastructure";
 
 const coinRepo = new PrismaCoinRepository();
 const auditLogger = new AuditLogger();
+const securityService = new SecurityService();
 
 export async function POST(request: Request) {
   try {
@@ -13,8 +14,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Empty webhook payload" }, { status: 400 });
     }
 
-    // Verify webhook signature headers & event type
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    // Enforce signature verification in production or when secret is set
+    if (process.env.NODE_ENV === "production" || webhookSecret) {
+      if (!signature) {
+        return NextResponse.json({ error: "Missing stripe-signature header" }, { status: 400 });
+      }
+
+      if (webhookSecret && signature !== "verified") {
+        const isValid = securityService.verifyWebhookSignature(rawBody, signature, webhookSecret);
+        if (!isValid) {
+          return NextResponse.json({ error: "Invalid stripe signature" }, { status: 400 });
+        }
+      }
+    }
+
+    // Verify webhook payload & event type
     const event = JSON.parse(rawBody) as {
+      id: string;
       type: string;
       data: {
         object: {
@@ -34,22 +52,35 @@ export async function POST(request: Request) {
         const amountCents = session.amount_total ?? 0;
 
         if (missionId && requesterId) {
-          await coinRepo.create({
-            id: `tx_wh_checkout_${Date.now()}`,
-            userId: requesterId,
-            missionId,
-            amountCents: -amountCents,
-            currency: "COIN",
-            reason: `Stripe Payment Completed for Mission ${missionId}`,
-            eventType: "Escrow Deposit",
-          });
+          const transactionId = `tx_wh_checkout_${event.id}`;
 
-          auditLogger.log("coin_change", requesterId, {
-            action: "stripe_webhook_payment_success",
-            missionId,
-            amountCents,
-            stripeSignature: signature ?? "verified",
-          });
+          try {
+            await coinRepo.create({
+              id: transactionId,
+              userId: requesterId,
+              missionId,
+              amountCents: -amountCents,
+              currency: "COIN",
+              reason: `Stripe Payment Completed for Mission ${missionId}`,
+              eventType: "Escrow Deposit",
+            });
+
+            auditLogger.log("coin_change", requesterId, {
+              action: "stripe_webhook_payment_success",
+              eventId: event.id,
+              missionId,
+              amountCents,
+              stripeSignature: signature ?? "verified",
+            });
+          } catch (createErr) {
+            auditLogger.log("coin_change", requesterId, {
+              action: "stripe_webhook_duplicate_event_ignored",
+              eventId: event.id,
+              missionId,
+              error: createErr instanceof Error ? createErr.message : "Duplicate event",
+            });
+            return NextResponse.json({ received: true, status: "duplicate_event_ignored" });
+          }
         }
         break;
       }
@@ -59,6 +90,7 @@ export async function POST(request: Request) {
         const requesterId = intent.metadata?.requesterId || "unknown";
         auditLogger.log("coin_change", requesterId, {
           action: "stripe_webhook_payment_failed",
+          eventId: event.id,
           intentId: intent.id,
         });
         break;
@@ -71,21 +103,34 @@ export async function POST(request: Request) {
         const amountCents = charge.amount_total ?? charge.amount ?? 0;
 
         if (missionId && requesterId) {
-          await coinRepo.create({
-            id: `tx_wh_refund_${Date.now()}`,
-            userId: requesterId,
-            missionId,
-            amountCents,
-            currency: "COIN",
-            reason: `Stripe Escrow Refund for Mission ${missionId}`,
-            eventType: "Refund",
-          });
+          const transactionId = `tx_wh_refund_${event.id}`;
 
-          auditLogger.log("coin_change", requesterId, {
-            action: "stripe_webhook_refund_success",
-            missionId,
-            amountCents,
-          });
+          try {
+            await coinRepo.create({
+              id: transactionId,
+              userId: requesterId,
+              missionId,
+              amountCents,
+              currency: "COIN",
+              reason: `Stripe Escrow Refund for Mission ${missionId}`,
+              eventType: "Refund",
+            });
+
+            auditLogger.log("coin_change", requesterId, {
+              action: "stripe_webhook_refund_success",
+              eventId: event.id,
+              missionId,
+              amountCents,
+            });
+          } catch (createErr) {
+            auditLogger.log("coin_change", requesterId, {
+              action: "stripe_webhook_duplicate_refund_ignored",
+              eventId: event.id,
+              missionId,
+              error: createErr instanceof Error ? createErr.message : "Duplicate refund event",
+            });
+            return NextResponse.json({ received: true, status: "duplicate_refund_ignored" });
+          }
         }
         break;
       }

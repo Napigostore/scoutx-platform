@@ -14,6 +14,7 @@ import type { CoinTransaction } from "./CoinTransaction.js";
  *
  * Reward and refund amounts are taken directly from the event's Money value
  * objects. The engine publishes typed coin events (coin.released / coin.refunded).
+ * Mutual exclusivity guarantee: a mission cannot be both rewarded and refunded.
  */
 export class CoinService {
   constructor(
@@ -40,9 +41,17 @@ export class CoinService {
   /**
    * On mission.approved: reward the scout with the mission's budget amount.
    * Publishes a coin.released event (only if the transaction was recorded,
-   * i.e. not a duplicate).
+   * i.e. not a duplicate and not previously refunded).
    */
   async handleApproved(event: MissionApprovedEvent): Promise<void> {
+    // Financial Security: Verify mission has not already been refunded
+    const existingRefund = await this.ledger.findById(
+      `refund-mission.cancelled-${event.missionId}`,
+    );
+    if (existingRefund) {
+      return;
+    }
+
     const amount = event.rewardAmount;
     const txId = `reward-mission.approved-${event.missionId}`;
 
@@ -75,9 +84,15 @@ export class CoinService {
   /**
    * On mission.cancelled: refund the requester's escrowed budget.
    * Publishes a coin.refunded event (only if the transaction was recorded,
-   * i.e. not a duplicate).
+   * i.e. not a duplicate and not previously rewarded).
    */
   async handleCancelled(event: MissionCancelledEvent): Promise<void> {
+    // Financial Security: Verify mission has not already been rewarded/released
+    const existingReward = await this.ledger.findById(`reward-mission.approved-${event.missionId}`);
+    if (existingReward) {
+      return;
+    }
+
     const amount = event.refundAmount;
     const txId = `refund-mission.cancelled-${event.missionId}`;
 

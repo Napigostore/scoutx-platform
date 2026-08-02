@@ -15,6 +15,11 @@ export class ClaimMissionUseCase {
       throw new Error("Mission not found");
     }
 
+    // Anti-Abuse: Prevent requesters from claiming their own missions (self-dealing)
+    if (mission.requesterId === scoutId) {
+      throw new AuthorizationError("Requesters cannot claim their own missions");
+    }
+
     if (mission.status !== "OPEN") {
       throw new Error("Mission is not available for claiming");
     }

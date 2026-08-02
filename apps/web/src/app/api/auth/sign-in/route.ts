@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server";
 import { PrismaIdentityRepository } from "@scoutx/infrastructure";
-import { SimplePasswordHasher, SimpleTokenVerifier } from "@scoutx/auth";
+import { SimplePasswordHasher, SimpleTokenVerifier, requireEnv } from "@scoutx/auth";
 import { SignInUseCase } from "@scoutx/application";
-
-const identityRepo = new PrismaIdentityRepository();
-const passwordHasher = new SimplePasswordHasher();
-const tokenVerifier = new SimpleTokenVerifier(process.env.JWT_SECRET || "default-secret");
-const signInUseCase = new SignInUseCase(identityRepo, passwordHasher, tokenVerifier);
 
 export async function POST(request: Request) {
   try {
@@ -16,6 +11,11 @@ export async function POST(request: Request) {
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
+
+    const identityRepo = new PrismaIdentityRepository();
+    const passwordHasher = new SimplePasswordHasher();
+    const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
+    const signInUseCase = new SignInUseCase(identityRepo, passwordHasher, tokenVerifier);
 
     const result = await signInUseCase.execute(email, password);
 

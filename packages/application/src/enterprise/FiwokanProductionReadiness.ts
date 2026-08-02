@@ -1,4 +1,5 @@
 import type { AuditLogger } from "@scoutx/infrastructure";
+import { requireEnv } from "@scoutx/auth";
 
 /* ─── 1. Fiwokan Production Env Validation ─── */
 
@@ -44,15 +45,20 @@ export class FiwokanEnvValidator {
     }
 
     return {
-      databaseUrl: envVars.DATABASE_URL || "postgresql://localhost:5432/fiwokan",
-      stripeSecretKey: envVars.STRIPE_SECRET_KEY || "sk_test_mock_key_12345",
-      stripeWebhookSecret: envVars.STRIPE_WEBHOOK_SECRET || "whsec_mock_key_12345",
-      resendApiKey: envVars.RESEND_API_KEY || "re_mock_key_12345",
-      cloudflareR2Key: envVars.CLOUDFLARE_R2_ACCESS_KEY_ID || "r2_mock_key",
-      cloudflareR2Secret: envVars.CLOUDFLARE_R2_SECRET_ACCESS_KEY || "r2_mock_secret",
+      databaseUrl:
+        envVars.DATABASE_URL ||
+        (isProduction ? requireEnv("DATABASE_URL") : "postgresql://localhost:5432/fiwokan"),
+      stripeSecretKey: envVars.STRIPE_SECRET_KEY || "",
+      stripeWebhookSecret: envVars.STRIPE_WEBHOOK_SECRET || "",
+      resendApiKey: envVars.RESEND_API_KEY || "",
+      cloudflareR2Key: envVars.CLOUDFLARE_R2_ACCESS_KEY_ID || "",
+      cloudflareR2Secret: envVars.CLOUDFLARE_R2_SECRET_ACCESS_KEY || "",
       cloudflareR2Bucket: envVars.CLOUDFLARE_R2_BUCKET || "fiwokan-evidence-bucket",
-      baseUrl: envVars.NEXT_PUBLIC_APP_URL || "https://fiwokan.com",
-      jwtSecret: envVars.JWT_SECRET || "fiwokan-beta-jwt-secret-key-999",
+      baseUrl:
+        envVars.NEXT_PUBLIC_APP_URL ||
+        (isProduction ? requireEnv("NEXT_PUBLIC_APP_URL") : "https://fiwokan.com"),
+      jwtSecret:
+        envVars.JWT_SECRET || (isProduction ? requireEnv("JWT_SECRET") : "fiwokan-dev-jwt-secret"),
       isProduction,
     };
   }

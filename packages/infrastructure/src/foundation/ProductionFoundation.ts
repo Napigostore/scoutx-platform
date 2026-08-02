@@ -1,3 +1,5 @@
+import { requireEnv } from "@scoutx/auth";
+
 export interface AppConfig {
   env: "development" | "staging" | "production";
   port: number;
@@ -12,9 +14,15 @@ export class ProductionFoundation {
    * Validates environmental configuration on boot.
    */
   public static validateConfig(raw: Record<string, string | undefined>): AppConfig {
-    const databaseUrl = raw.DATABASE_URL || "postgresql://localhost:5432/scoutx";
-    const jwtSecret = raw.JWT_SECRET || "default-dev-secret-key-12345";
     const env = (raw.NODE_ENV as AppConfig["env"]) || "development";
+    const databaseUrl =
+      raw.DATABASE_URL ||
+      (env === "production"
+        ? requireEnv("DATABASE_URL")
+        : "postgresql://localhost:5432/fiwokan_dev");
+    const jwtSecret =
+      raw.JWT_SECRET ||
+      (env === "production" ? requireEnv("JWT_SECRET") : "dev_jwt_secret_key_12345");
     const port = Number(raw.PORT) || 3000;
 
     return {

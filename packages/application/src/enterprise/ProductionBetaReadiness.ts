@@ -1,5 +1,6 @@
 import type { AuditLogger } from "@scoutx/infrastructure";
 import type { EventQueue } from "../foundation/EventQueue";
+import { requireEnv } from "@scoutx/auth";
 
 /* ─── 1 & 2. Centralized Production Config & Secrets Validation ─── */
 
@@ -32,8 +33,12 @@ export class ProductionConfigValidator {
 
     return {
       env,
-      databaseUrl: envVars.DATABASE_URL || "postgresql://localhost:5432/scoutx",
-      jwtSecret: envVars.JWT_SECRET || "default-beta-jwt-secret-key-12345",
+      databaseUrl:
+        envVars.DATABASE_URL ||
+        (env === "production" ? requireEnv("DATABASE_URL") : "postgresql://localhost:5432/scoutx"),
+      jwtSecret:
+        envVars.JWT_SECRET ||
+        (env === "production" ? requireEnv("JWT_SECRET") : "beta-dev-jwt-secret"),
       stripeSecretKey: envVars.STRIPE_SECRET_KEY,
       stripeWebhookSecret: envVars.STRIPE_WEBHOOK_SECRET,
       cloudflareR2Key: envVars.CLOUDFLARE_R2_ACCESS_KEY_ID,
@@ -130,16 +135,37 @@ export class SecureAdminService {
   constructor(
     private readonly auditLogger: AuditLogger,
     private readonly eventQueue: EventQueue,
+    private readonly authChecker?: (adminUserId: string) => boolean,
   ) {}
 
-  private verifyAdminAuth(adminUserId: string): void {
-    if (!adminUserId || !adminUserId.startsWith("admin_")) {
+  private verifyAdminAuth(adminUserId: string, callerRole?: string): void {
+    if (!adminUserId) {
+      throw new StandardDomainError("FORBIDDEN", "Admin authorization required for this operation");
+    }
+    if (this.authChecker) {
+      if (!this.authChecker(adminUserId)) {
+        throw new StandardDomainError(
+          "FORBIDDEN",
+          "Admin authorization required for this operation",
+        );
+      }
+      return;
+    }
+    if (callerRole && callerRole !== "ADMIN") {
+      throw new StandardDomainError("FORBIDDEN", "Admin authorization required for this operation");
+    }
+    if (!adminUserId.startsWith("admin_") && callerRole !== "ADMIN") {
       throw new StandardDomainError("FORBIDDEN", "Admin authorization required for this operation");
     }
   }
 
-  public freezeWallet(adminUserId: string, targetUserId: string, reason: string): void {
-    this.verifyAdminAuth(adminUserId);
+  public freezeWallet(
+    adminUserId: string,
+    targetUserId: string,
+    reason: string,
+    callerRole?: string,
+  ): void {
+    this.verifyAdminAuth(adminUserId, callerRole);
     this.frozenWallets.add(targetUserId);
 
     this.auditLogger.log("admin_action", adminUserId, {
@@ -149,8 +175,13 @@ export class SecureAdminService {
     });
   }
 
-  public suspendUser(adminUserId: string, targetUserId: string, reason: string): void {
-    this.verifyAdminAuth(adminUserId);
+  public suspendUser(
+    adminUserId: string,
+    targetUserId: string,
+    reason: string,
+    callerRole?: string,
+  ): void {
+    this.verifyAdminAuth(adminUserId, callerRole);
     this.suspendedUsers.add(targetUserId);
 
     this.auditLogger.log("admin_action", adminUserId, {

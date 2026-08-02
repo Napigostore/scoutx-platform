@@ -6,11 +6,11 @@ import {
   ConflictError,
   GetCurrentUserUseCase,
 } from "@scoutx/application";
-import { SimpleTokenVerifier, AuthorizationError } from "@scoutx/auth";
+import { SimpleTokenVerifier, AuthorizationError, requireEnv } from "@scoutx/auth";
 import { InMemoryEventBus } from "@scoutx/events";
 import { prisma } from "@/lib/prisma";
 
-const tokenVerifier = new SimpleTokenVerifier(process.env.JWT_SECRET || "default-secret");
+const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
 const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
 const missionRepo = new PrismaMissionRepository();
 const rejectMissionSubmissionUseCase = new RejectMissionSubmissionUseCase(

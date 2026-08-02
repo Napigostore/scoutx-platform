@@ -18,6 +18,34 @@ export interface AuditLogRecord {
 export class AuditLogger {
   private logs: AuditLogRecord[] = [];
 
+  private sanitizeDetails(details: Record<string, unknown>): Record<string, unknown> {
+    const sensitiveKeys = [
+      "password",
+      "secret",
+      "token",
+      "jwt",
+      "apikey",
+      "stripe",
+      "key",
+      "authorization",
+      "signature",
+    ];
+    const sanitized: Record<string, unknown> = {};
+
+    for (const [key, value] of Object.entries(details)) {
+      const lowerKey = key.toLowerCase();
+      if (sensitiveKeys.some((s) => lowerKey.includes(s))) {
+        sanitized[key] = "[REDACTED]";
+      } else if (value && typeof value === "object" && value !== null && !Array.isArray(value)) {
+        sanitized[key] = this.sanitizeDetails(value as Record<string, unknown>);
+      } else {
+        sanitized[key] = value;
+      }
+    }
+
+    return sanitized;
+  }
+
   public log(
     category: AuditActionCategory,
     actorId: string,
@@ -29,7 +57,7 @@ export class AuditLogger {
       category,
       actorId,
       targetId,
-      details,
+      details: this.sanitizeDetails(details),
       timestamp: new Date(),
     };
     this.logs.push(record);

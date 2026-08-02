@@ -1,9 +1,6 @@
 import { NextResponse } from "next/server";
-import { SimpleTokenVerifier } from "@scoutx/auth";
+import { SimpleTokenVerifier, requireEnv } from "@scoutx/auth";
 import { GetCurrentUserUseCase } from "@scoutx/application";
-
-const tokenVerifier = new SimpleTokenVerifier(process.env.JWT_SECRET || "default-secret");
-const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
 
 export async function GET(request: Request) {
   try {
@@ -14,6 +11,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Access token is missing" }, { status: 401 });
     }
 
+    const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
+    const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
     const principal = await getCurrentUserUseCase.execute(token);
     return NextResponse.json({ principal });
   } catch (error) {
