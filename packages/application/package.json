@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@scoutx/domain": "workspace:*",
+    "@scoutx/events": "workspace:*",
     "@scoutx/auth": "workspace:*",
     "@scoutx/infrastructure": "workspace:*",
     "@scoutx/types": "workspace:*",

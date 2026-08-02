@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { PrismaMissionRepository } from "@scoutx/infrastructure";
-import { CancelMissionUseCase } from "@scoutx/application";
+import { CancelMissionUseCase, GetCurrentUserUseCase } from "@scoutx/application";
 import { SimpleTokenVerifier } from "@scoutx/auth";
-import { GetCurrentUserUseCase } from "@scoutx/application";
+import { InMemoryEventBus } from "@scoutx/events";
 import { prisma } from "@/lib/prisma";
 
 const tokenVerifier = new SimpleTokenVerifier(process.env.JWT_SECRET || "default-secret");
 const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
 const missionRepo = new PrismaMissionRepository();
-const cancelMissionUseCase = new CancelMissionUseCase(missionRepo);
+const cancelMissionUseCase = new CancelMissionUseCase(missionRepo, new InMemoryEventBus());
 
 async function authenticate(request: Request) {
   const authHeader = request.headers.get("authorization") || "";

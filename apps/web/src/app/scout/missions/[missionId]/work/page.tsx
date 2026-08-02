@@ -5,6 +5,18 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Input, Label } from "@scoutx/ui";
 
+interface Submission {
+  id: string;
+  summary: string;
+  mediaUrls: string[];
+  observedAt: string;
+  latitude: number;
+  longitude: number;
+  verified?: boolean;
+  reviewedAt?: string | null;
+  rejectionReason?: string | null;
+}
+
 interface Mission {
   id: string;
   title: string;
@@ -34,6 +46,7 @@ export default function ScoutMissionWorkPage({
   const router = useRouter();
   const { missionId } = use(params);
   const [mission, setMission] = useState<Mission | null>(null);
+  const [submission, setSubmission] = useState<Submission | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [isStarting, setIsStarting] = useState(false);
@@ -46,34 +59,57 @@ export default function ScoutMissionWorkPage({
   );
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
+  const [observedAt, setObservedAt] = useState(new Date().toISOString().slice(0, 16));
+
+  const getToken = () => localStorage.getItem("accessToken");
+
+  const fetchData = async () => {
+    const token = getToken();
+    if (!token) return;
+
+    try {
+      // Fetch mission assignment
+      const missionRes = await fetch(`/api/scout/missions/${missionId}/assignment`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const missionData = await missionRes.json();
+      if (!missionRes.ok) throw new Error(missionData.error || "Failed to fetch mission details");
+      setMission(missionData);
+      setLatitude((missionData.coordinates?.latitude ?? "").toString());
+      setLongitude((missionData.coordinates?.longitude ?? "").toString());
+
+      // Fetch submission data
+      const subRes = await fetch(`/api/missions/${missionId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (subRes.ok) {
+        const subData = await subRes.json();
+        if (subData.submission) {
+          setSubmission(subData.submission);
+          setSummary(subData.submission.summary || "");
+          setMediaUrls((subData.submission.mediaUrls || []).join(", "));
+          setLatitude((subData.submission.latitude ?? "").toString());
+          setLongitude((subData.submission.longitude ?? "").toString());
+          if (subData.submission.observedAt) {
+            setObservedAt(new Date(subData.submission.observedAt).toISOString().slice(0, 16));
+          }
+        }
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = getToken();
     if (!token) {
       router.push("/sign-in");
       return;
     }
-
-    fetch(`/api/scout/missions/${missionId}/assignment`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to fetch mission details");
-        }
-        setMission(data);
-        setLatitude(data.coordinates.latitude.toString());
-        setLongitude(data.coordinates.longitude.toString());
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [missionId, router]);
 
   const handleStart = async () => {
@@ -131,6 +167,7 @@ export default function ScoutMissionWorkPage({
       mediaUrls: urls,
       latitude: lat,
       longitude: lng,
+      observedAt: new Date(observedAt).toISOString(),
     };
 
     try {
@@ -148,7 +185,8 @@ export default function ScoutMissionWorkPage({
         throw new Error(data.error || "Failed to submit mission");
       }
 
-      alert("Mission report submitted successfully!");
+      const label = submission ? "Resubmitted" : "Submitted";
+      alert(`Mission report ${label.toLowerCase()} successfully!`);
       router.push("/scout/missions/assigned");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
@@ -181,13 +219,25 @@ export default function ScoutMissionWorkPage({
   const isMatched = mission.status === "MATCHED";
   const isInProgress = mission.status === "IN_PROGRESS";
   const isSubmitted = mission.status === "SUBMITTED";
+  const hasExistingSubmission = submission !== null;
+  const hasRejectionReason = hasExistingSubmission && !!submission?.rejectionReason;
+
+  const submitButtonLabel = (() => {
+    if (isSubmitting) return "Submitting...";
+    if (hasExistingSubmission) return "Resubmit Report";
+    return "Submit Report";
+  })();
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between border-b border-[var(--scoutx-border)] pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                isSubmitted ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"
+              }`}
+            >
               {mission.status}
             </span>
             <span className="text-sm text-[var(--scoutx-muted-foreground)]">
@@ -219,10 +269,25 @@ export default function ScoutMissionWorkPage({
             </p>
           </div>
 
-          {isInProgress && (
+          {hasRejectionReason && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <strong>Submission was rejected.</strong> Please review the reason below, update your
+              report, and resubmit.
+              <div className="mt-2 rounded-md border border-red-100 bg-white p-3">
+                <strong>Reason:</strong> {submission!.rejectionReason}
+                {submission!.reviewedAt && (
+                  <div className="mt-1 text-xs text-gray-500">
+                    Reviewed at: {new Date(submission!.reviewedAt).toLocaleString()}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {(isInProgress || hasRejectionReason) && (
             <div className="rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-[var(--scoutx-foreground)]">
-                Submit Mission Report
+                {hasExistingSubmission ? "Resubmit Mission Report" : "Submit Mission Report"}
               </h3>
               <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                 {error && (
@@ -284,8 +349,20 @@ export default function ScoutMissionWorkPage({
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="observedAt">Observed At (date and time)</Label>
+                  <Input
+                    id="observedAt"
+                    type="datetime-local"
+                    required
+                    value={observedAt}
+                    onChange={(e) => setObservedAt(e.target.value)}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? "Submitting Report..." : "Submit Report"}
+                  {submitButtonLabel}
                 </Button>
               </form>
             </div>
@@ -307,7 +384,7 @@ export default function ScoutMissionWorkPage({
               Budget
             </span>
             <p className="mt-1 text-3xl font-bold text-[var(--scoutx-foreground)]">
-              \${(mission.budget.amountCents / 100).toFixed(2)}
+              ${(mission.budget.amountCents / 100).toFixed(2)}
             </p>
           </div>
 

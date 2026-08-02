@@ -1,0 +1,73 @@
+import { NextResponse } from "next/server";
+import { PrismaMissionRepository } from "@scoutx/infrastructure";
+import {
+  ApproveMissionSubmissionUseCase,
+  GetCurrentUserUseCase,
+  NotFoundError,
+  ConflictError,
+} from "@scoutx/application";
+import { SimpleTokenVerifier, AuthorizationError } from "@scoutx/auth";
+import { InMemoryEventBus } from "@scoutx/events";
+import { prisma } from "@/lib/prisma";
+
+const tokenVerifier = new SimpleTokenVerifier(process.env.JWT_SECRET || "default-secret");
+const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
+const missionRepo = new PrismaMissionRepository();
+const approveMissionSubmissionUseCase = new ApproveMissionSubmissionUseCase(
+  missionRepo,
+  new InMemoryEventBus(),
+);
+
+async function authenticate(request: Request) {
+  const authHeader = request.headers.get("authorization") || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
+  if (!token) return null;
+  try {
+    return await getCurrentUserUseCase.execute(token);
+  } catch {
+    return null;
+  }
+}
+
+export async function POST(
+  request: Request,
+  { params }: { params: Promise<{ missionId: string }> },
+) {
+  const principal = await authenticate(request);
+  if (!principal) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (principal.role !== "REQUESTER") {
+    return NextResponse.json(
+      { error: "Forbidden: only requesters can approve submissions" },
+      { status: 403 },
+    );
+  }
+
+  const { missionId } = await params;
+
+  try {
+    await approveMissionSubmissionUseCase.execute(missionId, principal.id, "REQUESTER");
+
+    // Fetch updated mission with submission
+    const mission = await prisma.mission.findUnique({
+      where: { id: missionId },
+      include: { submission: true },
+    });
+
+    return NextResponse.json(mission, { status: 200 });
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return NextResponse.json({ error: error.message }, { status: 404 });
+    }
+    if (error instanceof AuthorizationError) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    if (error instanceof ConflictError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+    const message = error instanceof Error ? error.message : "Failed to approve submission";
+    return NextResponse.json({ error: message }, { status: 400 });
+  }
+}

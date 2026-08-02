@@ -82,6 +82,100 @@ async function main() {
   });
   console.log("Seeded Scout Profile:", scoutProfile.displayName);
 
+  // 5. Seed Trust Scores
+  const requesterTrust = await prisma.trustScore.upsert({
+    where: { userId: requester.id },
+    update: {},
+    create: {
+      userId: requester.id,
+      score: 80,
+    },
+  });
+  console.log("Seeded Trust Score for Requester:", requesterTrust.score);
+
+  const scoutTrust = await prisma.trustScore.upsert({
+    where: { userId: scout.id },
+    update: {},
+    create: {
+      userId: scout.id,
+      score: 90,
+    },
+  });
+  console.log("Seeded Trust Score for Scout:", scoutTrust.score);
+
+  // 6. Seed Coin Transactions
+  const coinTx1 = await prisma.coinTransaction.upsert({
+    where: { id: "00000000-0000-0000-0000-000000000010" },
+    update: {},
+    create: {
+      id: "00000000-0000-0000-0000-000000000010",
+      userId: scout.id,
+      amountCents: 5000,
+      currency: "COIN",
+      reason: "reward",
+      description: "Mission completion bonus (seed data)",
+      eventType: "seed.data",
+    },
+  });
+  console.log("Seeded Coin Transaction:", coinTx1.id);
+
+  const coinTx2 = await prisma.coinTransaction.upsert({
+    where: { id: "00000000-0000-0000-0000-000000000011" },
+    update: {},
+    create: {
+      id: "00000000-0000-0000-0000-000000000011",
+      userId: scout.id,
+      amountCents: 2500,
+      currency: "COIN",
+      reason: "reward",
+      description: "Evidence bonus (seed data)",
+      eventType: "evidence.verified",
+    },
+  });
+  console.log("Seeded Coin Transaction:", coinTx2.id);
+
+  // 7. Seed Evidence
+  const evidence = await prisma.evidence.upsert({
+    where: { id: "00000000-0000-0000-0000-000000000020" },
+    update: {},
+    create: {
+      id: "00000000-0000-0000-0000-000000000020",
+      missionId: "44444444-4444-4444-8444-444444444401",
+      scoutId: scoutProfile.id,
+      userId: scout.id,
+      caption: "Shibuya crossing pedestrian density (seed)",
+      type: "PHOTO",
+      location: "Shibuya Scramble",
+      verified: false,
+    },
+  });
+  console.log("Seeded Evidence:", evidence.id);
+
+  // 8. Seed Timeline Entries
+  const tlEntry = await prisma.timelineEntry.create({
+    data: {
+      id: "00000000-0000-0000-0000-000000000030",
+      missionId: "44444444-4444-4444-8444-444444444401",
+      eventType: "seed.data",
+      summary: "Seed data: sample timeline entry for development",
+      actorId: requester.id,
+      metadata: { source: "seed", purpose: "development" },
+    },
+  });
+  console.log("Seeded Timeline Entry:", tlEntry.id);
+
+  // 9. Seed Trust Actions
+  const trustAction = await prisma.trustActionRecord.create({
+    data: {
+      id: "00000000-0000-0000-0000-000000000040",
+      actorId: requester.id,
+      targetId: scout.id,
+      action: "ENDORSED",
+      missionId: "44444444-4444-4444-8444-444444444401",
+    },
+  });
+  console.log("Seeded Trust Action:", trustAction.id);
+
   console.log("Database seeding completed successfully!");
 }
 

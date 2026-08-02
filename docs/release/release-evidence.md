@@ -5,6 +5,7 @@ Tài liệu này lưu trữ các bằng chứng, số liệu và kết quả ki�
 ## 1. Bằng chứng kiểm thử tải Staging (K6)
 
 ### Kịch bản Load Test (20 VUs):
+
 - **Tổng số requests**: 12,450
 - **RPS trung bình**: 104
 - **Độ trễ p50**: 45ms
@@ -13,6 +14,7 @@ Tài liệu này lưu trữ các bằng chứng, số liệu và kết quả ki�
 - **Tỷ lệ lỗi**: 0%
 
 ### Kịch bản Stress Test (100 VUs):
+
 - **Tổng số requests**: 48,900
 - **RPS trung bình**: 407
 - **Độ trễ p95**: 280ms

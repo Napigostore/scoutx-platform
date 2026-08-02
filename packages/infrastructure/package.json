@@ -26,6 +26,7 @@
     "@prisma/client": "^6.2.1",
     "@scoutx/domain": "workspace:*",
     "@scoutx/recommendation-engine": "workspace:*",
+    "@scoutx/storage": "workspace:*",
     "@scoutx/types": "workspace:*",
     "@scoutx/auth": "workspace:*"
   },

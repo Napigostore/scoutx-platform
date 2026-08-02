@@ -2,7 +2,7 @@
 node_modules
 .pnpm-store
 
-# Build
+# Build & Turbo
 dist
 .next
 .turbo
@@ -10,13 +10,13 @@ out
 build
 *.tsbuildinfo
 
-# Environment
+# Environment & Secrets
 .env
 .env.local
 .env.*.local
 !.env.example
 
-# IDE
+# IDE & OS
 .idea
 .vscode/*
 !.vscode/extensions.json
@@ -26,14 +26,14 @@ build
 .DS_Store
 Thumbs.db
 
-# Logs
+# Logs & Diagnostics
 *.log
 npm-debug.log*
 pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Testing
+# Testing & Coverage
 coverage
 .nyc_output
 
@@ -41,8 +41,20 @@ coverage
 prisma/*.db
 prisma/*.db-journal
 
-# Misc
+# Temporary agent scripts & helper files
 *.pem
 .cache
 tmp
 temp
+*.lnk
+write-*.js
+check-*.js
+fix-*.cjs
+tmp_*.js
+append.js
+temp_script.*
+test_write.*
+gen-*.js
+update_*.js
+sx*_update.*
+test-concurrency-e2e.js

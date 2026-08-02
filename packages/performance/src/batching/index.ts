@@ -7,8 +7,7 @@ export interface BatchResult<V> {
 }
 
 export class BatchLoader<K, V> {
-  private queue: { key: K; resolve: (val: V | null) => void; reject: (err: unknown) => void }[] =
-    [];
+  private queue: { key: K; resolve: (val: V | null) => void; reject: (err: any) => void }[] = [];
   private timer: NodeJS.Timeout | null = null;
 
   constructor(

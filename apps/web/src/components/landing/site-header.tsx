@@ -1,6 +1,7 @@
 import Link from "next/link";
 
-import { Button } from "@scoutx/ui";
+import { AuthHeaderActions } from "@/components/auth/auth-header";
+import { BRAND } from "@/lib/branding";
 
 const navItems = [
   { href: "#composer", label: "Compose" },
@@ -14,9 +15,9 @@ export function SiteHeader() {
       <div className="section-shell flex h-16 items-center justify-between gap-4">
         <Link
           href="/"
-          className="font-display text-xl tracking-tight text-[var(--scoutx-hero-from)]"
+          className="font-display text-xl font-bold tracking-tight text-[var(--scoutx-hero-from)]"
         >
-          ScoutX
+          {BRAND.appName}
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-[var(--scoutx-muted-foreground)] md:flex">
           {navItems.map((item) => (
@@ -29,14 +30,7 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="#composer">Sign in</Link>
-          </Button>
-          <Button size="sm" asChild>
-            <Link href="#composer">Launch mission</Link>
-          </Button>
-        </div>
+        <AuthHeaderActions />
       </div>
     </header>
   );

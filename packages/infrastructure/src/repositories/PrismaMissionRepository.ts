@@ -1,20 +1,11 @@
-import { PrismaClient, MissionStatus as PrismaStatus } from "@prisma/client";
+import { MissionStatus as PrismaStatus } from "@prisma/client";
 import type { Mission, MissionCategory, MissionUrgency, MissionStatus } from "@scoutx/types";
-import type { MissionRepository } from "./MissionRepository.js";
-
-const globalForPrisma = globalThis as typeof globalThis & {
-  __scoutxInfraPrisma?: PrismaClient;
-};
-
-const prisma =
-  globalForPrisma.__scoutxInfraPrisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.__scoutxInfraPrisma = prisma;
-}
+import { prisma } from "../lib/prisma";
+import type {
+  MissionRepository,
+  RejectSubmissionInput,
+  ResubmitSubmissionInput,
+} from "./MissionRepository";
 
 function toPrismaStatus(status: string): PrismaStatus {
   switch (status) {
@@ -346,6 +337,137 @@ export class PrismaMissionRepository implements MissionRepository {
       });
 
       return submission;
+    });
+  }
+
+  // --- SX-021A: Review methods ---
+
+  async approveSubmissionAtomically(missionId: string, requesterId: string): Promise<boolean> {
+    return prisma.$transaction(async (tx) => {
+      const now = new Date();
+
+      const missionResult = await tx.mission.updateMany({
+        where: {
+          id: missionId,
+          requesterId,
+          status: PrismaStatus.SUBMITTED,
+        },
+        data: {
+          status: PrismaStatus.VERIFIED,
+        },
+      });
+
+      if (missionResult.count === 0) {
+        return false;
+      }
+
+      const submissionResult = await tx.missionSubmission.updateMany({
+        where: { missionId },
+        data: {
+          verified: true,
+          reviewedAt: now,
+          rejectionReason: null,
+        },
+      });
+
+      if (submissionResult.count === 0) {
+        throw new Error("Submission not found for mission");
+      }
+
+      return true;
+    });
+  }
+
+  async rejectSubmissionAtomically(
+    missionId: string,
+    requesterId: string,
+    input: RejectSubmissionInput,
+  ): Promise<boolean> {
+    return prisma.$transaction(async (tx) => {
+      const now = new Date();
+
+      const missionResult = await tx.mission.updateMany({
+        where: {
+          id: missionId,
+          requesterId,
+          status: PrismaStatus.SUBMITTED,
+        },
+        data: {
+          status: PrismaStatus.IN_PROGRESS,
+        },
+      });
+
+      if (missionResult.count === 0) {
+        return false;
+      }
+
+      const submissionResult = await tx.missionSubmission.updateMany({
+        where: { missionId },
+        data: {
+          verified: false,
+          reviewedAt: now,
+          rejectionReason: input.rejectionReason,
+        },
+      });
+
+      if (submissionResult.count === 0) {
+        throw new Error("Submission not found for mission");
+      }
+
+      return true;
+    });
+  }
+
+  async resubmitSubmissionAtomically(
+    missionId: string,
+    scoutId: string,
+    input: ResubmitSubmissionInput,
+  ): Promise<boolean> {
+    const scoutProfile = await prisma.scoutProfile.findUnique({
+      where: { userId: scoutId },
+    });
+    if (!scoutProfile) {
+      throw new Error("Scout profile not found");
+    }
+
+    return prisma.$transaction(async (tx) => {
+      const missionResult = await tx.mission.updateMany({
+        where: {
+          id: missionId,
+          status: PrismaStatus.IN_PROGRESS,
+          assignedScoutId: scoutProfile.id,
+        },
+        data: {
+          status: PrismaStatus.SUBMITTED,
+        },
+      });
+
+      if (missionResult.count === 0) {
+        return false;
+      }
+
+      const submissionResult = await tx.missionSubmission.updateMany({
+        where: {
+          missionId,
+          scoutId: scoutProfile.id,
+        },
+        data: {
+          summary: input.summary,
+          mediaUrls: input.mediaUrls,
+          latitude: input.latitude,
+          longitude: input.longitude,
+          observedAt: new Date(input.observedAt),
+          verified: false,
+          reviewedAt: null,
+          rejectionReason: null,
+        },
+      });
+
+      if (submissionResult.count === 0) {
+        throw new Error("Submission not found for this scout on this mission");
+      }
+
+      return true;
     });
   }
 }

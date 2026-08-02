@@ -12,6 +12,9 @@ interface Submission {
   observedAt: string;
   latitude: number;
   longitude: number;
+  verified?: boolean;
+  reviewedAt?: string | null;
+  rejectionReason?: string | null;
 }
 
 interface Mission {
@@ -44,6 +47,10 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
   const [error, setError] = useState("");
   const [isCancelling, setIsCancelling] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -52,25 +59,28 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
       return;
     }
 
-    fetch(`/api/missions/${missionId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then(async (res) => {
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data.error || "Failed to fetch mission details");
-        }
-        setMission(data);
-      })
-      .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : String(err));
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    fetchMission();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [missionId, router]);
+
+  const getToken = () => localStorage.getItem("accessToken");
+
+  const fetchMission = async () => {
+    const token = getToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/missions/${missionId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch mission details");
+      setMission(data);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCancel = async () => {
     if (!confirm("Are you sure you want to cancel this mission?")) {
@@ -131,6 +141,52 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
     }
   };
 
+  const handleApprove = async () => {
+    setIsApproving(true);
+    try {
+      const res = await fetch(`/api/missions/${missionId}/submission/approve`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to approve submission");
+      setMission(data);
+      alert("Submission approved! Mission is now VERIFIED.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!rejectionReason.trim()) {
+      alert("Please enter a rejection reason.");
+      return;
+    }
+    setIsRejecting(true);
+    try {
+      const res = await fetch(`/api/missions/${missionId}/submission/reject`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ rejectionReason: rejectionReason.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to reject submission");
+      setMission(data);
+      setShowRejectForm(false);
+      setRejectionReason("");
+      alert("Submission rejected. The scout can now resubmit.");
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
@@ -153,14 +209,27 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
   }
 
   const isEditable = mission.status === "DRAFT";
-  const isCancellable = mission.status === "DRAFT" || mission.status === "PUBLISHED";
+  const isCancellable =
+    mission.status === "DRAFT" || mission.status === "OPEN" || mission.status === "PUBLISHED";
+  const isSubmitted = mission.status === "SUBMITTED";
+  const isReviewed = mission.status === "VERIFIED" || mission.status === "COMPLETED";
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between border-b border-[var(--scoutx-border)] pb-6">
         <div>
           <div className="flex items-center gap-3">
-            <span className="inline-flex items-center rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-700">
+            <span
+              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                mission.status === "SUBMITTED"
+                  ? "bg-yellow-50 text-yellow-700"
+                  : mission.status === "VERIFIED"
+                    ? "bg-green-50 text-green-700"
+                    : mission.status === "COMPLETED"
+                      ? "bg-blue-50 text-blue-700"
+                      : "bg-green-50 text-green-700"
+              }`}
+            >
               {mission.status}
             </span>
             <span className="text-sm text-[var(--scoutx-muted-foreground)]">
@@ -229,41 +298,66 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
           </div>
 
           {mission.submission && (
-            <div className="space-y-4 rounded-2xl border border-green-200 bg-green-50/30 p-6">
-              <h3 className="text-lg font-semibold text-green-900">
-                Submission Report (Read-Only)
-              </h3>
+            <div className="space-y-4 rounded-2xl border border-yellow-200 bg-yellow-50/30 p-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-yellow-900">
+                  Submission Report
+                  {mission.submission.verified && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                      Verified
+                    </span>
+                  )}
+                  {mission.submission.reviewedAt && !mission.submission.verified && (
+                    <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                      Rejected
+                    </span>
+                  )}
+                </h3>
+              </div>
+
+              {mission.submission.rejectionReason && (
+                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                  <strong>Rejection Reason:</strong> {mission.submission.rejectionReason}
+                </div>
+              )}
+
+              {mission.submission.reviewedAt && (
+                <div className="text-xs text-gray-500">
+                  Reviewed at: {new Date(mission.submission.reviewedAt).toLocaleString()}
+                </div>
+              )}
+
               <div className="space-y-2 text-sm">
                 <div>
-                  <span className="font-semibold text-green-800">Summary / Findings:</span>
+                  <span className="font-semibold text-yellow-800">Summary / Findings:</span>
                   <p className="mt-1 whitespace-pre-wrap text-gray-700">
                     {mission.submission.summary}
                   </p>
                 </div>
                 <div>
-                  <span className="font-semibold text-green-800">Observed Coordinates:</span>
+                  <span className="font-semibold text-yellow-800">Observed Coordinates:</span>
                   <p className="mt-1 text-gray-700">
                     {mission.submission.latitude.toFixed(6)},{" "}
                     {mission.submission.longitude.toFixed(6)}
                   </p>
                 </div>
                 <div>
-                  <span className="font-semibold text-green-800">Observed At:</span>
+                  <span className="font-semibold text-yellow-800">Observed At:</span>
                   <p className="mt-1 text-gray-700">
                     {new Date(mission.submission.observedAt).toLocaleString()}
                   </p>
                 </div>
                 {mission.submission.mediaUrls.length > 0 && (
                   <div>
-                    <span className="font-semibold text-green-800">Evidence Images:</span>
+                    <span className="font-semibold text-yellow-800">Evidence Images:</span>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       {mission.submission.mediaUrls.map((url, idx) => (
                         <div key={idx}>
-                          {}
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={url}
-                            alt="Evidence"
-                            className="max-h-48 rounded-lg border border-green-100 object-cover"
+                            alt={"Evidence " + (idx + 1)}
+                            className="max-h-48 rounded-lg border border-yellow-100 object-cover"
                           />
                         </div>
                       ))}
@@ -271,6 +365,62 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
                   </div>
                 )}
               </div>
+
+              {isSubmitted && !isReviewed && (
+                <div className="mt-6 space-y-4 border-t border-yellow-200 pt-4">
+                  <div className="flex gap-3">
+                    <Button
+                      onClick={handleApprove}
+                      disabled={isApproving}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      {isApproving ? "Approving..." : "Approve"}
+                    </Button>
+                    <Button
+                      variant="secondary"
+                      className="border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                      onClick={() => setShowRejectForm(!showRejectForm)}
+                      disabled={isRejecting}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+
+                  {showRejectForm && (
+                    <div className="space-y-3 rounded-md border border-red-200 bg-red-50 p-4">
+                      <label className="block text-sm font-medium text-red-800">
+                        Rejection Reason
+                      </label>
+                      <textarea
+                        className="flex w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        rows={3}
+                        placeholder="Explain why the submission is being rejected..."
+                        value={rejectionReason}
+                        onChange={(e) => setRejectionReason(e.target.value)}
+                        disabled={isRejecting}
+                      />
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={handleReject}
+                          disabled={isRejecting || !rejectionReason.trim()}
+                          className="bg-red-600 hover:bg-red-700"
+                        >
+                          {isRejecting ? "Rejecting..." : "Confirm Reject"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          onClick={() => {
+                            setShowRejectForm(false);
+                            setRejectionReason("");
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

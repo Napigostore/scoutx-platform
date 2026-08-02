@@ -1,33 +1,50 @@
 version: '3.8'
 
 services:
-  web:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - DATABASE_URL=postgresql://postgres:postgres@db:5432/scoutx?schema=public
-      - JWT_SECRET=super-long-secret-key-123456
-    depends_on:
-      db:
-        condition: service_healthy
-
-  db:
+  postgres:
     image: postgres:16-alpine
+    container_name: scoutx-postgres
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=scoutx
+      POSTGRES_USER: scoutx
+      POSTGRES_PASSWORD: scoutx_password_123
+      POSTGRES_DB: scoutx_prod
+    ports:
+      - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
+      test: ["CMD-SHELL", "pg_isready -U scoutx"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    container_name: scoutx-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  scoutx:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: scoutx-web
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://scoutx:scoutx_password_123@postgres:5432/scoutx_prod
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
 volumes:
-  pgdata:
+  postgres_data:

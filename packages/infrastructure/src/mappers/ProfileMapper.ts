@@ -1,4 +1,4 @@
-import type { ScoutProfile } from "@scoutx/types";
+import type { ScoutProfile, MissionCategory } from "@scoutx/types";
 
 export interface PrismaScoutProfile {
   id: string;
@@ -29,16 +29,7 @@ export class ProfileMapper {
       availability: prismaProfile.availability,
       reliabilityScore: prismaProfile.reliabilityScore,
       completedMissions: prismaProfile.completedMissions,
-      categories: prismaProfile.categories as unknown as Array<
-        | "STREET_CONDITIONS"
-        | "VENUE_STATUS"
-        | "LOCAL_EVENT"
-        | "PRODUCT_AVAILABILITY"
-        | "CROWD_DENSITY"
-        | "WEATHER_ON_SITE"
-        | "PHOTO_VERIFICATION"
-        | "GENERAL_OBSERVATION"
-      >,
+      categories: prismaProfile.categories as unknown as MissionCategory[],
       tags: prismaProfile.tags,
       homeLocationId: prismaProfile.homeLocationId,
       currentCoordinates:

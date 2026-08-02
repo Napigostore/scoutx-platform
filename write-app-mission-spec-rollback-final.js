@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+const fs = require("fs");
+const content = `import { describe, expect, it } from "vitest";
 import { PrismaMissionRepository } from "@scoutx/infrastructure";
 import { AuthorizationError } from "@scoutx/auth";
 import { PrismaClient } from "@prisma/client";
@@ -32,9 +33,7 @@ describe("Mission Use Cases", () => {
   const getAvailableMissionDetailsUseCase = new GetAvailableMissionDetailsUseCase(missionRepo);
   const claimMissionUseCase = new ClaimMissionUseCase(missionRepo);
   const listScoutAssignedMissionsUseCase = new ListScoutAssignedMissionsUseCase(missionRepo);
-  const getScoutAssignedMissionDetailsUseCase = new GetScoutAssignedMissionDetailsUseCase(
-    missionRepo,
-  );
+  const getScoutAssignedMissionDetailsUseCase = new GetScoutAssignedMissionDetailsUseCase(missionRepo);
   const startMissionUseCase = new StartMissionUseCase(missionRepo);
   const createMissionSubmissionUseCase = new CreateMissionSubmissionUseCase(missionRepo);
 
@@ -122,11 +121,7 @@ describe("Mission Use Cases", () => {
     expect(assigned.length).toBeGreaterThan(0);
 
     // 6. Get Assigned Details
-    const assignedDetails = await getScoutAssignedMissionDetailsUseCase.execute(
-      created.id,
-      scoutId,
-      "SCOUT",
-    );
+    const assignedDetails = await getScoutAssignedMissionDetailsUseCase.execute(created.id, scoutId, "SCOUT");
     expect(assignedDetails.id).toBe(created.id);
 
     // 7. Start Mission
@@ -140,33 +135,24 @@ describe("Mission Use Cases", () => {
       latitude: 35.658034,
       longitude: 139.701636,
     };
-    const submission = await createMissionSubmissionUseCase.execute(
-      created.id,
-      submissionInput,
-      scoutId,
-      "SCOUT",
-    );
+    const submission = await createMissionSubmissionUseCase.execute(created.id, submissionInput, scoutId, "SCOUT");
     expect(submission).toBeDefined();
 
     // 9. Verify Mission status is now SUBMITTED
-    const finalMission = await getMissionDetailsUseCase.execute(
-      created.id,
-      requesterId,
-      "REQUESTER",
-    );
+    const finalMission = await getMissionDetailsUseCase.execute(created.id, requesterId, "REQUESTER");
     expect(finalMission.status).toBe("SUBMITTED");
   });
 
   it("should deny scout from performing requester actions", async () => {
     const scoutId = "00000000-0000-0000-0000-000000000003";
 
-    await expect(createMissionUseCase.execute(sampleInput, scoutId, "SCOUT")).rejects.toThrow(
-      AuthorizationError,
-    );
+    await expect(
+      createMissionUseCase.execute(sampleInput, scoutId, "SCOUT"),
+    ).rejects.toThrow(AuthorizationError);
 
-    await expect(listRequesterMissionsUseCase.execute(scoutId, "SCOUT")).rejects.toThrow(
-      AuthorizationError,
-    );
+    await expect(
+      listRequesterMissionsUseCase.execute(scoutId, "SCOUT"),
+    ).rejects.toThrow(AuthorizationError);
   });
 
   it("should deny non-owner from viewing, updating, publishing, or cancelling a mission", async () => {
@@ -205,9 +191,9 @@ describe("Mission Use Cases", () => {
       getScoutAssignedMissionDetailsUseCase.execute(created.id, otherScoutId, "SCOUT"),
     ).rejects.toThrow(AuthorizationError);
 
-    await expect(startMissionUseCase.execute(created.id, otherScoutId, "SCOUT")).rejects.toThrow(
-      AuthorizationError,
-    );
+    await expect(
+      startMissionUseCase.execute(created.id, otherScoutId, "SCOUT"),
+    ).rejects.toThrow(AuthorizationError);
 
     const submissionInput = {
       summary: "This is a valid test submission report with sufficient length.",
@@ -232,7 +218,9 @@ describe("Mission Use Cases", () => {
     const created = await createMissionUseCase.execute(expiredInput, requesterId, "REQUESTER");
     await publishMissionUseCase.execute(created.id, requesterId, "REQUESTER");
 
-    await expect(claimMissionUseCase.execute(created.id, scoutId, "SCOUT")).rejects.toThrow(Error);
+    await expect(
+      claimMissionUseCase.execute(created.id, scoutId, "SCOUT"),
+    ).rejects.toThrow(Error);
   });
 
   it("should handle concurrent submit requests and allow exactly one winner", async () => {
@@ -286,15 +274,7 @@ describe("Mission Use Cases", () => {
 
     // 2. Attempt to submit with failCreate = true to trigger failure after updateMany
     await expect(
-      missionRepo.createSubmissionAtomically(
-        created.id,
-        scoutId,
-        "Valid summary report",
-        [],
-        35.658034,
-        139.701636,
-        true,
-      ),
+      missionRepo.createSubmissionAtomically(created.id, scoutId, "Valid summary report", [], 35.658034, 139.701636, true)
     ).rejects.toThrow("Simulated database failure after updateMany");
 
     // 3. Verify that the mission status remains IN_PROGRESS (rolled back!)
@@ -302,9 +282,10 @@ describe("Mission Use Cases", () => {
     expect(missionAfterFailure?.status).toBe("IN_PROGRESS");
 
     // 4. Verify that no submission was created
-    const submissionCount = await prisma.missionSubmission.count({
-      where: { missionId: created.id },
-    });
+    const submissionCount = await prisma.missionSubmission.count({ where: { missionId: created.id } });
     expect(submissionCount).toBe(0);
   });
 });
+`;
+fs.writeFileSync("packages/application/test/mission.spec.ts", content, "utf8");
+console.log("Successfully wrote packages/application/test/mission.spec.ts");

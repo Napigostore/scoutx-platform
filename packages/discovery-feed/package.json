@@ -22,8 +22,8 @@
   },
   "dependencies": {
     "@scoutx/discovery-engine": "workspace:*",
-    "@scoutx/matching-engine": "workspace:*",
-    "@scoutx/domain": "workspace:*"
+    "@scoutx/domain": "workspace:*",
+    "@scoutx/matching-engine": "workspace:*"
   },
   "devDependencies": {
     "@scoutx/typescript-config": "workspace:*",

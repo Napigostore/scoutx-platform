@@ -10,7 +10,7 @@ const compat = new FlatCompat({
 
 const config = [
   {
-    ignores: [".next/**", "next-env.d.ts", "eslint.config.mjs"],
+    ignores: [".next/**", "next-env.d.ts", "eslint.config.mjs", "test-concurrency-e2e.js"],
   },
   ...rootConfig,
   ...compat.extends("next/core-web-vitals", "next/typescript"),

@@ -1,8 +1,8 @@
 {
-  "name": "scoutx",
+  "name": "fiwokan",
   "version": "0.1.0",
   "private": true,
-  "description": "ScoutX — a global marketplace for real-world information discovery",
+  "description": "Fiwokan — Find Who Can | Global Human Intelligence Network",
   "license": "MIT",
   "packageManager": "pnpm@9.15.4",
   "engines": {
@@ -35,14 +35,5 @@
     "turbo": "^2.3.3",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
-  },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx,mjs}": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md,css,yml,yaml}": [
-      "prettier --write"
-    ]
   }
 }

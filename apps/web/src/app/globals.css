@@ -3,13 +3,41 @@
 @import "maplibre-gl/dist/maplibre-gl.css";
 
 @theme {
-  --font-sans: var(--font-sora), "Segoe UI", sans-serif;
-  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-sora), "Segoe UI", system-ui, sans-serif;
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
   --color-background: var(--scoutx-background);
   --color-foreground: var(--scoutx-foreground);
-  --color-primary: var(--scoutx-primary);
+  --color-card: var(--scoutx-card);
+  --color-card-foreground: var(--scoutx-card-foreground);
   --color-muted: var(--scoutx-muted-foreground);
+  --color-muted-bg: var(--scoutx-muted);
   --color-border: var(--scoutx-border);
+  --color-primary: var(--scoutx-primary);
+  --color-primary-hover: var(--scoutx-primary-hover);
+  --color-primary-foreground: var(--scoutx-primary-foreground);
+  --color-secondary: var(--scoutx-secondary);
+  --color-secondary-foreground: var(--scoutx-secondary-foreground);
+  --color-success: var(--scoutx-success);
+  --color-success-foreground: var(--scoutx-success-foreground);
+  --color-warning: var(--scoutx-warning);
+  --color-warning-foreground: var(--scoutx-warning-foreground);
+  --color-destructive: var(--scoutx-destructive);
+  --color-destructive-foreground: var(--scoutx-destructive-foreground);
+  --color-accent: var(--scoutx-accent);
+  --color-ring: var(--scoutx-ring);
+  --radius-sm: var(--scoutx-radius-sm);
+  --radius-md: var(--scoutx-radius-md);
+  --radius-lg: var(--scoutx-radius-lg);
+  --radius-xl: var(--scoutx-radius-xl);
+  --radius-2xl: var(--scoutx-radius-2xl);
+  --radius-3xl: var(--scoutx-radius-3xl);
+  --shadow-sm: var(--scoutx-shadow-sm);
+  --shadow-md: var(--scoutx-shadow-md);
+  --shadow-lg: var(--scoutx-shadow-lg);
+  --shadow-xl: var(--scoutx-shadow-xl);
+  --shadow-2xl: var(--scoutx-shadow-2xl);
+  --shadow-inner: var(--scoutx-shadow-inner);
 }
 
 @layer base {
@@ -46,5 +74,18 @@
   .section-shell {
     margin-inline: auto;
     width: min(1120px, calc(100% - 2rem));
+  }
+
+  .animate-marquee {
+    animation: marquee 20s linear infinite;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
   }
 }

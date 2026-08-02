@@ -110,7 +110,9 @@ describe("Observability Package Tests", () => {
         JWT_SECRET: "short",
       };
 
-      expect(() => EnvironmentValidator.validate(invalidEnv)).toThrow(/Startup Configuration Validation Failed/);
+      expect(() => EnvironmentValidator.validate(invalidEnv)).toThrow(
+        /Startup Configuration Validation Failed/,
+      );
     });
   });
 

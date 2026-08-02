@@ -1,9 +1,13 @@
 import type { Mission } from "@scoutx/types";
 import type { MissionRepository } from "@scoutx/infrastructure";
 import { AuthorizationError } from "@scoutx/auth";
+import type { EventBus } from "@scoutx/events";
 
 export class CancelMissionUseCase {
-  constructor(private readonly missionRepo: MissionRepository) {}
+  constructor(
+    private readonly missionRepo: MissionRepository,
+    private readonly eventBus: EventBus,
+  ) {}
 
   async execute(missionId: string, requesterId: string, userRole: string): Promise<Mission> {
     if (userRole !== "REQUESTER") {
@@ -31,6 +35,18 @@ export class CancelMissionUseCase {
     };
 
     await this.missionRepo.update(updatedMission);
+
+    await this.eventBus.publish({
+      type: "mission.cancelled",
+      missionId,
+      requesterId,
+      refundAmount: {
+        amountMinor: mission.budget.amountCents,
+        currency: mission.budget.currency,
+      },
+      timestamp: new Date().toISOString(),
+    });
+
     return updatedMission;
   }
 }
