@@ -19,6 +19,7 @@
     "db:push": "pnpm --filter @scoutx/web db:push",
     "db:migrate": "pnpm --filter @scoutx/web db:migrate",
     "db:studio": "pnpm --filter @scoutx/web db:studio",
+    "postinstall": "pnpm --filter @scoutx/web db:generate",
     "prepare": "husky"
   },
   "devDependencies": {
