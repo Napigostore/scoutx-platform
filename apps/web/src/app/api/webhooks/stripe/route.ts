@@ -16,17 +16,22 @@ export async function POST(request: Request) {
 
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
-    // Enforce signature verification in production or when secret is set
-    if (process.env.NODE_ENV === "production" || webhookSecret) {
+    // Enforce strict signature verification
+    if (webhookSecret) {
       if (!signature) {
         return NextResponse.json({ error: "Missing stripe-signature header" }, { status: 400 });
       }
-
-      if (webhookSecret && signature !== "verified") {
-        const isValid = securityService.verifyWebhookSignature(rawBody, signature, webhookSecret);
-        if (!isValid) {
-          return NextResponse.json({ error: "Invalid stripe signature" }, { status: 400 });
-        }
+      const isValid = securityService.verifyWebhookSignature(rawBody, signature, webhookSecret);
+      if (!isValid) {
+        return NextResponse.json({ error: "Invalid stripe signature" }, { status: 400 });
+      }
+    } else {
+      // Production must fail closed if webhook secret is not configured
+      if (process.env.NODE_ENV !== "development") {
+        return NextResponse.json(
+          { error: "Stripe webhook secret is required in production" },
+          { status: 400 },
+        );
       }
     }
 
@@ -70,7 +75,7 @@ export async function POST(request: Request) {
               eventId: event.id,
               missionId,
               amountCents,
-              stripeSignature: signature ?? "verified",
+              stripeSignature: signature ?? "none",
             });
           } catch (createErr) {
             auditLogger.log("coin_change", requesterId, {
