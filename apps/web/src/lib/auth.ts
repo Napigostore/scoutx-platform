@@ -14,14 +14,19 @@ import { authConfig } from "./auth.config";
  * in Vercel build logs and runtime cold-start logs — never silently.
  */
 function validateAuthEnv(): void {
-  const authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+  let authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
 
   if (!authSecret) {
-    throw new Error(
-      "[Auth] STARTUP FAILURE: Missing required environment variable.\n" +
-        "  AUTH_SECRET (or NEXTAUTH_SECRET) must be set in Vercel → Settings → Environment Variables.\n" +
-        "  Generate one with: openssl rand -base64 32",
-    );
+    if (process.env.NODE_ENV === "development") {
+      authSecret = "dev-secret-key-scoutx-32-chars-minimum!!";
+      process.env.AUTH_SECRET = authSecret;
+    } else {
+      throw new Error(
+        "[Auth] STARTUP FAILURE: Missing required environment variable.\n" +
+          "  AUTH_SECRET (or NEXTAUTH_SECRET) must be set in Vercel → Settings → Environment Variables.\n" +
+          "  Generate one with: openssl rand -base64 32",
+      );
+    }
   }
 
   const databaseUrl = process.env.DATABASE_URL;
@@ -120,7 +125,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           try {
             const tokenStr =
               typeof data.accessToken === "string" ? data.accessToken : data.accessToken.token;
-            const payloadSegment = tokenStr.split(".")[0];
+            const parts = tokenStr.split(".");
+            const payloadSegment = parts.length >= 3 ? parts[1] : parts[0];
             const decoded = JSON.parse(Buffer.from(payloadSegment, "base64url").toString("utf-8"));
             principal = decoded;
           } catch {

@@ -1,14 +1,15 @@
 import type { MetadataRoute } from "next";
+import { BRAND } from "@/lib/branding";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ScoutX Platform",
-    short_name: "ScoutX",
-    description: "Crowd-Sourced Field Investigations & Proof Verification",
+    name: `${BRAND.appName} — ${BRAND.tagline}`,
+    short_name: BRAND.appName,
+    description: BRAND.seo.defaultDescription,
     start_url: "/",
     display: "standalone",
-    background_color: "#090d16",
-    theme_color: "#6366f1",
+    background_color: "#0f172a",
+    theme_color: "#0f172a",
     icons: [
       {
         src: "/favicon.ico",
