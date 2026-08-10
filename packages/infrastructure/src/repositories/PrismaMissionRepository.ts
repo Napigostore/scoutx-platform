@@ -375,6 +375,37 @@ export class PrismaMissionRepository implements MissionRepository {
         throw new Error("Submission not found for mission");
       }
 
+      const missionRecord = await tx.mission.findUnique({
+        where: { id: missionId },
+        select: { budgetCents: true, currency: true, assignedScoutId: true },
+      });
+
+      if (!missionRecord || !missionRecord.assignedScoutId) {
+        throw new Error("Mission or assigned scout not found for reward creation");
+      }
+
+      const scoutProfile = await tx.scoutProfile.findUnique({
+        where: { id: missionRecord.assignedScoutId },
+        select: { userId: true },
+      });
+
+      if (!scoutProfile) {
+        throw new Error("Scout profile not found for reward creation");
+      }
+
+      await tx.coinTransaction.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId: scoutProfile.userId,
+          missionId,
+          amountCents: missionRecord.budgetCents,
+          currency: missionRecord.currency.trim() || "COIN",
+          reason: `Mission Completion Reward for ${missionId}`,
+          description: `Payout reward for completed mission ${missionId}`,
+          eventType: "Reward",
+        },
+      });
+
       return true;
     });
   }
