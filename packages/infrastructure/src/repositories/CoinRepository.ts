@@ -25,6 +25,17 @@ export interface CreateCoinTransactionInput {
   missionId?: string | null;
 }
 
+export interface WithdrawalRequestRecord {
+  id: string;
+  userId: string;
+  amountCents: number;
+  status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
+  idempotencyKey: string;
+  providerReference: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface CoinRepository {
   create(input: CreateCoinTransactionInput): Promise<CoinTransactionRecord>;
   findById(id: string): Promise<CoinTransactionRecord | null>;
@@ -33,4 +44,9 @@ export interface CoinRepository {
   balanceByUserId(userId: string): Promise<number>;
   sumByMissionId(missionId: string): Promise<number>;
   countByUserId(userId: string): Promise<number>;
+  requestWithdrawalAtomically(
+    userId: string,
+    amountCents: number,
+    idempotencyKey: string,
+  ): Promise<WithdrawalRequestRecord>;
 }
