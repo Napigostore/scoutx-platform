@@ -69,6 +69,7 @@ model User {
   trustActionsReceived  TrustActionRecord[] @relation("TrustActionsReceived")
   coinTransactions      CoinTransaction[]
   sessions              Session[]
+  withdrawalRequests    WithdrawalRequest[]
 
   @@map("users")
 }
@@ -293,3 +294,28 @@ model Session {
   @@index([userId])
   @@map("sessions")
 }
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model WithdrawalRequest {
+  id                String           @id @default(uuid()) @db.Uuid
+  userId            String           @db.Uuid
+  amountCents       Int
+  status            WithdrawalStatus @default(PENDING)
+  idempotencyKey    String           @unique
+  providerReference String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("withdrawal_requests")
+}
+
