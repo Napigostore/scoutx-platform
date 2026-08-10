@@ -1,5 +1,13 @@
 import { createHash, randomUUID } from "node:crypto";
 import { extname } from "node:path";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+} from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type {
   StorageProvider,
   UploadOptions,
@@ -8,32 +16,53 @@ import type {
 } from "../contracts/StorageProvider";
 
 export interface R2Config {
-  readonly endpoint: string;
+  readonly endpoint?: string;
+  readonly accountId?: string;
   readonly accessKeyId: string;
   readonly secretAccessKey: string;
   readonly bucket: string;
-  readonly publicUrlBase: string;
+  readonly publicUrlBase?: string;
 }
 
 export class CloudflareR2StorageProvider implements StorageProvider {
-  private readonly config: R2Config;
+  private readonly client: S3Client;
+  private readonly bucket: string;
+  private readonly publicUrlBase?: string;
 
   constructor(config: R2Config) {
-    this.config = config;
+    const endpoint =
+      config.endpoint ||
+      (config.accountId ? `https://${config.accountId}.r2.cloudflarestorage.com` : "");
+    if (!endpoint) {
+      throw new Error("R2 endpoint or accountId is required for CloudflareR2StorageProvider");
+    }
+
+    this.bucket = config.bucket;
+    this.publicUrlBase = config.publicUrlBase;
+
+    this.client = new S3Client({
+      region: "auto",
+      endpoint,
+      credentials: {
+        accessKeyId: config.accessKeyId,
+        secretAccessKey: config.secretAccessKey,
+      },
+    });
   }
 
   async upload(buffer: Buffer, options: UploadOptions): Promise<UploadResult> {
-    const key = `${options.missionId}/${randomUUID()}${extname(options.fileName)}`;
-    const url = `${this.config.endpoint}/${this.config.bucket}/${key}`;
-    const response = await fetch(url, {
-      method: "PUT",
-      headers: {
-        "Content-Type": options.mimeType,
-        Authorization: `AWS4-HMAC-SHA256 Credential=${this.config.accessKeyId}`,
-      },
-      body: buffer as unknown as BodyInit,
-    });
-    if (!response.ok) throw new Error(`R2 upload failed: ${response.status}`);
+    const ext = extname(options.fileName);
+    const key = `${options.missionId}/${randomUUID()}${ext}`;
+
+    await this.client.send(
+      new PutObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: options.mimeType,
+      }),
+    );
+
     const sha256 = createHash("sha256").update(buffer).digest("hex");
     return {
       storageKey: key,
@@ -46,28 +75,63 @@ export class CloudflareR2StorageProvider implements StorageProvider {
     };
   }
 
-  async getSignedUploadUrl(_fileName: string, _mimeType: string): Promise<SignedUploadUrlResult> {
-    const key = randomUUID();
+  async getSignedUploadUrl(fileName: string, mimeType: string): Promise<SignedUploadUrlResult> {
+    const ext = extname(fileName);
+    const key = `${randomUUID()}${ext}`;
+
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      ContentType: mimeType,
+    });
+
+    const url = await getSignedUrl(this.client, command, { expiresIn: 3600 });
+
     return {
-      url: `${this.config.endpoint}/${this.config.bucket}/${key}`,
+      url,
       fields: { key },
       storageKey: key,
     };
   }
 
   async getDownloadUrl(storageKey: string): Promise<string> {
-    return `${this.config.publicUrlBase}/${encodeURIComponent(storageKey)}`;
+    if (this.publicUrlBase) {
+      return `${this.publicUrlBase}/${encodeURIComponent(storageKey)}`;
+    }
+
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: storageKey,
+    });
+
+    return getSignedUrl(this.client, command, { expiresIn: 3600 });
   }
 
   async delete(storageKey: string): Promise<boolean> {
-    const url = `${this.config.endpoint}/${this.config.bucket}/${storageKey}`;
-    const response = await fetch(url, { method: "DELETE" });
-    return response.ok;
+    try {
+      await this.client.send(
+        new DeleteObjectCommand({
+          Bucket: this.bucket,
+          Key: storageKey,
+        }),
+      );
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async exists(storageKey: string): Promise<boolean> {
-    const url = `${this.config.endpoint}/${this.config.bucket}/${storageKey}`;
-    const response = await fetch(url, { method: "HEAD" });
-    return response.ok;
+    try {
+      await this.client.send(
+        new HeadObjectCommand({
+          Bucket: this.bucket,
+          Key: storageKey,
+        }),
+      );
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

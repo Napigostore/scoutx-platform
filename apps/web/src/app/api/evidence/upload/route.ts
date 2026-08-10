@@ -2,12 +2,25 @@ import { NextResponse } from "next/server";
 import { authenticate } from "@/lib/auth-helpers";
 import { apiError } from "@/lib/error-mapper";
 import { InMemoryEventBus } from "@scoutx/events";
-import { LocalStorageProvider, UploadService } from "@scoutx/storage";
+import { LocalStorageProvider, UploadService, createStorageProvider } from "@scoutx/storage";
 import { EvidenceFileValidator } from "@scoutx/application";
 import { prisma } from "@/lib/prisma";
 import path from "node:path";
 
-const storageProvider = new LocalStorageProvider("./data/evidence");
+function getStorageProvider() {
+  if (process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET) {
+    return createStorageProvider("cloudflare-r2", {
+      accountId: process.env.R2_ACCOUNT_ID,
+      accessKeyId: process.env.R2_ACCESS_KEY_ID,
+      secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+      bucket: process.env.R2_BUCKET,
+      publicUrlBase: process.env.R2_PUBLIC_URL_BASE,
+    });
+  }
+  return new LocalStorageProvider("./data/evidence");
+}
+
+const storageProvider = getStorageProvider();
 const eventBus = new InMemoryEventBus();
 const uploadService = new UploadService({ storageProvider, eventBus });
 
