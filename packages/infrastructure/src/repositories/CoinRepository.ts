@@ -29,6 +29,7 @@ export interface WithdrawalRequestRecord {
   id: string;
   userId: string;
   amountCents: number;
+  currency: string;
   status: "PENDING" | "PROCESSING" | "COMPLETED" | "FAILED";
   idempotencyKey: string;
   providerReference: string | null;

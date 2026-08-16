@@ -106,7 +106,7 @@ export class PrismaCoinRepository implements CoinRepository {
           id: crypto.randomUUID(),
           userId,
           amountCents: -amountCents,
-          currency: "USD",
+          currency: "VND",
           reason: `Worker Withdrawal Request (${withdrawalId})`,
           description: `Debit reservation for pending withdrawal request`,
           eventType: "Withdrawal",
