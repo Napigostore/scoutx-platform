@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { PrismaCoinRepository, AuditLogger, SecurityService } from "@scoutx/infrastructure";
+import { prisma } from "@/lib/prisma";
 
 const coinRepo = new PrismaCoinRepository();
 const auditLogger = new AuditLogger();
@@ -137,6 +138,56 @@ export async function POST(request: Request) {
             return NextResponse.json({ received: true, status: "duplicate_refund_ignored" });
           }
         }
+        break;
+      }
+
+      case "account.updated": {
+        const account = event.data.object as {
+          id: string;
+          charges_enabled?: boolean;
+          payouts_enabled?: boolean;
+          details_submitted?: boolean;
+          requirements?: { currently_due?: string[] };
+        };
+
+        const connectAccountId = account.id;
+        if (!connectAccountId) break;
+
+        const scoutProfile = await prisma.scoutProfile.findFirst({
+          where: { stripeConnectAccountId: connectAccountId },
+        });
+
+        if (!scoutProfile) {
+          auditLogger.log("admin_action", "system", {
+            action: "stripe_webhook_account_updated_unknown",
+            eventId: event.id,
+            connectAccountId,
+          });
+          return NextResponse.json({ received: true, status: "unknown_account_ignored" });
+        }
+
+        let newStatus = "ONBOARDING";
+        const payoutsEnabled = Boolean(account.payouts_enabled);
+        const detailsSubmitted = Boolean(account.details_submitted);
+        const currentlyDue = account.requirements?.currently_due || [];
+
+        if (payoutsEnabled && detailsSubmitted && currentlyDue.length === 0) {
+          newStatus = "ACTIVE";
+        } else if (currentlyDue.length > 0 || !payoutsEnabled) {
+          newStatus = detailsSubmitted ? "RESTRICTED" : "ONBOARDING";
+        }
+
+        await prisma.scoutProfile.update({
+          where: { id: scoutProfile.id },
+          data: { stripeConnectStatus: newStatus },
+        });
+
+        auditLogger.log("admin_action", scoutProfile.userId, {
+          action: "stripe_webhook_account_updated",
+          eventId: event.id,
+          connectAccountId,
+          status: newStatus,
+        });
         break;
       }
     }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { PrismaCoinRepository } from "@scoutx/infrastructure";
 import { SimpleTokenVerifier, requireEnv } from "@scoutx/auth";
 import { GetCurrentUserUseCase } from "@scoutx/application";
+import { prisma } from "@/lib/prisma";
 
 const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
 const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
@@ -56,8 +57,20 @@ export async function POST(request: Request) {
   // 5. Server-side ownership: always derive userId from authenticated principal
   const userId = principal.id;
 
+  // 6. Check Stripe Connect payout eligibility server-side
+  const scoutProfile = await prisma.scoutProfile.findUnique({
+    where: { userId },
+  });
+
+  if (!scoutProfile || scoutProfile.stripeConnectStatus !== "ACTIVE") {
+    return NextResponse.json(
+      { error: "Stripe Connect account is not ready for payouts" },
+      { status: 409 },
+    );
+  }
+
   try {
-    // 6. Execute atomic balance reservation
+    // 7. Execute atomic balance reservation
     const withdrawalRequest = await coinRepo.requestWithdrawalAtomically(
       userId,
       amountCents,
