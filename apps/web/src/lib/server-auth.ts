@@ -31,11 +31,14 @@ export async function getAuthenticatedPrincipal(
     if (sessionId || sessionEmail) {
       const userObj = (session?.user as unknown as Record<string, unknown>) ?? {};
       const sessionRole = (userObj.role as string) ?? "REQUESTER";
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        sessionId,
+      );
 
       let dbUser = await prisma.user.findFirst({
         where: {
           OR: [
-            ...(sessionId ? [{ id: sessionId }] : []),
+            ...(isUuid ? [{ id: sessionId }] : []),
             ...(sessionEmail ? [{ email: sessionEmail }] : []),
           ],
         },
