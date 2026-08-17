@@ -1,14 +1,27 @@
 import { NextResponse } from "next/server";
-import { authenticate } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
 import { MoMoPaymentProvider } from "@scoutx/application";
+import { getAuthenticatedPrincipal } from "@/lib/server-auth";
 
 export async function POST(request: Request) {
   try {
-    // 1. Authenticate request server-side
-    const principal = await authenticate(request);
+    // 1. Authenticate request server-side via Auth.js / Bearer session
+    const principal = await getAuthenticatedPrincipal(request);
     if (!principal) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      principal.id,
+    );
+    let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
+
+    if (!user && principal.email) {
+      user = await prisma.user.findUnique({ where: { email: principal.email } });
+    }
+
+    if (!user || user.role !== "REQUESTER") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // 2. Read body - only trust missionId
@@ -27,7 +40,7 @@ export async function POST(request: Request) {
     }
 
     // 4. Verify mission ownership
-    if (mission.requesterId !== principal.id) {
+    if (mission.requesterId !== user.id) {
       return NextResponse.json(
         { error: "Forbidden: You are not the owner of this mission" },
         { status: 403 },
@@ -62,7 +75,7 @@ export async function POST(request: Request) {
           await tx.coinTransaction.create({
             data: {
               id: crypto.randomUUID(),
-              userId: principal.id,
+              userId: user.id,
               amountCents: -mission.budgetCents,
               currency: "VND",
               reason: "Escrow Deposit",
@@ -112,7 +125,7 @@ export async function POST(request: Request) {
     const requestId = `req_${Date.now()}_${crypto.randomUUID()}`;
     const orderId = `ord_${missionId}_${Date.now()}`;
     const orderInfo = `Payment for Mission ${mission.title}`;
-    const extraData = `requesterId=${principal.id}&missionId=${mission.id}`;
+    const extraData = `requesterId=${user.id}&missionId=${mission.id}`;
 
     const momoProvider = new MoMoPaymentProvider({
       partnerCode: partnerCode || "MOMO_TEST_PARTNER",

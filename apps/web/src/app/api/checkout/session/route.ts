@@ -1,12 +1,25 @@
 import { NextResponse } from "next/server";
-import { authenticate } from "@/lib/auth-helpers";
 import { prisma } from "@/lib/prisma";
+import { getAuthenticatedPrincipal } from "@/lib/server-auth";
 
 export async function POST(request: Request) {
-  // 1. Authenticate request server-side
-  const principal = await authenticate(request);
+  // 1. Authenticate request server-side via Auth.js / Bearer session
+  const principal = await getAuthenticatedPrincipal(request);
   if (!principal) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    principal.id,
+  );
+  let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
+
+  if (!user && principal.email) {
+    user = await prisma.user.findUnique({ where: { email: principal.email } });
+  }
+
+  if (!user || user.role !== "REQUESTER") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -27,8 +40,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Mission not found" }, { status: 404 });
     }
 
-    // 4. Mission ownership authorization: requesterId MUST equal principal.id
-    if (mission.requesterId !== principal.id) {
+    // 4. Mission ownership authorization: requesterId MUST equal user.id
+    if (mission.requesterId !== user.id) {
       return NextResponse.json(
         { error: "Forbidden: Mission belongs to another user" },
         { status: 403 },
@@ -75,7 +88,7 @@ export async function POST(request: Request) {
       );
       params.append("line_items[0][quantity]", "1");
       params.append("metadata[missionId]", mission.id);
-      params.append("metadata[requesterId]", principal.id);
+      params.append("metadata[requesterId]", user.id);
 
       const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
         method: "POST",
