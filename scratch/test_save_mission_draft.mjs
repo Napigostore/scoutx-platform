@@ -1,3 +1,4 @@
+import { encode } from "../node_modules/.pnpm/@auth+core@0.41.3/node_modules/@auth/core/jwt.js";
 import { prisma } from "../apps/web/src/lib/prisma.js";
 import { PrismaMissionRepository } from "../packages/infrastructure/src/repositories/PrismaMissionRepository.js";
 import { CreateMissionUseCase } from "../packages/application/src/use-cases/CreateMissionUseCase.js";
@@ -8,10 +9,10 @@ async function runTest() {
   console.log("=== FIWOKAN SAVE MISSION DRAFT, BUDGET & GET MISSIONS TEST (SX-022A) ===");
 
   const timestamp = Date.now();
-  const requesterEmail = `test_req_draft_v4_${timestamp}@fiwokan.com`;
-  const scoutEmail = `test_scout_draft_v4_${timestamp}@fiwokan.com`;
-  const otherRequesterEmail = `test_other_draft_v4_${timestamp}@fiwokan.com`;
-  const googleUserEmail = `test_google_oauth_v4_${timestamp}@fiwokan.com`;
+  const requesterEmail = `test_req_draft_v5_${timestamp}@fiwokan.com`;
+  const scoutEmail = `test_scout_draft_v5_${timestamp}@fiwokan.com`;
+  const otherRequesterEmail = `test_other_draft_v5_${timestamp}@fiwokan.com`;
+  const googleUserEmail = `test_google_oauth_v5_${timestamp}@fiwokan.com`;
 
   try {
     // 1. Create Test Users
@@ -193,6 +194,34 @@ async function runTest() {
       throw new Error("Draft payload stringification failed");
     }
     console.log("   Pass (12): fiwokan_pending_mission_draft format verified for 401 draft preservation.");
+
+    // Assert 13: Auth.js JWT Session Cookie resolution via getAuthenticatedPrincipal(request)
+    const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "fiwokan-prod-auth-secret-32-chars-minimum!!";
+    const sessionToken = await encode({
+      token: {
+        email: requesterEmail,
+        sub: requester.id,
+        role: "REQUESTER",
+      },
+      secret,
+      salt: "__Secure-authjs.session-token",
+    });
+
+    const cookieReq = new Request("http://localhost:3000/api/missions", {
+      method: "GET",
+      headers: {
+        cookie: `__Secure-authjs.session-token=${sessionToken}`,
+      },
+    });
+
+    const sessionPrincipal = await getAuthenticatedPrincipal(cookieReq);
+    if (!sessionPrincipal) {
+      throw new Error("Failed to resolve principal from Auth.js session cookie!");
+    }
+    if (sessionPrincipal.email !== requesterEmail) {
+      throw new Error(`Expected email ${requesterEmail} but got ${sessionPrincipal.email}`);
+    }
+    console.log("   Pass (13): Resolved authenticated REQUESTER principal from Auth.js session cookie.");
 
     // Cleanup
     await prisma.mission.deleteMany({

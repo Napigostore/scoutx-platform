@@ -37,8 +37,9 @@ export default function MissionsPage() {
         const data = await res.json();
         if (!res.ok) {
           if (res.status === 401) {
-            router.push("/sign-in");
-            return;
+            throw new Error(
+              `Authentication required (HTTP 401): ${data.error || "Session not found"}. Please sign in to view your missions.`,
+            );
           }
           throw new Error(data.error || "Failed to fetch missions");
         }

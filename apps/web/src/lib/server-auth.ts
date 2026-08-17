@@ -29,7 +29,16 @@ export async function getAuthenticatedPrincipal(
   let sessionRole = "REQUESTER";
   let sessionPermissions: string[] = [];
 
+  const cookieHeader = request.headers.get("cookie") || "";
+  const cookieNames = cookieHeader
+    .split(";")
+    .map((c) => c.trim().split("=")[0]?.trim())
+    .filter((n): n is string => Boolean(n));
+
+  console.log("[SERVER_AUTH_DEBUG] request_cookie_names:", cookieNames);
+
   // 1. NextAuth (Auth.js v5) session cookie check via auth()
+  let authResultStatus = "none";
   try {
     const session = await auth();
     if (session?.user?.email || session?.user?.id) {
@@ -38,12 +47,17 @@ export async function getAuthenticatedPrincipal(
       const userObj = (session.user as unknown as Record<string, unknown>) ?? {};
       sessionRole = (userObj.role as string) ?? "REQUESTER";
       sessionPermissions = (userObj.permissions as string[]) ?? [];
+      authResultStatus = "success";
+    } else {
+      authResultStatus = session ? "empty_user" : "null_session";
     }
-  } catch {
-    // Session lookup via auth() ignored on failure
+  } catch (e) {
+    authResultStatus = `error:${e instanceof Error ? e.message : "unknown"}`;
   }
+  console.log("[SERVER_AUTH_DEBUG] auth_result:", authResultStatus);
 
   // 2. Request-aware getToken() fallback for NextAuth session cookies in serverless API routes
+  let getTokenStatus = "skipped";
   if (!sessionEmail && !sessionId) {
     try {
       const secret =
@@ -52,7 +66,6 @@ export async function getAuthenticatedPrincipal(
         process.env.JWT_SECRET ??
         "fiwokan-prod-auth-secret-32-chars-minimum!!";
 
-      const cookieHeader = request.headers.get("cookie") || "";
       const cookies: Record<string, string> = {};
       cookieHeader.split(";").forEach((c) => {
         const parts = c.trim().split("=");
@@ -115,11 +128,17 @@ export async function getAuthenticatedPrincipal(
         sessionId = (token.id as string) ?? (token.sub as string) ?? "";
         sessionRole = (token.role as string) ?? "REQUESTER";
         sessionPermissions = (token.permissions as string[]) ?? [];
+        getTokenStatus = "success";
+      } else {
+        getTokenStatus = token ? "token_no_id" : "null_token";
       }
-    } catch {
-      // getToken check ignored on failure
+    } catch (e) {
+      getTokenStatus = `error:${e instanceof Error ? e.message : "unknown"}`;
     }
+    console.log("[SERVER_AUTH_DEBUG] getToken_result:", getTokenStatus);
   }
+
+  console.log("[SERVER_AUTH_DEBUG] resolved_session_email:", sessionEmail || "none");
 
   // 3. Database User lookup & auto-provisioning via verified session identity
   if (sessionEmail || sessionId) {
@@ -148,6 +167,7 @@ export async function getAuthenticatedPrincipal(
     }
 
     if (dbUser) {
+      console.log("[SERVER_AUTH_DEBUG] resolved_db_user_uuid:", dbUser.id);
       return {
         id: dbUser.id,
         email: dbUser.email,
@@ -157,6 +177,7 @@ export async function getAuthenticatedPrincipal(
     }
 
     if (isUuid) {
+      console.log("[SERVER_AUTH_DEBUG] resolved_db_user_uuid:", sessionId);
       return {
         id: sessionId,
         email: sessionEmail,
@@ -165,6 +186,8 @@ export async function getAuthenticatedPrincipal(
       };
     }
   }
+
+  console.log("[SERVER_AUTH_DEBUG] resolved_db_user_uuid: none");
 
   // 4. Legacy Authorization: Bearer <token> header fallback
   const authHeader = request.headers.get("authorization") || "";
