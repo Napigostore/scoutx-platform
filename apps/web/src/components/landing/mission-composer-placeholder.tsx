@@ -91,14 +91,28 @@ export function MissionComposerPlaceholder() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get("content-type") ?? "";
+      let data: { error?: string; id?: string } | null = null;
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        if (res.status === 401) {
+          router.push("/sign-in");
+          return;
+        }
+        throw new Error(
+          `Save Draft API returned non-JSON response (${res.status}): ${text.slice(0, 200)}`,
+        );
+      }
+
       if (!res.ok) {
         if (res.status === 401) {
           // Unauthenticated: draft saved in store, navigate to sign-in
           router.push("/sign-in");
           return;
         }
-        throw new Error(data.error || "Failed to save draft");
+        throw new Error(data?.error || "Failed to save draft");
       }
 
       // Success: draft persisted to DB! Clear store draft and navigate to missions

@@ -24,9 +24,9 @@ export const authConfig: NextAuthConfig = {
       if (user) {
         const t = token as Record<string, unknown>;
         t.id = user.id;
-        const u = user as unknown as { role: string; permissions: string[] };
-        t.role = u.role;
-        t.permissions = u.permissions;
+        const u = user as unknown as { role?: string; permissions?: string[] };
+        t.role = u.role ?? "REQUESTER";
+        t.permissions = u.permissions ?? [];
       }
       return token;
     },
@@ -34,14 +34,15 @@ export const authConfig: NextAuthConfig = {
       if (session.user) {
         const su = session.user as unknown as Record<string, unknown>;
         su.id = token.id;
-        su.role = token.role;
-        su.permissions = token.permissions;
+        su.role = (token.role as string) ?? "REQUESTER";
+        su.permissions = (token.permissions as string[]) ?? [];
       }
       return session;
     },
     async authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const role = auth?.user?.role;
+      const user = auth?.user as unknown as { role?: string } | undefined;
+      const role = user?.role ?? (isLoggedIn ? "REQUESTER" : undefined);
 
       // Public routes – always accessible
       const publicPaths = ["/sign-in", "/api/auth"];

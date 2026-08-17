@@ -17,19 +17,55 @@ export interface AuthenticatedUserPrincipal {
  * 1. Checks NextAuth (Auth.js v5) session cookies first (for Google OAuth & Auth.js sessions).
  * 2. Falls back to legacy `Authorization: Bearer <token>` headers (for API token clients).
  */
+import { prisma } from "@/lib/prisma";
+
 export async function getAuthenticatedPrincipal(
   request: Request,
 ): Promise<AuthenticatedUserPrincipal | null> {
   // 1. NextAuth (Auth.js v5) session cookie check
   try {
     const session = await auth();
-    if (session?.user?.id) {
-      const user = session.user as unknown as Record<string, unknown>;
+    const sessionEmail = session?.user?.email ?? "";
+    const sessionId = session?.user?.id ?? "";
+
+    if (sessionId || sessionEmail) {
+      const userObj = (session?.user as unknown as Record<string, unknown>) ?? {};
+      const sessionRole = (userObj.role as string) ?? "REQUESTER";
+
+      let dbUser = await prisma.user.findFirst({
+        where: {
+          OR: [
+            ...(sessionId ? [{ id: sessionId }] : []),
+            ...(sessionEmail ? [{ email: sessionEmail }] : []),
+          ],
+        },
+      });
+
+      if (!dbUser && sessionEmail) {
+        dbUser = await prisma.user.create({
+          data: {
+            email: sessionEmail,
+            displayName: session?.user?.name ?? sessionEmail.split("@")[0] ?? "Requester",
+            role: sessionRole === "SCOUT" ? "SCOUT" : "REQUESTER",
+            passwordHash: "oauth-google-authenticated",
+          },
+        });
+      }
+
+      if (dbUser) {
+        return {
+          id: dbUser.id,
+          email: dbUser.email,
+          role: dbUser.role,
+          permissions: (userObj.permissions as string[]) ?? [],
+        };
+      }
+
       return {
-        id: session.user.id,
-        email: session.user.email ?? "",
-        role: (user.role as string) ?? "REQUESTER",
-        permissions: (user.permissions as string[]) ?? [],
+        id: sessionId,
+        email: sessionEmail,
+        role: sessionRole,
+        permissions: (userObj.permissions as string[]) ?? [],
       };
     }
   } catch {

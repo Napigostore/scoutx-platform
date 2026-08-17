@@ -102,13 +102,27 @@ export default function NewMissionPage() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get("content-type") ?? "";
+      let data: { error?: string; id?: string } | null = null;
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        if (res.status === 401) {
+          router.push("/sign-in");
+          return;
+        }
+        throw new Error(
+          `Save Draft API returned non-JSON response (${res.status}): ${text.slice(0, 200)}`,
+        );
+      }
+
       if (!res.ok) {
         if (res.status === 401) {
           router.push("/sign-in");
           return;
         }
-        throw new Error(data.error || "Failed to create mission");
+        throw new Error(data?.error || "Failed to create mission");
       }
 
       useMissionComposerStore.getState().resetDraft();
