@@ -70,6 +70,13 @@ if (!process.env.AUTH_URL && process.env.NEXT_PUBLIC_APP_URL) {
   process.env.AUTH_URL = process.env.NEXT_PUBLIC_APP_URL;
 }
 
+const appUrl = (
+  process.env.AUTH_URL ??
+  process.env.NEXTAUTH_URL ??
+  process.env.NEXT_PUBLIC_APP_URL ??
+  "https://fiwokan.com"
+).replace(/\/$/, "");
+
 /**
  * NextAuth (Auth.js v5) instance with:
  * - Credentials provider (email + password via existing auth API)
@@ -84,6 +91,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     Google({
       clientId: process.env.AUTH_GOOGLE_ID ?? process.env.GOOGLE_CLIENT_ID ?? "",
       clientSecret: process.env.AUTH_GOOGLE_SECRET ?? process.env.GOOGLE_CLIENT_SECRET ?? "",
+      redirectProxyUrl: `${appUrl}/api/auth/callback/google`,
     }),
     Credentials({
       name: "credentials",
