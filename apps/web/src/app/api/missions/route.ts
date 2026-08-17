@@ -1,30 +1,17 @@
 import { NextResponse } from "next/server";
 import { PrismaMissionRepository } from "@scoutx/infrastructure";
 import { CreateMissionUseCase, ListRequesterMissionsUseCase } from "@scoutx/application";
-import { SimpleTokenVerifier, requireEnv } from "@scoutx/auth";
-import { GetCurrentUserUseCase } from "@scoutx/application";
 import { CreateMissionInputSchema } from "@scoutx/types";
 import { prisma } from "@/lib/prisma";
 
-const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
-const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
+import { getAuthenticatedPrincipal } from "@/lib/server-auth";
+
 const missionRepo = new PrismaMissionRepository();
 const createMissionUseCase = new CreateMissionUseCase(missionRepo);
 const listRequesterMissionsUseCase = new ListRequesterMissionsUseCase(missionRepo);
 
-async function authenticate(request: Request) {
-  const authHeader = request.headers.get("authorization") || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
-  if (!token) return null;
-  try {
-    return await getCurrentUserUseCase.execute(token);
-  } catch {
-    return null;
-  }
-}
-
 export async function POST(request: Request) {
-  const principal = await authenticate(request);
+  const principal = await getAuthenticatedPrincipal(request);
   if (!principal) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -57,7 +44,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const principal = await authenticate(request);
+  const principal = await getAuthenticatedPrincipal(request);
   if (!principal) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

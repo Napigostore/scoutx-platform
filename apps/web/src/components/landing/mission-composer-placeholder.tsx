@@ -29,7 +29,10 @@ const categoryOptions = MissionCategorySchema.options.map((value) => ({
     .join(" "),
 }));
 
+import { useRouter } from "next/navigation";
+
 export function MissionComposerPlaceholder() {
+  const router = useRouter();
   const { draft, setDraft, setComposerFocused, resetDraft } = useMissionComposerStore();
 
   const form = useForm<ComposerFormValues>({
@@ -40,7 +43,7 @@ export function MissionComposerPlaceholder() {
 
   const onSubmit = form.handleSubmit((values) => {
     setDraft(values);
-    form.reset(values);
+    router.push("/missions/new");
   });
 
   return (

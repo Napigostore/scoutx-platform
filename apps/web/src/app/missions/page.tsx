@@ -26,20 +26,20 @@ export default function MissionsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    const headers: Record<string, string> = {};
     const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/sign-in");
-      return;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
 
-    fetch("/api/missions", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    fetch("/api/missions", { headers })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {
+          if (res.status === 401) {
+            router.push("/sign-in");
+            return;
+          }
           throw new Error(data.error || "Failed to fetch missions");
         }
         setMissions(data.missions || []);
@@ -54,11 +54,13 @@ export default function MissionsPage() {
 
   const handleSignOut = async () => {
     const token = localStorage.getItem("accessToken");
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     await fetch("/api/auth/sign-out", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
     });
     localStorage.removeItem("accessToken");
     router.push("/sign-in");

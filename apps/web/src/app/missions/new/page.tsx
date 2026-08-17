@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Input, Label } from "@scoutx/ui";
 
+import { useMissionComposerStore } from "@/stores/mission-composer";
+
 export default function NewMissionPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -22,26 +24,22 @@ export default function NewMissionPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/sign-in");
-    }
+    // Pre-fill from composer store draft if present
+    const draft = useMissionComposerStore.getState().draft;
+    if (draft.title) setTitle(draft.title);
+    if (draft.description) setDescription(draft.description);
+    if (draft.category) setCategory(draft.category);
+
     // Set default expiresAt to 7 days from now
     const defaultDate = new Date();
     defaultDate.setDate(defaultDate.getDate() + 7);
     setExpiresAt(defaultDate.toISOString().substring(0, 16));
-  }, [router]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
-
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/sign-in");
-      return;
-    }
 
     const amountCents = Math.round(parseFloat(budgetAmount));
     if (isNaN(amountCents) || amountCents <= 0) {
@@ -89,21 +87,31 @@ export default function NewMissionPage() {
       expiresAt: new Date(expiresAt).toISOString(),
     };
 
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
     try {
       const res = await fetch("/api/missions", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 401) {
+          router.push("/sign-in");
+          return;
+        }
         throw new Error(data.error || "Failed to create mission");
       }
 
+      useMissionComposerStore.getState().resetDraft();
       router.push("/missions");
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
