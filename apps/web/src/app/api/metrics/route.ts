@@ -2,7 +2,19 @@ import { NextResponse } from "next/server";
 import { globalMetrics } from "@scoutx/observability";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+import { authenticate } from "@/lib/auth-helpers";
+import { apiError } from "@/lib/error-mapper";
+
+export async function GET(request: Request) {
+  const principal = await authenticate(request);
+  if (!principal) {
+    return apiError("Unauthorized", 401);
+  }
+
+  if (principal.role !== "ADMIN") {
+    return apiError("Forbidden: only admins can view metrics", 403);
+  }
+
   try {
     const [userCounts, missionCounts, rewardAggregate, pendingWithdrawalCount, totalSubmissions] =
       await Promise.all([
