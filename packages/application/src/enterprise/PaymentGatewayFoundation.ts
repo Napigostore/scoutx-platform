@@ -10,7 +10,7 @@ export interface PaymentTransaction {
   userId: string;
   amountCents: number;
   currency: string;
-  provider: "STRIPE" | "PAYPAL" | "MOCK_PROVIDER";
+  provider: "STRIPE" | "PAYPAL" | "MOMO" | "MOCK_PROVIDER";
   status: PaymentStatus;
   referenceId: string;
   createdAt: Date;

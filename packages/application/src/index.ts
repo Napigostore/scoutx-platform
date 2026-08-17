@@ -43,4 +43,5 @@ export * from "./enterprise/ProductionBetaReadiness";
 export * from "./enterprise/FiwokanProductionReadiness";
 export * from "./enterprise/PayoutProvider";
 export * from "./enterprise/StripePayoutProvider";
+export * from "./enterprise/MoMoPaymentProvider";
 export * from "./currency";
