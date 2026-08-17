@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 
 import { SessionProvider } from "@/components/auth/session-provider";
 import { Providers } from "@/components/providers";
+import { BetaBanner } from "@/components/layout/beta-banner";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteHeader } from "@/components/landing/site-header";
 import { BRAND } from "@/lib/branding";
@@ -47,6 +48,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <SessionProvider>
           <Providers>
             <div className="flex min-h-screen flex-col">
+              <BetaBanner />
               <SiteHeader />
               <main className="flex-1">{children}</main>
               <SiteFooter />

@@ -78,6 +78,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       timestamp: new Date().toISOString(),
       betaOS: {
+        betaMode: process.env.FIWOKAN_BETA_MODE === "true",
         users: {
           total: totalUsers,
           byRole: usersByRole,

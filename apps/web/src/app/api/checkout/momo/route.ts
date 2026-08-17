@@ -51,6 +51,42 @@ export async function POST(request: Request) {
     // 7. Authoritative amount
     const amount = mission.budgetCents;
 
+    // 7b. Controlled FIWOKAN Free Beta Mode
+    if (process.env.FIWOKAN_BETA_MODE === "true") {
+      if (mission.status === "DRAFT") {
+        await prisma.$transaction(async (tx) => {
+          await tx.mission.update({
+            where: { id: mission.id },
+            data: { status: "OPEN" },
+          });
+          await tx.coinTransaction.create({
+            data: {
+              id: crypto.randomUUID(),
+              userId: principal.id,
+              amountCents: -mission.budgetCents,
+              currency: "VND",
+              reason: "Escrow Deposit",
+              description: "FIWOKAN Free Beta Escrow Deposit",
+              eventType: "Escrow Deposit",
+              missionId: mission.id,
+            },
+          });
+        });
+      }
+
+      const origin =
+        request.headers.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "https://fiwokan.com";
+      return NextResponse.json({
+        success: true,
+        betaMode: true,
+        message: "Miễn phí nền tảng trong giai đoạn Beta",
+        orderId: `beta_${mission.id}_${Date.now()}`,
+        amount: mission.budgetCents,
+        currency: "VND",
+        payUrl: `${origin}/missions/${mission.id}?checkout=beta_success`,
+      });
+    }
+
     // 8. Fail-closed production safety check
     const isProd = process.env.NODE_ENV === "production";
     const partnerCode = process.env.MOMO_PARTNER_CODE;
