@@ -62,14 +62,53 @@ export async function getAuthenticatedPrincipal(
         }
       });
 
-      const token = await getToken({
-        req: {
-          headers: Object.fromEntries(request.headers.entries()),
-          cookies,
-        } as unknown as Parameters<typeof getToken>[0]["req"],
+      const reqObj = {
+        headers: Object.fromEntries(request.headers.entries()),
+        cookies,
+      } as unknown as Parameters<typeof getToken>[0]["req"];
+
+      // Attempt 1: Standard getToken with secureCookie check
+      let token = await getToken({
+        req: reqObj,
         secret,
         secureCookie: process.env.NODE_ENV === "production",
       });
+
+      // Attempt 2: Explicit Auth.js v5 secure cookie name fallback
+      if (!token) {
+        token = await getToken({
+          req: reqObj,
+          secret,
+          cookieName: "__Secure-authjs.session-token",
+        });
+      }
+
+      // Attempt 3: Explicit Auth.js v5 non-secure cookie name fallback
+      if (!token) {
+        token = await getToken({
+          req: reqObj,
+          secret,
+          cookieName: "authjs.session-token",
+        });
+      }
+
+      // Attempt 4: Explicit NextAuth legacy secure cookie name fallback
+      if (!token) {
+        token = await getToken({
+          req: reqObj,
+          secret,
+          cookieName: "__Secure-next-auth.session-token",
+        });
+      }
+
+      // Attempt 5: Explicit NextAuth legacy non-secure cookie name fallback
+      if (!token) {
+        token = await getToken({
+          req: reqObj,
+          secret,
+          cookieName: "next-auth.session-token",
+        });
+      }
 
       if (token?.email || token?.sub || token?.id) {
         sessionEmail = (token.email as string) ?? "";

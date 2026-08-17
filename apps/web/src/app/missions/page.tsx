@@ -126,15 +126,28 @@ export default function MissionsPage() {
                     {mission.status}
                   </span>
                   <span className="text-sm font-semibold text-[var(--scoutx-primary)]">
-                    {mission.budget.currency?.trim().toUpperCase() === "VND"
-                      ? new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                        }).format(mission.budget.amountCents)
-                      : new Intl.NumberFormat("en-US", {
-                          style: "currency",
-                          currency: "USD",
-                        }).format(mission.budget.amountCents / 100)}
+                    {(() => {
+                      const amount =
+                        (mission as unknown as { budgetCents?: number }).budgetCents ??
+                        mission.budget?.amountCents ??
+                        0;
+                      const currency = (
+                        (mission as unknown as { currency?: string }).currency ??
+                        mission.budget?.currency ??
+                        "VND"
+                      )
+                        .trim()
+                        .toUpperCase();
+                      return currency === "VND"
+                        ? new Intl.NumberFormat("vi-VN", {
+                            style: "currency",
+                            currency: "VND",
+                          }).format(amount)
+                        : new Intl.NumberFormat("en-US", {
+                            style: "currency",
+                            currency: "USD",
+                          }).format(amount / 100);
+                    })()}
                   </span>
                 </div>
                 <h3 className="font-display mt-4 text-lg font-bold text-[var(--scoutx-foreground)]">
