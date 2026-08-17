@@ -29,11 +29,14 @@ const categoryOptions = MissionCategorySchema.options.map((value) => ({
     .join(" "),
 }));
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 export function MissionComposerPlaceholder() {
   const router = useRouter();
   const { draft, setDraft, setComposerFocused, resetDraft } = useMissionComposerStore();
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ComposerFormValues>({
     resolver: zodResolver(composerSchema),
@@ -41,9 +44,71 @@ export function MissionComposerPlaceholder() {
     mode: "onBlur",
   });
 
-  const onSubmit = form.handleSubmit((values) => {
+  const onSubmit = form.handleSubmit(async (values) => {
+    setError("");
+    setIsSubmitting(true);
     setDraft(values);
-    router.push("/missions/new");
+
+    const defaultExpiresAt = new Date();
+    defaultExpiresAt.setDate(defaultExpiresAt.getDate() + 7);
+
+    const payload = {
+      title: values.title,
+      description: values.description,
+      category: values.category,
+      urgency: "NORMAL",
+      budget: {
+        amountCents: 100000,
+        currency: "VND",
+      },
+      locationId: "00000000-0000-0000-0000-000000000001",
+      coordinates: {
+        latitude: 10.762622,
+        longitude: 106.660172,
+      },
+      radiusMeters: 1500,
+      requiredTags: values.cityQuery
+        ? values.cityQuery
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : ["general"],
+      expiresAt: defaultExpiresAt.toISOString(),
+    };
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    try {
+      const res = await fetch("/api/missions", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) {
+          // Unauthenticated: draft saved in store, navigate to sign-in
+          router.push("/sign-in");
+          return;
+        }
+        throw new Error(data.error || "Failed to save draft");
+      }
+
+      // Success: draft persisted to DB! Clear store draft and navigate to missions
+      resetDraft();
+      router.push("/missions");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsSubmitting(false);
+    }
   });
 
   return (
@@ -76,6 +141,12 @@ export function MissionComposerPlaceholder() {
         onFocusCapture={() => setComposerFocused(true)}
         onBlurCapture={() => setComposerFocused(false)}
       >
+        {error && (
+          <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label htmlFor="title">Mission title</Label>
           <Input
@@ -140,12 +211,13 @@ export function MissionComposerPlaceholder() {
 
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
           <p className="text-sm text-[var(--scoutx-muted-foreground)]">
-            Drafts stay local until publishing is enabled for your account.
+            Saving a draft creates a private mission draft in your account.
           </p>
           <div className="flex gap-2">
             <Button
               type="button"
               variant="outline"
+              disabled={isSubmitting}
               onClick={() => {
                 resetDraft();
                 form.reset({
@@ -158,7 +230,9 @@ export function MissionComposerPlaceholder() {
             >
               Clear
             </Button>
-            <Button type="submit">Save draft</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Saving..." : "Save draft"}
+            </Button>
           </div>
         </div>
 
