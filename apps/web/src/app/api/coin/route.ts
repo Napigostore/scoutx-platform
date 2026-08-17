@@ -18,6 +18,7 @@ export async function GET(request: Request) {
   const pagination = parsePaginationParams(request);
 
   try {
+    const targetUserId = userId && principal.role === "ADMIN" ? userId : principal.id;
     let transactions;
     let total: number;
 
@@ -25,12 +26,8 @@ export async function GET(request: Request) {
       const items = await coinRepo.findByMissionId(missionId);
       transactions = items;
       total = items.length;
-    } else if (userId) {
-      const items = await coinRepo.findByUserId(userId || principal.id);
-      transactions = items;
-      total = items.length;
     } else {
-      const items = await coinRepo.findByUserId(principal.id);
+      const items = await coinRepo.findByUserId(targetUserId);
       transactions = items;
       total = items.length;
     }
@@ -38,7 +35,7 @@ export async function GET(request: Request) {
     const start = (pagination.page! - 1) * pagination.limit!;
     const paged = transactions.slice(start, start + pagination.limit!);
 
-    const balance = await coinRepo.balanceByUserId(userId || principal.id);
+    const balance = await coinRepo.balanceByUserId(targetUserId);
 
     const response = buildPaginatedResponse(paged.map(toCoinTransactionDTO), total, {
       page: pagination.page!,
