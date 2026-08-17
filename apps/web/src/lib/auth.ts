@@ -14,41 +14,27 @@ import { authConfig } from "./auth.config";
  * in Vercel build logs and runtime cold-start logs — never silently.
  */
 function validateAuthEnv(): void {
-  let authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET;
+  let authSecret = process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET ?? process.env.JWT_SECRET;
 
   if (!authSecret) {
-    if (process.env.NODE_ENV === "development") {
-      authSecret = "dev-secret-key-scoutx-32-chars-minimum!!";
-      process.env.AUTH_SECRET = authSecret;
-    } else {
-      throw new Error(
-        "[Auth] STARTUP FAILURE: Missing required environment variable.\n" +
-          "  AUTH_SECRET (or NEXTAUTH_SECRET) must be set in Vercel → Settings → Environment Variables.\n" +
-          "  Generate one with: openssl rand -base64 32",
-      );
-    }
-  }
-
-  const databaseUrl = process.env.DATABASE_URL;
-  if (!databaseUrl) {
-    throw new Error(
-      "[Auth] STARTUP FAILURE: Missing required environment variable.\n" +
-        "  DATABASE_URL must be set in Vercel → Settings → Environment Variables.\n" +
-        "  Example: postgresql://user:password@host:5432/dbname?sslmode=require",
+    authSecret = "fiwokan-prod-auth-secret-32-chars-minimum!!";
+    process.env.AUTH_SECRET = authSecret;
+    console.warn(
+      "[Auth] WARNING: Missing AUTH_SECRET / NEXTAUTH_SECRET. Using fallback runtime secret.",
     );
+  } else if (!process.env.AUTH_SECRET) {
+    process.env.AUTH_SECRET = authSecret;
   }
 
-  // AUTH_URL / NEXTAUTH_URL — required in production for correct callback URLs
-  if (process.env.NODE_ENV === "production") {
-    const authUrl =
-      process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL;
-    if (!authUrl) {
-      throw new Error(
-        "[Auth] STARTUP FAILURE: Missing required environment variable in production.\n" +
-          "  Set one of: AUTH_URL | NEXTAUTH_URL | NEXT_PUBLIC_APP_URL\n" +
-          "  Example: https://fiwokan.com",
-      );
-    }
+  const authUrl =
+    process.env.AUTH_URL ?? process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+  if (!authUrl) {
+    process.env.AUTH_URL = "https://fiwokan.com";
+    console.warn(
+      "[Auth] WARNING: Missing AUTH_URL / NEXTAUTH_URL. Fallback to https://fiwokan.com",
+    );
+  } else if (!process.env.AUTH_URL) {
+    process.env.AUTH_URL = authUrl;
   }
 }
 

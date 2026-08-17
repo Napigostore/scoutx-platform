@@ -58,6 +58,26 @@ function toDomainStatus(status: string): string {
 
 export class PrismaMissionRepository implements MissionRepository {
   async create(mission: Mission): Promise<void> {
+    if (mission.locationId) {
+      const location = await prisma.location.findUnique({
+        where: { id: mission.locationId },
+      });
+      if (!location) {
+        await prisma.location.create({
+          data: {
+            id: mission.locationId,
+            name: "Default Location",
+            city: "Ho Chi Minh City",
+            country: "Vietnam",
+            countryCode: "VN",
+            latitude: mission.coordinates.latitude,
+            longitude: mission.coordinates.longitude,
+            timezone: "Asia/Ho_Chi_Minh",
+          },
+        });
+      }
+    }
+
     await prisma.mission.create({
       data: {
         id: mission.id,

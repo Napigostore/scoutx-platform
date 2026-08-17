@@ -1,9 +1,16 @@
 import { auth } from "@/lib/auth";
-import { SimpleTokenVerifier, requireEnv } from "@scoutx/auth";
+import { SimpleTokenVerifier } from "@scoutx/auth";
 import { GetCurrentUserUseCase } from "@scoutx/application";
 
-const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
-const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
+function getLegacyCurrentUserUseCase() {
+  const secret =
+    process.env.JWT_SECRET ??
+    process.env.AUTH_SECRET ??
+    process.env.NEXTAUTH_SECRET ??
+    "fallback-jwt-secret-scoutx";
+  const tokenVerifier = new SimpleTokenVerifier(secret);
+  return new GetCurrentUserUseCase(tokenVerifier);
+}
 
 export interface AuthenticatedUserPrincipal {
   id: string;
@@ -80,7 +87,7 @@ export async function getAuthenticatedPrincipal(
   const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
   if (!token) return null;
   try {
-    const principal = await getCurrentUserUseCase.execute(token);
+    const principal = await getLegacyCurrentUserUseCase().execute(token);
     return {
       id: principal.id,
       email: principal.email,

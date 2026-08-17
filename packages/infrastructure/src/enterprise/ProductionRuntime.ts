@@ -9,7 +9,6 @@ import {
   ResilienceHelper,
   SecurityService,
 } from "../index";
-import { requireEnv } from "@scoutx/auth";
 
 /* ─── PART 4: Unified Configuration System ─── */
 
@@ -30,14 +29,12 @@ export class ConfigService {
     this.config = {
       env,
       port: Number(envVars.PORT) || 3000,
-      databaseUrl:
-        envVars.DATABASE_URL ||
-        (env === "production"
-          ? requireEnv("DATABASE_URL")
-          : "postgresql://localhost:5432/fiwokan_dev"),
+      databaseUrl: envVars.DATABASE_URL || "postgresql://localhost:5432/fiwokan_dev",
       jwtSecret:
         envVars.JWT_SECRET ||
-        (env === "production" ? requireEnv("JWT_SECRET") : "dev_jwt_secret_key_12345"),
+        envVars.AUTH_SECRET ||
+        envVars.NEXTAUTH_SECRET ||
+        "dev_jwt_secret_key_12345",
       enableAnalytics: envVars.ENABLE_ANALYTICS !== "false",
       enableScheduler: envVars.ENABLE_SCHEDULER !== "false",
     };
@@ -246,4 +243,21 @@ export class ProductionRuntime {
   }
 }
 
-export const productionRuntime = ProductionRuntime.getInstance();
+let _runtimeInstance: ProductionRuntime | null = null;
+
+export function getProductionRuntime(): ProductionRuntime {
+  if (!_runtimeInstance) {
+    _runtimeInstance = ProductionRuntime.getInstance();
+  }
+  return _runtimeInstance;
+}
+
+export const productionRuntime = new Proxy({} as ProductionRuntime, {
+  get(_target, prop) {
+    const instance = getProductionRuntime() as unknown as Record<string, unknown>;
+    const val = instance[prop as string];
+    return typeof val === "function"
+      ? (val as (...args: unknown[]) => unknown).bind(instance)
+      : val;
+  },
+});

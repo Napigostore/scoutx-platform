@@ -6,9 +6,13 @@ import { prisma } from "@/lib/prisma";
 
 import { getAuthenticatedPrincipal } from "@/lib/server-auth";
 
-const missionRepo = new PrismaMissionRepository();
-const createMissionUseCase = new CreateMissionUseCase(missionRepo);
-const listRequesterMissionsUseCase = new ListRequesterMissionsUseCase(missionRepo);
+function getMissionUseCases() {
+  const missionRepo = new PrismaMissionRepository();
+  return {
+    createMissionUseCase: new CreateMissionUseCase(missionRepo),
+    listRequesterMissionsUseCase: new ListRequesterMissionsUseCase(missionRepo),
+  };
+}
 
 export async function POST(request: Request) {
   console.log("[MISSION_DRAFT_DEBUG] request_received");
@@ -53,6 +57,7 @@ export async function POST(request: Request) {
     console.log("[MISSION_DRAFT_DEBUG] validation_success");
 
     console.log("[MISSION_DRAFT_DEBUG] create_mission_started");
+    const { createMissionUseCase } = getMissionUseCases();
     const mission = await createMissionUseCase.execute(parsed.data, user.id, "REQUESTER");
     console.log("[MISSION_DRAFT_DEBUG] create_mission_success");
 
@@ -91,6 +96,7 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { listRequesterMissionsUseCase } = getMissionUseCases();
     const missions = await listRequesterMissionsUseCase.execute(user.id, "REQUESTER");
     return NextResponse.json({ missions }, { status: 200 });
   } catch (error: unknown) {
