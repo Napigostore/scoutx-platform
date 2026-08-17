@@ -47,6 +47,14 @@ export async function POST(request: Request) {
 
     // 3. Mission ownership & assignment check
     if (principal.role === "SCOUT") {
+      const scoutProfile = await prisma.scoutProfile.findUnique({
+        where: { userId: principal.id },
+      });
+
+      if (!scoutProfile) {
+        return apiError("Scout profile not found", 404);
+      }
+
       const mission = await prisma.mission.findUnique({
         where: { id: missionId },
         select: { id: true, assignedScoutId: true, status: true },
@@ -56,7 +64,7 @@ export async function POST(request: Request) {
         return apiError("Mission not found", 404);
       }
 
-      if (mission.assignedScoutId && mission.assignedScoutId !== principal.id) {
+      if (mission.assignedScoutId && mission.assignedScoutId !== scoutProfile.id) {
         return apiError("Forbidden: Mission is assigned to another scout", 403);
       }
     }
