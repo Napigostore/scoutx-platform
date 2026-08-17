@@ -204,13 +204,33 @@ export class PrismaMissionRepository implements MissionRepository {
     }));
   }
 
-  async claimAtomically(missionId: string, scoutId: string): Promise<boolean> {
-    const scoutProfile = await prisma.scoutProfile.findUnique({
+  private async getOrEnsureScoutProfile(scoutId: string) {
+    let scoutProfile = await prisma.scoutProfile.findUnique({
       where: { userId: scoutId },
     });
     if (!scoutProfile) {
+      const user = await prisma.user.findUnique({ where: { id: scoutId } });
+      if (user && (user.role === "SCOUT" || user.role === "ADMIN")) {
+        scoutProfile = await prisma.scoutProfile.create({
+          data: {
+            id: crypto.randomUUID(),
+            userId: user.id,
+            displayName: user.displayName || user.email.split("@")[0] || "Scout",
+            bio: "Active Scout on FIWOKAN platform",
+            homeLocationId: "00000000-0000-0000-0000-000000000001",
+            stripeConnectStatus: "ACTIVE",
+          },
+        });
+      }
+    }
+    if (!scoutProfile) {
       throw new Error("Scout profile not found");
     }
+    return scoutProfile;
+  }
+
+  async claimAtomically(missionId: string, scoutId: string): Promise<boolean> {
+    const scoutProfile = await this.getOrEnsureScoutProfile(scoutId);
 
     const result = await prisma.mission.updateMany({
       where: {
@@ -266,12 +286,7 @@ export class PrismaMissionRepository implements MissionRepository {
   }
 
   async startAtomically(missionId: string, scoutId: string): Promise<boolean> {
-    const scoutProfile = await prisma.scoutProfile.findUnique({
-      where: { userId: scoutId },
-    });
-    if (!scoutProfile) {
-      throw new Error("Scout profile not found");
-    }
+    const scoutProfile = await this.getOrEnsureScoutProfile(scoutId);
 
     const result = await prisma.mission.updateMany({
       where: {
@@ -295,12 +310,7 @@ export class PrismaMissionRepository implements MissionRepository {
     longitude: number,
     failCreate = false,
   ): Promise<unknown> {
-    const scoutProfile = await prisma.scoutProfile.findUnique({
-      where: { userId: scoutId },
-    });
-    if (!scoutProfile) {
-      throw new Error("Scout profile not found");
-    }
+    const scoutProfile = await this.getOrEnsureScoutProfile(scoutId);
 
     return prisma.$transaction(async (tx) => {
       const result = await tx.mission.updateMany({

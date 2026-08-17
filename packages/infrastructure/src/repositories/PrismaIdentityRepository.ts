@@ -40,20 +40,39 @@ export interface IdentityRepository {
 export class PrismaIdentityRepository implements IdentityRepository {
   async saveUser(user: UserIdentity): Promise<void> {
     const fallbackDisplayName = user.email.split("@")[0] ?? user.email;
+    const dbRole = toPrismaRole(user.role);
     await prisma.user.upsert({
       where: { email: user.email },
       update: {
         passwordHash: user.passwordHash,
-        role: toPrismaRole(user.role),
+        role: dbRole,
       },
       create: {
         id: user.id,
         email: user.email,
         passwordHash: user.passwordHash,
-        role: toPrismaRole(user.role),
+        role: dbRole,
         displayName: fallbackDisplayName,
       },
     });
+
+    if (dbRole === "SCOUT") {
+      const existingProfile = await prisma.scoutProfile.findUnique({
+        where: { userId: user.id },
+      });
+      if (!existingProfile) {
+        await prisma.scoutProfile.create({
+          data: {
+            id: crypto.randomUUID(),
+            userId: user.id,
+            displayName: fallbackDisplayName,
+            bio: "Registered Scout on FIWOKAN platform",
+            homeLocationId: "00000000-0000-0000-0000-000000000001",
+            stripeConnectStatus: "ACTIVE",
+          },
+        });
+      }
+    }
   }
 
   async findUserByEmail(email: string): Promise<UserIdentity | null> {
