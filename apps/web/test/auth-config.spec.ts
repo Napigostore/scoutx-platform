@@ -21,14 +21,14 @@ describe("Auth Config", () => {
   describe("callbacks", () => {
     describe("jwt", () => {
       it("should enrich token with user role and permissions on sign-in", async () => {
-        const token = {} as Record<string, unknown>;
+        const token = {} as unknown as Record<string, unknown>;
         const user = { id: "user-1", role: "SCOUT", permissions: ["profile:read"] } as never;
         const result = await authConfig.callbacks!.jwt!({
-          token, user, account: null, profile: undefined as never, trigger: "signIn" as never, session: undefined as never,
+          token: token as never, user, account: null, profile: undefined as never, trigger: "signIn" as never, session: undefined as never,
         });
-        expect((result as { id?: string }).id).toBe("user-1");
-        expect((result as { role?: string }).role).toBe("SCOUT");
-        expect((result as { permissions?: string[] }).permissions).toEqual(["profile:read"]);
+        expect((result as Record<string, unknown>).id).toBe("user-1");
+        expect((result as Record<string, unknown>).role).toBe("SCOUT");
+        expect((result as Record<string, unknown>).permissions).toEqual(["profile:read"]);
       });
 
       it("should preserve existing token if no user is provided", async () => {

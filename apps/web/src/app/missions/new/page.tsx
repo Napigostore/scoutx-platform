@@ -24,16 +24,47 @@ export default function NewMissionPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    // Pre-fill from composer store draft if present
-    const draft = useMissionComposerStore.getState().draft;
-    if (draft.title) setTitle(draft.title);
-    if (draft.description) setDescription(draft.description);
-    if (draft.category) setCategory(draft.category);
+    // 1. Check for pending draft in localStorage (e.g. preserved after 401 re-authentication)
+    if (typeof window !== "undefined") {
+      const pendingDraft = localStorage.getItem("fiwokan_pending_mission_draft");
+      if (pendingDraft) {
+        try {
+          const parsed = JSON.parse(pendingDraft);
+          if (parsed.title) setTitle(parsed.title);
+          if (parsed.description) setDescription(parsed.description);
+          if (parsed.category) setCategory(parsed.category);
+          if (parsed.urgency) setUrgency(parsed.urgency);
+          if (parsed.budget?.amountCents) setBudgetAmount(String(parsed.budget.amountCents));
+          if (parsed.coordinates?.latitude) setLatitude(String(parsed.coordinates.latitude));
+          if (parsed.coordinates?.longitude) setLongitude(String(parsed.coordinates.longitude));
+          if (parsed.radiusMeters) setRadiusMeters(String(parsed.radiusMeters));
+          if (parsed.requiredTags?.length) setRequiredTags(parsed.requiredTags.join(", "));
+          if (parsed.expiresAt) {
+            try {
+              setExpiresAt(new Date(parsed.expiresAt).toISOString().substring(0, 16));
+            } catch {
+              // ignore date parse error
+            }
+          }
+        } catch {
+          // ignore JSON parse error
+        }
+      } else {
+        // 2. Pre-fill from composer store draft if present
+        const draft = useMissionComposerStore.getState().draft;
+        if (draft.title) setTitle(draft.title);
+        if (draft.description) setDescription(draft.description);
+        if (draft.category) setCategory(draft.category);
+      }
+    }
 
-    // Set default expiresAt to 7 days from now
-    const defaultDate = new Date();
-    defaultDate.setDate(defaultDate.getDate() + 7);
-    setExpiresAt(defaultDate.toISOString().substring(0, 16));
+    // Set default expiresAt to 7 days from now if empty
+    setExpiresAt((prev) => {
+      if (prev) return prev;
+      const defaultDate = new Date();
+      defaultDate.setDate(defaultDate.getDate() + 7);
+      return defaultDate.toISOString().substring(0, 16);
+    });
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -109,7 +140,10 @@ export default function NewMissionPage() {
       } else {
         const text = await res.text();
         if (res.status === 401) {
-          router.push("/sign-in");
+          if (typeof window !== "undefined") {
+            localStorage.setItem("fiwokan_pending_mission_draft", JSON.stringify(payload));
+          }
+          router.push("/sign-in?callbackUrl=/missions/new");
           return;
         }
         throw new Error(
@@ -119,12 +153,19 @@ export default function NewMissionPage() {
 
       if (!res.ok) {
         if (res.status === 401) {
-          router.push("/sign-in");
+          if (typeof window !== "undefined") {
+            localStorage.setItem("fiwokan_pending_mission_draft", JSON.stringify(payload));
+          }
+          router.push("/sign-in?callbackUrl=/missions/new");
           return;
         }
         throw new Error(data?.error || "Failed to create mission");
       }
 
+      // Success: draft persisted! Remove pending draft from localStorage
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("fiwokan_pending_mission_draft");
+      }
       useMissionComposerStore.getState().resetDraft();
       router.push("/missions");
     } catch (err: unknown) {

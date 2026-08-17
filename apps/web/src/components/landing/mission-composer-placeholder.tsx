@@ -98,7 +98,10 @@ export function MissionComposerPlaceholder() {
       } else {
         const text = await res.text();
         if (res.status === 401) {
-          router.push("/sign-in");
+          if (typeof window !== "undefined") {
+            localStorage.setItem("fiwokan_pending_mission_draft", JSON.stringify(payload));
+          }
+          router.push("/sign-in?callbackUrl=/missions/new");
           return;
         }
         throw new Error(
@@ -108,14 +111,20 @@ export function MissionComposerPlaceholder() {
 
       if (!res.ok) {
         if (res.status === 401) {
-          // Unauthenticated: draft saved in store, navigate to sign-in
-          router.push("/sign-in");
+          // Unauthenticated: draft saved in localStorage, navigate to sign-in
+          if (typeof window !== "undefined") {
+            localStorage.setItem("fiwokan_pending_mission_draft", JSON.stringify(payload));
+          }
+          router.push("/sign-in?callbackUrl=/missions/new");
           return;
         }
         throw new Error(data?.error || "Failed to save draft");
       }
 
-      // Success: draft persisted to DB! Clear store draft and navigate to missions
+      // Success: draft persisted to DB! Remove pending draft, clear store, and navigate to missions
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("fiwokan_pending_mission_draft");
+      }
       resetDraft();
       router.push("/missions");
     } catch (err: unknown) {
