@@ -11,7 +11,7 @@ export default function NewMissionPage() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("STREET_CONDITIONS");
   const [urgency, setUrgency] = useState("NORMAL");
-  const [budgetAmount, setBudgetAmount] = useState("50.00");
+  const [budgetAmount, setBudgetAmount] = useState("100000");
   const locationId = "00000000-0000-0000-0000-000000000001";
   const [latitude, setLatitude] = useState("35.658034");
   const [longitude, setLongitude] = useState("139.701636");
@@ -43,7 +43,7 @@ export default function NewMissionPage() {
       return;
     }
 
-    const amountCents = Math.round(parseFloat(budgetAmount) * 100);
+    const amountCents = Math.round(parseFloat(budgetAmount));
     if (isNaN(amountCents) || amountCents <= 0) {
       setError("Budget must be a positive number");
       setIsLoading(false);
@@ -77,7 +77,7 @@ export default function NewMissionPage() {
       urgency,
       budget: {
         amountCents,
-        currency: "USD",
+        currency: "VND",
       },
       locationId,
       coordinates: {
@@ -197,11 +197,11 @@ export default function NewMissionPage() {
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="budget">Budget (USD)</Label>
+              <Label htmlFor="budget">Budget (VND)</Label>
               <Input
                 id="budget"
                 type="number"
-                step="0.01"
+                step="1"
                 required
                 value={budgetAmount}
                 onChange={(e) => setBudgetAmount(e.target.value)}

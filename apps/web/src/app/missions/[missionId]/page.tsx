@@ -431,7 +431,13 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
               Budget
             </span>
             <p className="mt-1 text-3xl font-bold text-[var(--scoutx-foreground)]">
-              ${(mission.budget.amountCents / 100).toFixed(2)}
+              {mission.budget.currency?.trim().toUpperCase() === "VND"
+                ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+                    mission.budget.amountCents,
+                  )
+                : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+                    mission.budget.amountCents / 100,
+                  )}
             </p>
           </div>
 

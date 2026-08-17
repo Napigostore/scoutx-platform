@@ -117,7 +117,7 @@ export default function ScoutMissionDetailsPage({
     );
   }
 
-  const isClaimable = mission.status === "PUBLISHED";
+  const isClaimable = mission.status === "OPEN" || mission.status === "PUBLISHED";
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
@@ -184,7 +184,13 @@ export default function ScoutMissionDetailsPage({
               Budget
             </span>
             <p className="mt-1 text-3xl font-bold text-[var(--scoutx-foreground)]">
-              ${(mission.budget.amountCents / 100).toFixed(2)}
+              {mission.budget.currency?.trim().toUpperCase() === "VND"
+                ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
+                    mission.budget.amountCents,
+                  )
+                : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
+                    mission.budget.amountCents / 100,
+                  )}
             </p>
           </div>
 
