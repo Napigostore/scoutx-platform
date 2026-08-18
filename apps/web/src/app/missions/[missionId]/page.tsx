@@ -53,27 +53,34 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
   const [rejectionReason, setRejectionReason] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/sign-in");
-      return;
-    }
-
     fetchMission();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [missionId, router]);
+  }, [missionId]);
 
-  const getToken = () => localStorage.getItem("accessToken");
+  const getAuthHeaders = (): Record<string, string> => {
+    const headers: Record<string, string> = {};
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+  };
 
   const fetchMission = async () => {
-    const token = getToken();
-    if (!token) return;
     try {
       const res = await fetch(`/api/missions/${missionId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: getAuthHeaders(),
+        cache: "no-store",
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to fetch mission details");
+      if (!res.ok) {
+        if (res.status === 401) {
+          throw new Error(
+            `Authentication required (HTTP 401): ${data.error || "Session not found"}. Please sign in to view mission details.`,
+          );
+        }
+        throw new Error(data.error || "Failed to fetch mission details");
+      }
       setMission(data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
@@ -88,14 +95,11 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
     }
 
     setIsCancelling(true);
-    const token = localStorage.getItem("accessToken");
 
     try {
       const res = await fetch(`/api/missions/${missionId}/cancel`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       });
 
       const data = await res.json();
@@ -117,14 +121,11 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
     }
 
     setIsPublishing(true);
-    const token = localStorage.getItem("accessToken");
 
     try {
       const res = await fetch(`/api/missions/${missionId}/publish`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: getAuthHeaders(),
       });
 
       const data = await res.json();
@@ -146,7 +147,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
     try {
       const res = await fetch(`/api/missions/${missionId}/submission/approve`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${getToken()}` },
+        headers: getAuthHeaders(),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to approve submission");
@@ -170,7 +171,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
+          ...getAuthHeaders(),
         },
         body: JSON.stringify({ rejectionReason: rejectionReason.trim() }),
       });
