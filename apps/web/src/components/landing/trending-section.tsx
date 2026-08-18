@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Badge, Card, CardContent, CardDescription, CardHeader, CardTitle } from "@scoutx/ui";
 
@@ -74,24 +75,31 @@ export function TrendingSection({ missions }: { missions: TrendingMissionItem[] 
                 viewport={{ once: true, amount: 0.2 }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
               >
-                <Card className="h-full bg-white/80 transition-transform duration-300 hover:-translate-y-1">
-                  <CardHeader>
-                    <div className="mb-2 flex flex-wrap items-center gap-2">
-                      <Badge variant="outline">{formatCategory(mission.category)}</Badge>
-                      <Badge variant={urgencyVariant(mission.urgency)}>{mission.urgency}</Badge>
-                    </div>
-                    <CardTitle className="text-lg leading-snug">{mission.title}</CardTitle>
-                    <CardDescription>
-                      {mission.city}, {mission.country}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex items-center justify-between text-sm">
-                    <span className="font-medium text-[var(--scoutx-primary)]">
-                      {mission.budgetLabel}
-                    </span>
-                    <span className="text-[var(--scoutx-muted-foreground)]">{mission.status}</span>
-                  </CardContent>
-                </Card>
+                <Link
+                  href={`/scout/missions/${mission.id}`}
+                  className="block h-full cursor-pointer"
+                >
+                  <Card className="h-full bg-white/80 transition-transform duration-300 hover:-translate-y-1 hover:border-[var(--scoutx-primary)]">
+                    <CardHeader>
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <Badge variant="outline">{formatCategory(mission.category)}</Badge>
+                        <Badge variant={urgencyVariant(mission.urgency)}>{mission.urgency}</Badge>
+                      </div>
+                      <CardTitle className="text-lg leading-snug">{mission.title}</CardTitle>
+                      <CardDescription>
+                        {mission.city}, {mission.country}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-between text-sm">
+                      <span className="font-medium text-[var(--scoutx-primary)]">
+                        {mission.budgetLabel}
+                      </span>
+                      <span className="text-[var(--scoutx-muted-foreground)]">
+                        {mission.status}
+                      </span>
+                    </CardContent>
+                  </Card>
+                </Link>
               </motion.div>
             ))}
           </div>
