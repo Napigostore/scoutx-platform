@@ -1,44 +1,35 @@
 import { NextResponse } from "next/server";
 import { PrismaMissionRepository } from "@scoutx/infrastructure";
-import {
-  RejectMissionSubmissionUseCase,
-  NotFoundError,
-  ConflictError,
-  GetCurrentUserUseCase,
-} from "@scoutx/application";
-import { SimpleTokenVerifier, AuthorizationError, requireEnv } from "@scoutx/auth";
+import { RejectMissionSubmissionUseCase, NotFoundError, ConflictError } from "@scoutx/application";
+import { AuthorizationError } from "@scoutx/auth";
 import { InMemoryEventBus } from "@scoutx/events";
 import { prisma } from "@/lib/prisma";
+import { getAuthenticatedPrincipal } from "@/lib/server-auth";
 
-const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
-const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
-const missionRepo = new PrismaMissionRepository();
-const rejectMissionSubmissionUseCase = new RejectMissionSubmissionUseCase(
-  missionRepo,
-  new InMemoryEventBus(),
-);
-
-async function authenticate(request: Request) {
-  const authHeader = request.headers.get("authorization") || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
-  if (!token) return null;
-  try {
-    return await getCurrentUserUseCase.execute(token);
-  } catch {
-    return null;
-  }
+function getRejectMissionSubmissionUseCase() {
+  const missionRepo = new PrismaMissionRepository();
+  return new RejectMissionSubmissionUseCase(missionRepo, new InMemoryEventBus());
 }
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ missionId: string }> },
 ) {
-  const principal = await authenticate(request);
+  const principal = await getAuthenticatedPrincipal(request);
   if (!principal) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (principal.role !== "REQUESTER") {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    principal.id,
+  );
+  let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
+
+  if (!user && principal.email) {
+    user = await prisma.user.findUnique({ where: { email: principal.email } });
+  }
+
+  if (!user || user.role !== "REQUESTER") {
     return NextResponse.json(
       { error: "Forbidden: only requesters can reject submissions" },
       { status: 403 },
@@ -63,7 +54,8 @@ export async function POST(
   }
 
   try {
-    await rejectMissionSubmissionUseCase.execute(missionId, principal.id, "REQUESTER", {
+    const rejectMissionSubmissionUseCase = getRejectMissionSubmissionUseCase();
+    await rejectMissionSubmissionUseCase.execute(missionId, user.id, "REQUESTER", {
       rejectionReason,
     });
 

@@ -55,7 +55,10 @@ export class ResubmitMissionSubmissionUseCase {
     if (!mission) {
       throw new NotFoundError("Mission not found");
     }
-    if (mission.assignedScoutId !== scoutId) {
+
+    const assigned = await this.missionRepo.findAssignedByScoutId(scoutId);
+    const isAssigned = assigned.some((m) => m.id === missionId);
+    if (!isAssigned) {
       throw new AuthorizationError("You are not assigned to this mission");
     }
     if (mission.status !== "IN_PROGRESS") {

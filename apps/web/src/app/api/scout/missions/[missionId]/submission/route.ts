@@ -3,45 +3,44 @@ import { PrismaMissionRepository } from "@scoutx/infrastructure";
 import {
   CreateMissionSubmissionUseCase,
   ResubmitMissionSubmissionUseCase,
-  GetCurrentUserUseCase,
   NotFoundError,
   ConflictError,
 } from "@scoutx/application";
-import { SimpleTokenVerifier, AuthorizationError, requireEnv } from "@scoutx/auth";
+import { AuthorizationError } from "@scoutx/auth";
 import { InMemoryEventBus } from "@scoutx/events";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getAuthenticatedPrincipal } from "@/lib/server-auth";
 
-const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
-const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
-const missionRepo = new PrismaMissionRepository();
-const createMissionSubmissionUseCase = new CreateMissionSubmissionUseCase(missionRepo);
-const resubmitMissionSubmissionUseCase = new ResubmitMissionSubmissionUseCase(
-  missionRepo,
-  new InMemoryEventBus(),
-);
-
-async function authenticate(request: Request) {
-  const authHeader = request.headers.get("authorization") || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
-  if (!token) return null;
-  try {
-    return await getCurrentUserUseCase.execute(token);
-  } catch {
-    return null;
-  }
+function getSubmissionUseCases() {
+  const missionRepo = new PrismaMissionRepository();
+  const createMissionSubmissionUseCase = new CreateMissionSubmissionUseCase(missionRepo);
+  const resubmitMissionSubmissionUseCase = new ResubmitMissionSubmissionUseCase(
+    missionRepo,
+    new InMemoryEventBus(),
+  );
+  return { createMissionSubmissionUseCase, resubmitMissionSubmissionUseCase };
 }
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ missionId: string }> },
 ) {
-  const principal = await authenticate(request);
+  const principal = await getAuthenticatedPrincipal(request);
   if (!principal) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (principal.role !== "SCOUT") {
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    principal.id,
+  );
+  let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
+
+  if (!user && principal.email) {
+    user = await prisma.user.findUnique({ where: { email: principal.email } });
+  }
+
+  if (!user || user.role !== "SCOUT") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
@@ -55,6 +54,9 @@ export async function POST(
   const bodyRecord = body as Record<string, unknown>;
 
   try {
+    const { createMissionSubmissionUseCase, resubmitMissionSubmissionUseCase } =
+      getSubmissionUseCases();
+
     const mission = await prisma.mission.findUnique({
       where: { id: missionId },
       select: { status: true },
@@ -71,7 +73,7 @@ export async function POST(
       });
 
       if (existingSubmission) {
-        await resubmitMissionSubmissionUseCase.execute(missionId, principal.id, "SCOUT", {
+        await resubmitMissionSubmissionUseCase.execute(missionId, user.id, "SCOUT", {
           summary: bodyRecord.summary as string,
           mediaUrls: bodyRecord.mediaUrls as string[],
           latitude: parseFloat(bodyRecord.latitude as string) || (bodyRecord.latitude as number),
@@ -90,7 +92,7 @@ export async function POST(
     const submission = await createMissionSubmissionUseCase.execute(
       missionId,
       body,
-      principal.id,
+      user.id,
       "SCOUT",
     );
     return NextResponse.json(submission, { status: 201 });
