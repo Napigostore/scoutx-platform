@@ -113,9 +113,10 @@ export default function ScoutMissionsPage() {
       {!isLoading && !error && missions.length > 0 && (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {missions.map((mission) => (
-            <div
+            <Link
               key={mission.id}
-              className="flex flex-col justify-between rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+              href={`/scout/missions/${mission.id}`}
+              className="group flex flex-col justify-between rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm transition-shadow hover:border-[var(--scoutx-primary)] hover:shadow-md"
             >
               <div>
                 <div className="flex items-center justify-between">
@@ -134,7 +135,7 @@ export default function ScoutMissionsPage() {
                         }).format(mission.budget.amountCents / 100)}
                   </span>
                 </div>
-                <h3 className="font-display mt-4 text-lg font-bold text-[var(--scoutx-foreground)]">
+                <h3 className="font-display mt-4 text-lg font-bold text-[var(--scoutx-foreground)] group-hover:text-[var(--scoutx-primary)]">
                   {mission.title}
                 </h3>
                 <p className="mt-2 line-clamp-3 text-sm text-[var(--scoutx-muted-foreground)]">
@@ -145,14 +146,11 @@ export default function ScoutMissionsPage() {
                 <span className="text-xs text-[var(--scoutx-muted-foreground)]">
                   Created {new Date(mission.createdAt).toLocaleDateString()}
                 </span>
-                <Link
-                  href={`/scout/missions/${mission.id}`}
-                  className="text-sm font-semibold text-[var(--scoutx-primary)] hover:underline"
-                >
+                <span className="text-sm font-semibold text-[var(--scoutx-primary)] group-hover:underline">
                   View details &rarr;
-                </Link>
+                </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
