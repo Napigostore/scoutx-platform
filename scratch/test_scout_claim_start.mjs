@@ -8,11 +8,11 @@ import { StartMissionUseCase } from "../packages/application/src/use-cases/Start
 import { getAuthenticatedPrincipal } from "../apps/web/src/lib/server-auth.js";
 
 async function runScoutClaimStartTest() {
-  console.log("=== FIWOKAN SCOUT MISSION CLAIM & START LIFECYCLE AUDIT ===");
+  console.log("=== FIWOKAN SCOUT MISSION CLAIM & START FULL LIFECYCLE SUITE ===");
 
   const timestamp = Date.now();
-  const requesterEmail = `test_req_claim_${timestamp}@fiwokan.com`;
-  const scoutEmail = `test_scout_claim_${timestamp}@fiwokan.com`;
+  const requesterEmail = `test_req_scout_${timestamp}@fiwokan.com`;
+  const scoutEmail = `test_scout_scout_${timestamp}@fiwokan.com`;
   const secret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "fiwokan-prod-auth-secret-32-chars-minimum!!";
   process.env.AUTH_SECRET = secret;
 
@@ -62,15 +62,41 @@ async function runScoutClaimStartTest() {
     const openMission = await publishMissionUseCase.execute(draftMission.id, requester.id, "REQUESTER");
     console.log(`2. Mission Published with status: ${openMission.status}`);
 
-    // 3. Test Anti-Self-Dealing Guard: Requester cannot claim their own mission
+    // 3. Test Unauthorized Access (401)
+    const unauthReq = new Request(`http://localhost:3000/api/scout/missions/${openMission.id}/claim`, {
+      method: "POST",
+    });
+    const unauthPrincipal = await getAuthenticatedPrincipal(unauthReq);
+    if (unauthPrincipal !== null) {
+      throw new Error("Unauthenticated request failed to return null principal!");
+    }
+    console.log("   Pass (1): Unauthenticated request returns null principal (401).");
+
+    // 4. Test Anti-Self-Dealing Guard: Requester cannot claim their own mission (403)
     try {
       await claimMissionUseCase.execute(openMission.id, requester.id, "SCOUT");
       throw new Error("Requester was wrongly allowed to claim their own mission!");
-    } catch {
-      console.log("   Pass (1): Anti-self-dealing guard correctly blocked requester from claiming own mission.");
+    } catch (err) {
+      console.log("   Pass (2): Anti-self-dealing guard correctly blocked requester from claiming own mission (403).");
     }
 
-    // 4. Test Auth.js Scout Session Cookie Resolution
+    // 5. Test Anti-Self-Dealing Guard on Start: Requester cannot start their own mission (403)
+    try {
+      await startMissionUseCase.execute(openMission.id, requester.id, "SCOUT");
+      throw new Error("Requester was wrongly allowed to start their own mission!");
+    } catch (err) {
+      console.log("   Pass (3): Anti-self-dealing guard correctly blocked requester from starting own mission (403).");
+    }
+
+    // 6. Test Invalid State: Scout cannot start an OPEN mission before claiming
+    try {
+      await startMissionUseCase.execute(openMission.id, scout.id, "SCOUT");
+      throw new Error("Scout was wrongly allowed to start an unclaimed OPEN mission!");
+    } catch (err) {
+      console.log("   Pass (4): Invalid state guard correctly blocked starting an unclaimed OPEN mission.");
+    }
+
+    // 7. Test Auth.js Scout Session Cookie Resolution
     const scoutSessionToken = await encode({
       token: {
         email: scoutEmail,
@@ -92,33 +118,33 @@ async function runScoutClaimStartTest() {
     if (!scoutPrincipal || scoutPrincipal.id !== scout.id) {
       throw new Error("Failed to resolve authenticated SCOUT principal!");
     }
-    console.log("   Pass (2): Authenticated SCOUT principal resolved via Auth.js session cookie.");
+    console.log("   Pass (5): Authenticated SCOUT principal resolved via Auth.js session cookie.");
 
-    // 5. Scout Claims Mission (OPEN -> MATCHED)
+    // 8. Scout Claims Mission (OPEN -> MATCHED)
     const claimedMission = await claimMissionUseCase.execute(openMission.id, scout.id, "SCOUT");
     const scoutProfile = await prisma.scoutProfile.findUnique({ where: { userId: scout.id } });
     console.log(`3. Mission Claimed by Scout: status=${claimedMission.status}, assignedScoutId=${claimedMission.assignedScoutId}`);
 
     if (claimedMission.status !== "MATCHED" || !claimedMission.assignedScoutId || claimedMission.assignedScoutId !== scoutProfile?.id) {
-      throw new Error(`Mission claim failed to transition status to MATCHED or assign scout! Got assignedScoutId=${claimedMission.assignedScoutId}, expected ${scoutProfile?.id}`);
+      throw new Error(`Mission claim failed to transition status to MATCHED or assign scout!`);
     }
-    console.log("   Pass (3): Mission status updated from OPEN to MATCHED with assignedScoutId.");
+    console.log("   Pass (6): Mission status updated from OPEN to MATCHED with assignedScoutId.");
 
-    // 6. Scout Starts Mission (MATCHED -> IN_PROGRESS)
+    // 9. Scout Starts Mission (MATCHED -> IN_PROGRESS)
     const startedMission = await startMissionUseCase.execute(openMission.id, scout.id, "SCOUT");
     console.log(`4. Mission Started by Scout: status=${startedMission.status}`);
 
     if (startedMission.status !== "IN_PROGRESS") {
       throw new Error("Mission start failed to transition status to IN_PROGRESS!");
     }
-    console.log("   Pass (4): Mission status updated from MATCHED to IN_PROGRESS.");
+    console.log("   Pass (7): Mission status updated from MATCHED to IN_PROGRESS.");
 
-    // 7. Verify PostgreSQL DB record
+    // 10. Verify PostgreSQL DB record
     const dbMission = await prisma.mission.findUnique({ where: { id: openMission.id } });
     if (!dbMission || dbMission.status !== "IN_PROGRESS" || dbMission.assignedScoutId !== scoutProfile?.id) {
       throw new Error("PostgreSQL DB record status or assignedScoutId mismatch!");
     }
-    console.log("   Pass (5): PostgreSQL DB record verified with status IN_PROGRESS and assignedScoutId.");
+    console.log("   Pass (8): PostgreSQL DB record verified with status IN_PROGRESS and assignedScoutId.");
 
     // Cleanup
     await prisma.mission.deleteMany({ where: { id: openMission.id } });
@@ -129,7 +155,7 @@ async function runScoutClaimStartTest() {
     console.log("Cleaned up test data safely.");
 
     console.log("\n========================================================");
-    console.log("✅ SCOUT MISSION CLAIM & START LIFECYCLE TEST PASSED 100%!");
+    console.log("✅ SCOUT MISSION CLAIM & START SUITE PASSED 100%!");
     console.log("========================================================\n");
   } catch (error) {
     console.error("❌ TEST FAILED:", error);

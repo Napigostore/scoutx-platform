@@ -15,6 +15,11 @@ export class StartMissionUseCase {
       throw new Error("Mission not found");
     }
 
+    // Anti-Abuse: Prevent requesters from starting their own missions (self-dealing)
+    if (mission.requesterId === scoutId) {
+      throw new AuthorizationError("Requesters cannot start their own missions");
+    }
+
     const assigned = await this.missionRepo.findAssignedByScoutId(scoutId);
     const isAssigned = assigned.some((m) => m.id === missionId);
     if (!isAssigned) {

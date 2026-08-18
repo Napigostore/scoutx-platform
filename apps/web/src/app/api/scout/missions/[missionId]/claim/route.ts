@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { PrismaMissionRepository } from "@scoutx/infrastructure";
 import { ClaimMissionUseCase } from "@scoutx/application";
+import { AuthorizationError } from "@scoutx/auth";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedPrincipal } from "@/lib/server-auth";
 
@@ -39,6 +40,9 @@ export async function POST(
     return NextResponse.json(mission, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to claim mission";
+    if (error instanceof AuthorizationError || message.includes("cannot claim")) {
+      return NextResponse.json({ error: message }, { status: 403 });
+    }
     if (message === "Mission not found") {
       return NextResponse.json({ error: message }, { status: 404 });
     }
