@@ -32,7 +32,7 @@ export default function MissionsPage() {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    fetch("/api/missions", { headers })
+    fetch("/api/missions", { headers, cache: "no-store" })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {
