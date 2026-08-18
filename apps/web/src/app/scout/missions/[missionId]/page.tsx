@@ -39,20 +39,21 @@ export default function ScoutMissionDetailsPage({
   const [isClaiming, setIsClaiming] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/sign-in");
-      return;
+    const headers: Record<string, string> = {};
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
 
-    fetch(`/api/scout/missions/${missionId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    fetch(`/api/scout/missions/${missionId}`, { headers, cache: "no-store" })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error(
+              `Authentication required (HTTP 401): ${data.error || "Session not found"}. Please sign in to view available missions.`,
+            );
+          }
           throw new Error(data.error || "Failed to fetch mission details");
         }
         setMission(data);
@@ -71,14 +72,16 @@ export default function ScoutMissionDetailsPage({
     }
 
     setIsClaiming(true);
-    const token = localStorage.getItem("accessToken");
+    const headers: Record<string, string> = {};
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
 
     try {
       const res = await fetch(`/api/scout/missions/${missionId}/claim`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
 
       const data = await res.json();
