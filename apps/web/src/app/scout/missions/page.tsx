@@ -113,10 +113,10 @@ export default function ScoutMissionsPage() {
       {!isLoading && !error && missions.length > 0 && (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {missions.map((mission) => (
-            <Link
+            <div
               key={mission.id}
-              href={`/scout/missions/${mission.id}`}
-              className="group flex flex-col justify-between rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm transition-shadow hover:border-[var(--scoutx-primary)] hover:shadow-md"
+              onClick={() => router.push(`/scout/missions/${mission.id}`)}
+              className="group flex cursor-pointer flex-col justify-between rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm transition-shadow hover:border-[var(--scoutx-primary)] hover:shadow-md"
             >
               <div>
                 <div className="flex items-center justify-between">
@@ -146,11 +146,19 @@ export default function ScoutMissionsPage() {
                 <span className="text-xs text-[var(--scoutx-muted-foreground)]">
                   Created {new Date(mission.createdAt).toLocaleDateString()}
                 </span>
-                <span className="text-sm font-semibold text-[var(--scoutx-primary)] group-hover:underline">
-                  View details &rarr;
-                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/scout/missions/${mission.id}`);
+                    }}
+                  >
+                    Open Mission
+                  </Button>
+                </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}
