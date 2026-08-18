@@ -26,20 +26,21 @@ export default function ScoutMissionsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/sign-in");
-      return;
+    const headers: Record<string, string> = {};
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
 
-    fetch("/api/scout/missions", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    fetch("/api/scout/missions", { headers, cache: "no-store" })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {
+          if (res.status === 401) {
+            throw new Error(
+              `Authentication required (HTTP 401): ${data.error || "Session not found"}. Please sign in to view available missions.`,
+            );
+          }
           throw new Error(data.error || "Failed to fetch available missions");
         }
         setMissions(data.missions || []);
@@ -53,14 +54,18 @@ export default function ScoutMissionsPage() {
   }, [router]);
 
   const handleSignOut = async () => {
-    const token = localStorage.getItem("accessToken");
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
     await fetch("/api/auth/sign-out", {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
     });
-    localStorage.removeItem("accessToken");
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("accessToken");
+    }
     router.push("/sign-in");
   };
 
