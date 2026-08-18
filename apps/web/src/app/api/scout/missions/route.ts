@@ -30,7 +30,7 @@ export async function GET(request: Request) {
 
   try {
     const listAvailableMissionsUseCase = getListAvailableMissionsUseCase();
-    const missions = await listAvailableMissionsUseCase.execute("SCOUT");
+    const missions = await listAvailableMissionsUseCase.execute("SCOUT", user.id);
     return NextResponse.json({ missions }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to list available missions";

@@ -5,11 +5,11 @@ import { AuthorizationError } from "@scoutx/auth";
 export class ListAvailableMissionsUseCase {
   constructor(private readonly missionRepo: MissionRepository) {}
 
-  async execute(userRole: string): Promise<readonly Mission[]> {
+  async execute(userRole: string, scoutUserId?: string): Promise<readonly Mission[]> {
     if (userRole !== "SCOUT") {
       throw new AuthorizationError("Only scouts can discover available missions");
     }
 
-    return this.missionRepo.findAvailable();
+    return this.missionRepo.findAvailable(scoutUserId);
   }
 }

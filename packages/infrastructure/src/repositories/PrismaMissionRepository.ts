@@ -189,12 +189,13 @@ export class PrismaMissionRepository implements MissionRepository {
     });
   }
 
-  async findAvailable(): Promise<readonly Mission[]> {
+  async findAvailable(scoutUserId?: string): Promise<readonly Mission[]> {
     const rows = await prisma.mission.findMany({
       where: {
         status: "OPEN",
         assignedScoutId: null,
         expiresAt: { gt: new Date() },
+        ...(scoutUserId ? { requesterId: { not: scoutUserId } } : {}),
       },
       orderBy: { createdAt: "desc" },
     });
