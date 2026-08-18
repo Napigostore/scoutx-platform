@@ -141,6 +141,9 @@ describe("Event Publishing", () => {
         findById: vi.fn().mockResolvedValue(
           mockMission({ status: "IN_PROGRESS" }),
         ),
+        findAssignedByScoutId: vi.fn().mockResolvedValue([
+          mockMission({ status: "IN_PROGRESS" }),
+        ]),
         resubmitSubmissionAtomically: vi.fn().mockResolvedValue(true),
       } as any;
       const eventBus = mockEventBus();
@@ -169,6 +172,9 @@ describe("Event Publishing", () => {
         findById: vi.fn().mockResolvedValue(
           mockMission({ status: "IN_PROGRESS" }),
         ),
+        findAssignedByScoutId: vi.fn().mockResolvedValue([
+          mockMission({ status: "IN_PROGRESS" }),
+        ]),
         resubmitSubmissionAtomically: vi.fn().mockResolvedValue(false),
       } as any;
       const eventBus = mockEventBus();
