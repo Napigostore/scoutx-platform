@@ -27,22 +27,29 @@ export async function GET(
     user = await prisma.user.findUnique({ where: { email: principal.email } });
   }
 
-  if (!user || user.role !== "SCOUT") {
+  if (!user) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { missionId } = await params;
+  const missionRepo = new PrismaMissionRepository();
+  const mission = await missionRepo.findById(missionId);
 
-  try {
-    const getAvailableMissionDetailsUseCase = getGetAvailableMissionDetailsUseCase();
-    const mission = await getAvailableMissionDetailsUseCase.execute(missionId, "SCOUT");
-    return NextResponse.json(mission, { status: 200 });
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Failed to get available mission details";
-    if (message === "Mission not found") {
-      return NextResponse.json({ error: message }, { status: 404 });
-    }
-    return NextResponse.json({ error: message }, { status: 400 });
+  if (!mission) {
+    return NextResponse.json({ error: "Mission not found" }, { status: 404 });
   }
+
+  // Anti-Self-Dealing: Requester A cannot view or claim their own mission as a scout
+  if (mission.requesterId === user.id) {
+    return NextResponse.json(
+      { error: "Requesters cannot view or claim their own missions as a scout" },
+      { status: 403 },
+    );
+  }
+
+  if (mission.status !== "OPEN" && mission.assignedScoutId !== user.id) {
+    return NextResponse.json({ error: "Mission is not available" }, { status: 400 });
+  }
+
+  return NextResponse.json(mission, { status: 200 });
 }

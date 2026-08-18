@@ -28,7 +28,7 @@ export async function POST(
     user = await prisma.user.findUnique({ where: { email: principal.email } });
   }
 
-  if (!user || user.role !== "SCOUT") {
+  if (!user) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
