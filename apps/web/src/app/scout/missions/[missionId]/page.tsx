@@ -91,7 +91,7 @@ export default function ScoutMissionDetailsPage({
 
       setMission(data);
       alert("Mission claimed successfully!");
-      router.push("/scout/missions");
+      router.push(`/scout/missions/${missionId}/work`);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : String(err));
     } finally {
@@ -121,6 +121,10 @@ export default function ScoutMissionDetailsPage({
   }
 
   const isClaimable = mission.status === "OPEN" || mission.status === "PUBLISHED";
+  const isAssigned =
+    mission.status === "MATCHED" ||
+    mission.status === "IN_PROGRESS" ||
+    mission.status === "SUBMITTED";
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
@@ -145,6 +149,17 @@ export default function ScoutMissionDetailsPage({
           {isClaimable && (
             <Button onClick={handleClaim} disabled={isClaiming}>
               {isClaiming ? "Claiming..." : "Claim Mission"}
+            </Button>
+          )}
+          {isAssigned && (
+            <Button asChild>
+              <Link href={`/scout/missions/${mission.id}/work`}>
+                {mission.status === "MATCHED"
+                  ? "Start Work / Làm nhiệm vụ"
+                  : mission.status === "IN_PROGRESS"
+                    ? "Continue Work / Tiếp tục làm"
+                    : "View Submission / Xem báo cáo"}
+              </Link>
             </Button>
           )}
         </div>

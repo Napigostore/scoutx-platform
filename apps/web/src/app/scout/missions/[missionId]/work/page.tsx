@@ -54,40 +54,54 @@ export default function ScoutMissionWorkPage({
 
   // Form fields
   const [summary, setSummary] = useState("");
-  const [mediaUrls, setMediaUrls] = useState(
-    "https://example.com/evidence1.jpg, https://example.com/evidence2.jpg",
-  );
+  const [mediaUrls, setMediaUrls] = useState<string[]>([]);
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
   const [observedAt, setObservedAt] = useState(new Date().toISOString().slice(0, 16));
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
 
-  const getToken = () => localStorage.getItem("accessToken");
+  const getHeaders = () => {
+    const headers: Record<string, string> = {};
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+    return headers;
+  };
 
   const fetchData = async () => {
-    const token = getToken();
-    if (!token) return;
+    const headers = getHeaders();
 
     try {
       // Fetch mission assignment
       const missionRes = await fetch(`/api/scout/missions/${missionId}/assignment`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
+        cache: "no-store",
       });
       const missionData = await missionRes.json();
-      if (!missionRes.ok) throw new Error(missionData.error || "Failed to fetch mission details");
+      if (!missionRes.ok) {
+        if (missionRes.status === 401) {
+          router.push("/sign-in");
+          return;
+        }
+        throw new Error(missionData.error || "Failed to fetch mission details");
+      }
       setMission(missionData);
       setLatitude((missionData.coordinates?.latitude ?? "").toString());
       setLongitude((missionData.coordinates?.longitude ?? "").toString());
 
       // Fetch submission data
       const subRes = await fetch(`/api/missions/${missionId}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers,
+        cache: "no-store",
       });
       if (subRes.ok) {
         const subData = await subRes.json();
         if (subData.submission) {
           setSubmission(subData.submission);
           setSummary(subData.submission.summary || "");
-          setMediaUrls((subData.submission.mediaUrls || []).join(", "));
+          setMediaUrls(subData.submission.mediaUrls || []);
           setLatitude((subData.submission.latitude ?? "").toString());
           setLongitude((subData.submission.longitude ?? "").toString());
           if (subData.submission.observedAt) {
@@ -103,29 +117,26 @@ export default function ScoutMissionWorkPage({
   };
 
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
-      router.push("/sign-in");
-      return;
-    }
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [missionId, router]);
 
   const handleStart = async () => {
     setIsStarting(true);
-    const token = localStorage.getItem("accessToken");
+    const headers = getHeaders();
 
     try {
       const res = await fetch(`/api/scout/missions/${missionId}/start`, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
       });
 
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 401) {
+          router.push("/sign-in");
+          return;
+        }
         throw new Error(data.error || "Failed to start mission");
       }
 
@@ -138,16 +149,60 @@ export default function ScoutMissionWorkPage({
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setUploadError("");
+
+    const headers = getHeaders();
+
+    try {
+      const newUrls: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file) continue;
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("missionId", missionId);
+
+        const res = await fetch("/api/evidence/upload", {
+          method: "POST",
+          headers,
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || `Failed to upload ${file.name}`);
+        }
+
+        if (data.url) {
+          newUrls.push(data.url);
+        }
+      }
+
+      setMediaUrls((prev) => [...prev, ...newUrls]);
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsUploading(false);
+      e.target.value = "";
+    }
+  };
+
+  const handleRemoveMedia = (urlToRemove: string) => {
+    setMediaUrls((prev) => prev.filter((url) => url !== urlToRemove));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsSubmitting(true);
 
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/sign-in");
-      return;
-    }
+    const headers = getHeaders();
 
     const lat = parseFloat(latitude);
     const lng = parseFloat(longitude);
@@ -157,14 +212,9 @@ export default function ScoutMissionWorkPage({
       return;
     }
 
-    const urls = mediaUrls
-      .split(",")
-      .map((u) => u.trim())
-      .filter((u) => u.length > 0);
-
     const payload = {
       summary,
-      mediaUrls: urls,
+      mediaUrls,
       latitude: lat,
       longitude: lng,
       observedAt: new Date(observedAt).toISOString(),
@@ -174,14 +224,18 @@ export default function ScoutMissionWorkPage({
       const res = await fetch(`/api/scout/missions/${missionId}/submission`, {
         method: "POST",
         headers: {
+          ...headers,
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 401) {
+          router.push("/sign-in");
+          return;
+        }
         throw new Error(data.error || "Failed to submit mission");
       }
 
@@ -310,15 +364,75 @@ export default function ScoutMissionWorkPage({
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="mediaUrls">Evidence Image URLs (comma separated)</Label>
-                  <Input
-                    id="mediaUrls"
-                    required
-                    value={mediaUrls}
-                    onChange={(e) => setMediaUrls(e.target.value)}
-                    disabled={isSubmitting}
-                  />
+                <div className="space-y-3">
+                  <Label>Evidence Photos & Videos (Ảnh & Video minh chứng)</Label>
+
+                  <div className="flex flex-col gap-2">
+                    <input
+                      type="file"
+                      id="evidence-file-input"
+                      accept="image/*,video/*"
+                      multiple
+                      onChange={handleFileUpload}
+                      disabled={isSubmitting || isUploading}
+                      className="hidden"
+                    />
+                    <div className="flex items-center gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById("evidence-file-input")?.click()}
+                        disabled={isSubmitting || isUploading}
+                      >
+                        {isUploading ? "Uploading..." : "📷 / 🎥 Upload Image or Video"}
+                      </Button>
+                    </div>
+
+                    {uploadError && (
+                      <p className="text-xs font-medium text-red-600">{uploadError}</p>
+                    )}
+
+                    {mediaUrls.length > 0 ? (
+                      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                        {mediaUrls.map((url, idx) => {
+                          const isVideo = url.match(/\.(mp4|webm|ogg|mov)$/i);
+                          const fileName = url.split("/").pop() || `Evidence #${idx + 1}`;
+                          return (
+                            <div
+                              key={`${url}-${idx}`}
+                              className="relative flex items-center justify-between rounded-lg border border-[var(--scoutx-border)] bg-gray-50 p-2.5 text-xs"
+                            >
+                              <div className="flex items-center gap-2 overflow-hidden">
+                                <span className="text-sm">{isVideo ? "🎥" : "🖼️"}</span>
+                                <a
+                                  href={url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="max-w-[180px] truncate font-medium text-blue-600 hover:underline"
+                                >
+                                  {fileName}
+                                </a>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveMedia(url)}
+                                disabled={isSubmitting}
+                                className="ml-2 text-sm font-bold text-red-500 hover:text-red-700"
+                                title="Remove file"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p className="text-xs italic text-[var(--scoutx-muted-foreground)]">
+                        No evidence files attached yet. Click above to upload on-site photos or
+                        videos.
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">

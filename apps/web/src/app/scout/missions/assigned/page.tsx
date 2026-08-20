@@ -26,20 +26,23 @@ export default function ScoutAssignedMissionsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      router.push("/sign-in");
-      return;
+    const headers: Record<string, string> = {};
+    const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
     }
 
     fetch("/api/scout/missions/assigned", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers,
+      cache: "no-store",
     })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {
+          if (res.status === 401) {
+            router.push("/sign-in");
+            return;
+          }
           throw new Error(data.error || "Failed to fetch assigned missions");
         }
         setMissions(data.missions || []);
