@@ -231,7 +231,7 @@ export class PrismaMissionRepository implements MissionRepository {
     });
     if (!scoutProfile) {
       const user = await prisma.user.findUnique({ where: { id: scoutId } });
-      if (user && (user.role === "SCOUT" || user.role === "ADMIN")) {
+      if (user) {
         scoutProfile = await prisma.scoutProfile.create({
           data: {
             id: crypto.randomUUID(),
@@ -242,6 +242,16 @@ export class PrismaMissionRepository implements MissionRepository {
             stripeConnectStatus: "ACTIVE",
           },
         });
+        if (user.role === "REQUESTER") {
+          await prisma.user
+            .update({
+              where: { id: user.id },
+              data: { role: "SCOUT" },
+            })
+            .catch(() => {
+              /* ignore non-critical update failure */
+            });
+        }
       }
     }
     if (!scoutProfile) {
