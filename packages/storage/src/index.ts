@@ -8,4 +8,6 @@ export * from "./factory/StorageFactory";
 export * from "./services/MetadataExtractorService";
 export * from "./services/UploadService";
 
+export * from "./contracts/StreamProvider";
+export * from "./providers/CloudflareStreamProvider";
 export * from "./processors/UploadBackgroundProcessor";

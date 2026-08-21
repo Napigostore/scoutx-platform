@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@scoutx/ui";
+import { RequesterLivestreamViewer } from "@/components/RequesterLivestreamViewer";
 
 interface Submission {
   id: string;
@@ -276,6 +277,8 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
               {mission.description}
             </p>
           </div>
+
+          <RequesterLivestreamViewer missionId={missionId} />
 
           <div className="rounded-2xl border border-[var(--scoutx-border)] bg-gray-50 p-6">
             <h3 className="text-sm font-semibold text-[var(--scoutx-foreground)]">

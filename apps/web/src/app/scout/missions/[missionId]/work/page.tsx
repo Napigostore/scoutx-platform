@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Input, Label } from "@scoutx/ui";
+import { ScoutLivestreamBroadcaster } from "@/components/ScoutLivestreamBroadcaster";
 
 interface Submission {
   id: string;
@@ -322,6 +323,17 @@ export default function ScoutMissionWorkPage({
               {mission.description}
             </p>
           </div>
+
+          {(isInProgress || isMatched || hasRejectionReason) && (
+            <ScoutLivestreamBroadcaster
+              missionId={missionId}
+              onRecordingReady={(recordingUrl) => {
+                setMediaUrls((prev) =>
+                  prev.includes(recordingUrl) ? prev : [...prev, recordingUrl],
+                );
+              }}
+            />
+          )}
 
           {hasRejectionReason && (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
