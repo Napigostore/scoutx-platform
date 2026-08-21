@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 
@@ -15,6 +16,27 @@ import { Button } from "@scoutx/ui";
 export function AuthHeaderActions() {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
+  const [dashboardHref, setDashboardHref] = useState<string>("/missions");
+
+  useEffect(() => {
+    if (session?.user) {
+      if (session.user.role === "SCOUT") {
+        setDashboardHref("/scout/missions");
+      } else {
+        fetch("/api/scout/missions/assigned", { cache: "no-store" })
+          .then((res) => {
+            if (res.ok) {
+              setDashboardHref("/scout/missions");
+            } else {
+              setDashboardHref("/missions");
+            }
+          })
+          .catch(() => {
+            setDashboardHref("/missions");
+          });
+      }
+    }
+  }, [session]);
 
   if (isLoading) {
     return (
@@ -26,9 +48,6 @@ export function AuthHeaderActions() {
   }
 
   if (session?.user) {
-    const role = session.user.role;
-    const dashboardHref = role === "SCOUT" ? "/scout/missions" : "/missions";
-
     return (
       <div className="flex items-center gap-2">
         <span className="hidden text-sm text-[var(--scoutx-muted-foreground)] md:inline">

@@ -52,16 +52,12 @@ export const authConfig: NextAuthConfig = {
 
       // Requester routes
       if (nextUrl.pathname.startsWith("/missions")) {
-        if (!isLoggedIn) return false;
-        if (role === "REQUESTER" || role === "ADMIN") return true;
-        return false; // Scouts cannot access requester routes
+        return isLoggedIn;
       }
 
       // Scout routes
       if (nextUrl.pathname.startsWith("/scout")) {
-        if (!isLoggedIn) return false;
-        if (role === "SCOUT" || role === "ADMIN") return true;
-        return false; // Requesters cannot access scout routes
+        return isLoggedIn;
       }
 
       // API routes – allow authenticated users
