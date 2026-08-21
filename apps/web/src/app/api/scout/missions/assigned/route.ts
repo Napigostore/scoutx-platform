@@ -21,8 +21,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const effectiveRole = scoutProfile ? "SCOUT" : principal.role;
+
   try {
-    const missions = await listScoutAssignedMissionsUseCase.execute(principal.id, "SCOUT");
+    const missions = await listScoutAssignedMissionsUseCase.execute(principal.id, effectiveRole);
     return NextResponse.json({ missions }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to list assigned missions";

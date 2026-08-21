@@ -80,12 +80,21 @@ export async function getAuthenticatedPrincipal(
         cookies,
       } as unknown as Parameters<typeof getToken>[0]["req"];
 
-      // Attempt 1: Standard getToken with secureCookie check
+      // Attempt 1: Standard getToken with request object directly
       let token = await getToken({
-        req: reqObj,
+        req: request as unknown as Parameters<typeof getToken>[0]["req"],
         secret,
         secureCookie: process.env.NODE_ENV === "production",
       });
+
+      // Attempt 2: Standard getToken with reqObj
+      if (!token) {
+        token = await getToken({
+          req: reqObj,
+          secret,
+          secureCookie: process.env.NODE_ENV === "production",
+        });
+      }
 
       // Attempt 2: Explicit Auth.js v5 secure cookie name fallback
       if (!token) {

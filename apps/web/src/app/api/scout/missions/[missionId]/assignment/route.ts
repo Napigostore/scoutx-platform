@@ -27,12 +27,13 @@ export async function GET(
   }
 
   const { missionId } = await params;
+  const effectiveRole = scoutProfile ? "SCOUT" : principal.role;
 
   try {
     const mission = await getScoutAssignedMissionDetailsUseCase.execute(
       missionId,
       principal.id,
-      "SCOUT",
+      effectiveRole,
     );
     return NextResponse.json(mission, { status: 200 });
   } catch (error) {
