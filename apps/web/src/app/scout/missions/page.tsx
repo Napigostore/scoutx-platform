@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@scoutx/ui";
 
 interface Mission {
@@ -21,7 +20,9 @@ interface Mission {
 
 export default function ScoutMissionsPage() {
   const router = useRouter();
-  const [missions, setMissions] = useState<Mission[]>([]);
+  const [assignedMissions, setAssignedMissions] = useState<Mission[]>([]);
+  const [availableMissions, setAvailableMissions] = useState<Mission[]>([]);
+  const [activeTab, setActiveTab] = useState<"assigned" | "available">("assigned");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -32,18 +33,30 @@ export default function ScoutMissionsPage() {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    fetch("/api/scout/missions", { headers, cache: "no-store" })
-      .then(async (res) => {
-        const data = await res.json();
+    Promise.all([
+      fetch("/api/scout/missions/assigned", { headers, cache: "no-store" }).then(async (res) => {
+        if (!res.ok) return { missions: [] };
+        return res.json();
+      }),
+      fetch("/api/scout/missions", { headers, cache: "no-store" }).then(async (res) => {
         if (!res.ok) {
           if (res.status === 401) {
-            throw new Error(
-              `Authentication required (HTTP 401): ${data.error || "Session not found"}. Please sign in to view available missions.`,
-            );
+            router.push("/sign-in?callbackUrl=/scout/missions");
+            return { missions: [] };
           }
-          throw new Error(data.error || "Failed to fetch available missions");
+          return { missions: [] };
         }
-        setMissions(data.missions || []);
+        return res.json();
+      }),
+    ])
+      .then(([assignedData, availableData]) => {
+        const assigned = assignedData.missions || [];
+        const available = availableData.missions || [];
+        setAssignedMissions(assigned);
+        setAvailableMissions(available);
+        if (assigned.length === 0 && available.length > 0) {
+          setActiveTab("available");
+        }
       })
       .catch((err) => {
         setError(err.message);
@@ -69,27 +82,56 @@ export default function ScoutMissionsPage() {
     router.push("/sign-in");
   };
 
+  const displayedMissions = activeTab === "assigned" ? assignedMissions : availableMissions;
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-      <div className="flex items-center justify-between border-b border-[var(--scoutx-border)] pb-6">
+      <div className="flex flex-col gap-4 border-b border-[var(--scoutx-border)] pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-bold text-[var(--scoutx-foreground)]">
-            Available Missions
+            Scout Dashboard
           </h1>
           <p className="mt-2 text-sm text-[var(--scoutx-muted-foreground)]">
-            Discover and claim real-world information requests in your area
+            Manage your claimed missions and discover new information requests
           </p>
         </div>
-        <div>
+        <div className="flex items-center gap-2">
           <Button variant="outline" onClick={handleSignOut}>
             Sign out
           </Button>
         </div>
       </div>
 
+      {/* Tabs Header */}
+      <div className="mt-6 border-b border-[var(--scoutx-border)]">
+        <nav className="-mb-px flex space-x-8">
+          <button
+            onClick={() => setActiveTab("assigned")}
+            className={`border-b-2 px-1 py-4 text-sm font-semibold transition-colors ${
+              activeTab === "assigned"
+                ? "border-[var(--scoutx-primary)] text-[var(--scoutx-primary)]"
+                : "border-transparent text-[var(--scoutx-muted-foreground)] hover:border-gray-300 hover:text-[var(--scoutx-foreground)]"
+            }`}
+          >
+            Nhiệm vụ đã nhận ({assignedMissions.length})
+          </button>
+
+          <button
+            onClick={() => setActiveTab("available")}
+            className={`border-b-2 px-1 py-4 text-sm font-semibold transition-colors ${
+              activeTab === "available"
+                ? "border-[var(--scoutx-primary)] text-[var(--scoutx-primary)]"
+                : "border-transparent text-[var(--scoutx-muted-foreground)] hover:border-gray-300 hover:text-[var(--scoutx-foreground)]"
+            }`}
+          >
+            Khám phá nhiệm vụ ({availableMissions.length})
+          </button>
+        </nav>
+      </div>
+
       {isLoading && (
         <div className="flex h-64 items-center justify-center">
-          <p className="text-[var(--scoutx-muted-foreground)]">Loading available missions...</p>
+          <p className="text-[var(--scoutx-muted-foreground)]">Loading dashboard missions...</p>
         </div>
       )}
 
@@ -99,23 +141,36 @@ export default function ScoutMissionsPage() {
         </div>
       )}
 
-      {!isLoading && !error && missions.length === 0 && (
+      {!isLoading && !error && displayedMissions.length === 0 && (
         <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--scoutx-border)] p-8 text-center">
           <h3 className="font-display text-lg font-semibold text-[var(--scoutx-foreground)]">
-            No available missions
+            {activeTab === "assigned" ? "Chưa có nhiệm vụ đã nhận" : "Chưa có nhiệm vụ mới"}
           </h3>
           <p className="mt-2 text-sm text-[var(--scoutx-muted-foreground)]">
-            Check back later for new real-world discovery missions.
+            {activeTab === "assigned"
+              ? "Chuyển sang tab Khám phá nhiệm vụ để nhận nhiệm vụ mới."
+              : "Quay lại sau để cập nhật nhiệm vụ mới."}
           </p>
+          {activeTab === "assigned" && (
+            <Button className="mt-4" onClick={() => setActiveTab("available")}>
+              Khám phá nhiệm vụ ngay
+            </Button>
+          )}
         </div>
       )}
 
-      {!isLoading && !error && missions.length > 0 && (
+      {!isLoading && !error && displayedMissions.length > 0 && (
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {missions.map((mission) => (
+          {displayedMissions.map((mission) => (
             <div
               key={mission.id}
-              onClick={() => router.push(`/scout/missions/${mission.id}`)}
+              onClick={() => {
+                if (activeTab === "assigned") {
+                  router.push(`/scout/missions/${mission.id}/work`);
+                } else {
+                  router.push(`/scout/missions/${mission.id}`);
+                }
+              }}
               className="group flex cursor-pointer flex-col justify-between rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm transition-shadow hover:border-[var(--scoutx-primary)] hover:shadow-md"
             >
               <div>
@@ -147,15 +202,27 @@ export default function ScoutMissionsPage() {
                   Created {new Date(mission.createdAt).toLocaleDateString()}
                 </span>
                 <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      router.push(`/scout/missions/${mission.id}`);
-                    }}
-                  >
-                    Open Mission
-                  </Button>
+                  {activeTab === "assigned" ? (
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/scout/missions/${mission.id}/work`);
+                      }}
+                    >
+                      Làm nhiệm vụ &rarr;
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        router.push(`/scout/missions/${mission.id}`);
+                      }}
+                    >
+                      Xem chi tiết
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
