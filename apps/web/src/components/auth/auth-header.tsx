@@ -16,7 +16,7 @@ import { Button } from "@scoutx/ui";
 export function AuthHeaderActions() {
   const { data: session, status } = useSession();
   const isLoading = status === "loading";
-  const [dashboardHref, setDashboardHref] = useState<string>("/missions");
+  const [dashboardHref, setDashboardHref] = useState<string>("");
 
   useEffect(() => {
     if (session?.user) {
@@ -48,13 +48,18 @@ export function AuthHeaderActions() {
   }
 
   if (session?.user) {
+    const targetHref =
+      dashboardHref || (session.user.role === "SCOUT" ? "/scout/missions" : "/missions");
+
     return (
       <div className="flex items-center gap-2">
         <span className="hidden text-sm text-[var(--scoutx-muted-foreground)] md:inline">
           {session.user.email}
         </span>
         <Button variant="ghost" size="sm" asChild>
-          <Link href={dashboardHref}>Dashboard</Link>
+          <Link href={targetHref} prefetch={false}>
+            Dashboard
+          </Link>
         </Button>
         <Button
           variant="outline"

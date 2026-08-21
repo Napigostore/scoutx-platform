@@ -21,13 +21,43 @@ export const authConfig: NextAuthConfig = {
   },
   callbacks: {
     async jwt({ token, user }) {
+      const t = token as Record<string, unknown>;
       if (user) {
-        const t = token as Record<string, unknown>;
         t.id = user.id;
         const u = user as unknown as { role?: string; permissions?: string[] };
         t.role = u.role ?? "REQUESTER";
         t.permissions = u.permissions ?? [];
       }
+
+      const email = token.email as string | undefined;
+      const tokenId = (token.id as string) ?? (token.sub as string);
+
+      if (email || tokenId) {
+        try {
+          const { prisma } = await import("./prisma");
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+            tokenId ?? "",
+          );
+          let dbUser = isUuid ? await prisma.user.findUnique({ where: { id: tokenId } }) : null;
+          if (!dbUser && email) {
+            dbUser = await prisma.user.findUnique({ where: { email } });
+          }
+
+          if (dbUser) {
+            const scoutProfile = await prisma.scoutProfile.findUnique({
+              where: { userId: dbUser.id },
+            });
+            if (scoutProfile || dbUser.role === "SCOUT") {
+              t.role = "SCOUT";
+            } else {
+              t.role = dbUser.role;
+            }
+          }
+        } catch {
+          /* ignore DB lookup error during static jwt callback */
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
@@ -41,8 +71,6 @@ export const authConfig: NextAuthConfig = {
     },
     async authorized({ auth, request: { nextUrl } }) {
       const isLoggedIn = !!auth?.user;
-      const user = auth?.user as unknown as { role?: string } | undefined;
-      const role = user?.role ?? (isLoggedIn ? "REQUESTER" : undefined);
 
       // Public routes – always accessible
       const publicPaths = ["/sign-in", "/api/auth"];
