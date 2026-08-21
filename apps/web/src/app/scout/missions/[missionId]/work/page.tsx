@@ -83,7 +83,7 @@ export default function ScoutMissionWorkPage({
       const missionData = await missionRes.json();
       if (!missionRes.ok) {
         if (missionRes.status === 401) {
-          router.push("/sign-in");
+          router.push(`/sign-in?callbackUrl=/scout/missions/${missionId}/work`);
           return;
         }
         throw new Error(missionData.error || "Failed to fetch mission details");

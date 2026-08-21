@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button, Input, Label } from "@scoutx/ui";
 
-export default function SignInPage() {
+function SignInFormContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const rawCallbackUrl = searchParams.get("callbackUrl") || searchParams.get("redirect") || "/";
+  const callbackUrl = rawCallbackUrl.startsWith("/") ? rawCallbackUrl : "/";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -35,7 +39,7 @@ export default function SignInPage() {
       }
 
       if (result?.ok) {
-        router.push("/");
+        router.push(callbackUrl);
         router.refresh();
       }
     } catch (err: unknown) {
@@ -51,7 +55,7 @@ export default function SignInPage() {
     setError("");
 
     try {
-      await signIn("google", { redirect: true, callbackUrl: "/" });
+      await signIn("google", { redirect: true, callbackUrl });
     } catch {
       setError("Google sign-in failed. Please try again.");
       setIsGoogleLoading(false);
@@ -172,5 +176,13 @@ export default function SignInPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={<div className="flex h-96 items-center justify-center">Loading...</div>}>
+      <SignInFormContent />
+    </Suspense>
   );
 }

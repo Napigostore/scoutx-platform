@@ -40,7 +40,7 @@ export default function ScoutAssignedMissionsPage() {
         const data = await res.json();
         if (!res.ok) {
           if (res.status === 401) {
-            router.push("/sign-in");
+            router.push("/sign-in?callbackUrl=/scout/missions/assigned");
             return;
           }
           throw new Error(data.error || "Failed to fetch assigned missions");

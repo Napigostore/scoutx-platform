@@ -1,37 +1,28 @@
 import { NextResponse } from "next/server";
 import { PrismaMissionRepository } from "@scoutx/infrastructure";
 import { GetScoutAssignedMissionDetailsUseCase } from "@scoutx/application";
-import { SimpleTokenVerifier, requireEnv } from "@scoutx/auth";
-import { GetCurrentUserUseCase } from "@scoutx/application";
+import { getAuthenticatedPrincipal } from "@/lib/server-auth";
+import { prisma } from "@/lib/prisma";
 
-const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
-const getCurrentUserUseCase = new GetCurrentUserUseCase(tokenVerifier);
 const missionRepo = new PrismaMissionRepository();
 const getScoutAssignedMissionDetailsUseCase = new GetScoutAssignedMissionDetailsUseCase(
   missionRepo,
 );
 
-async function authenticate(request: Request) {
-  const authHeader = request.headers.get("authorization") || "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.substring(7) : "";
-  if (!token) return null;
-  try {
-    return await getCurrentUserUseCase.execute(token);
-  } catch {
-    return null;
-  }
-}
-
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ missionId: string }> },
 ) {
-  const principal = await authenticate(request);
+  const principal = await getAuthenticatedPrincipal(request);
   if (!principal) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  if (principal.role !== "SCOUT") {
+  const scoutProfile = await prisma.scoutProfile.findUnique({
+    where: { userId: principal.id },
+  });
+
+  if (principal.role !== "SCOUT" && !scoutProfile) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
