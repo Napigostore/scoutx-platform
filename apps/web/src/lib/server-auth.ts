@@ -214,3 +214,45 @@ export async function getAuthenticatedPrincipal(
     return null;
   }
 }
+
+export async function getAuthenticatedScoutContext(request: Request) {
+  const principal = await getAuthenticatedPrincipal(request);
+  if (!principal) {
+    return { error: "Unauthorized", status: 401 as const };
+  }
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    principal.id,
+  );
+
+  let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
+  if (!user && principal.email) {
+    user = await prisma.user.findUnique({ where: { email: principal.email } });
+  }
+
+  const userId = user ? user.id : principal.id;
+  let scoutProfile = await prisma.scoutProfile.findUnique({
+    where: { userId },
+  });
+
+  if (!scoutProfile && user) {
+    scoutProfile = await prisma.scoutProfile.findFirst({
+      where: { userId: user.id },
+    });
+  }
+
+  const userRole = user ? user.role : principal.role;
+  const isScout = Boolean(scoutProfile || userRole === "SCOUT");
+
+  if (!isScout) {
+    return { error: "Forbidden", status: 403 as const };
+  }
+
+  return {
+    principal,
+    user,
+    userId,
+    scoutProfile,
+    effectiveRole: "SCOUT" as const,
+  };
+}
