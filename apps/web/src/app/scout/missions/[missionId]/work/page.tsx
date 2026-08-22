@@ -180,8 +180,13 @@ export default function ScoutMissionWorkPage({
           throw new Error(data.error || `Failed to upload ${file.name}`);
         }
 
-        if (data.url) {
-          newUrls.push(data.url);
+        const fileUrl =
+          data.url ||
+          (data.storageKey
+            ? `/api/evidence/download?key=${encodeURIComponent(data.storageKey)}`
+            : null);
+        if (fileUrl) {
+          newUrls.push(fileUrl);
         }
       }
 

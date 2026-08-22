@@ -83,7 +83,21 @@ export async function POST(request: Request) {
       scoutId: scoutCtx.userId,
     });
 
-    return NextResponse.json(result, { status: 201 });
+    let downloadUrl = "";
+    try {
+      downloadUrl = await uploadService.getDownloadUrl(result.storageKey);
+    } catch {
+      downloadUrl = `/api/evidence/download?key=${encodeURIComponent(result.storageKey)}`;
+    }
+
+    return NextResponse.json(
+      {
+        evidenceId: result.evidenceId,
+        storageKey: result.storageKey,
+        url: downloadUrl || `/api/evidence/download?key=${encodeURIComponent(result.storageKey)}`,
+      },
+      { status: 201 },
+    );
   } catch (error) {
     const message = error instanceof Error ? error.message : "Upload failed";
     return NextResponse.json({ error: message }, { status: 500 });
