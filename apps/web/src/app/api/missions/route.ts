@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 import { getAuthenticatedPrincipal } from "@/lib/server-auth";
 import { verifyAttachmentToken } from "@/lib/attachment-auth";
+import { fetchRequesterMissionsSummary } from "@/lib/mission-summary-service";
 
 function getMissionUseCases() {
   const missionRepo = new PrismaMissionRepository();
@@ -250,9 +251,21 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { listRequesterMissionsUseCase } = getMissionUseCases();
-    const missions = await listRequesterMissionsUseCase.execute(user.id, "REQUESTER");
-    return NextResponse.json({ missions }, { status: 200 });
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get("status") || "ALL";
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const sort = (searchParams.get("sort") || "last_activity_desc") as
+      "last_activity_desc" | "created_at_desc";
+
+    const result = await fetchRequesterMissionsSummary(user.id, {
+      status,
+      page,
+      limit,
+      sort,
+    });
+
+    return NextResponse.json(result, { status: 200 });
   } catch (error: unknown) {
     const err = error as { message?: string };
     return NextResponse.json({ error: err?.message || "Failed to list missions" }, { status: 500 });
