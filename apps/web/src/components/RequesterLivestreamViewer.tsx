@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { IS_LIVESTREAM_ENABLED } from "@/lib/feature-flags";
 
 interface RequesterLivestreamViewerProps {
   missionId: string;
@@ -25,6 +26,7 @@ export function RequesterLivestreamViewer({ missionId }: RequesterLivestreamView
   };
 
   const fetchStreamInfo = async () => {
+    if (!IS_LIVESTREAM_ENABLED) return;
     try {
       const res = await fetch(`/api/scout/missions/${missionId}/stream`, {
         headers: getHeaders(),
@@ -118,6 +120,10 @@ export function RequesterLivestreamViewer({ missionId }: RequesterLivestreamView
       }
     };
   }, [streamStatus, whepUrl]);
+
+  if (!IS_LIVESTREAM_ENABLED) {
+    return null;
+  }
 
   if (streamStatus === "OFFLINE" && !recordingUrl) {
     return (

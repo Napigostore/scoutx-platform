@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { authenticate } from "@/lib/auth-helpers";
+import { getAuthenticatedScoutContext } from "@/lib/server-auth";
 import { apiError } from "@/lib/error-mapper";
 import { InMemoryEventBus } from "@scoutx/events";
 import { LocalStorageProvider, UploadService, createStorageProvider } from "@scoutx/storage";
@@ -25,15 +25,12 @@ const eventBus = new InMemoryEventBus();
 const uploadService = new UploadService({ storageProvider, eventBus });
 
 export async function POST(request: Request) {
-  // 1. Authentication check
-  const principal = await authenticate(request);
-  if (!principal) {
-    return apiError("Unauthorized", 401);
-  }
-
-  // 2. Authorization check: Only scouts (or admins) can upload evidence
-  if (principal.role !== "SCOUT" && principal.role !== "ADMIN") {
-    return apiError("Forbidden: Only scouts can upload mission evidence", 403);
+  // 1. Authentication & Scout Authorization check
+  const scoutCtx = await getAuthenticatedScoutContext(request);
+  if (!scoutCtx || "error" in scoutCtx) {
+    const errorMsg = (scoutCtx && "error" in scoutCtx && scoutCtx.error) || "Unauthorized";
+    const errorStatus = (scoutCtx && "status" in scoutCtx && scoutCtx.status) || 401;
+    return apiError(errorMsg, errorStatus);
   }
 
   try {
@@ -45,28 +42,22 @@ export async function POST(request: Request) {
       return apiError("file and missionId are required", 422);
     }
 
-    // 3. Mission ownership & assignment check
-    if (principal.role === "SCOUT") {
-      const scoutProfile = await prisma.scoutProfile.findUnique({
-        where: { userId: principal.id },
-      });
+    // 2. Mission ownership & assignment check
+    const mission = await prisma.mission.findUnique({
+      where: { id: missionId },
+      select: { id: true, assignedScoutId: true, status: true },
+    });
 
-      if (!scoutProfile) {
-        return apiError("Scout profile not found", 404);
-      }
+    if (!mission) {
+      return apiError("Mission not found", 404);
+    }
 
-      const mission = await prisma.mission.findUnique({
-        where: { id: missionId },
-        select: { id: true, assignedScoutId: true, status: true },
-      });
-
-      if (!mission) {
-        return apiError("Mission not found", 404);
-      }
-
-      if (mission.assignedScoutId && mission.assignedScoutId !== scoutProfile.id) {
-        return apiError("Forbidden: Mission is assigned to another scout", 403);
-      }
+    if (
+      scoutCtx.scoutProfile &&
+      mission.assignedScoutId &&
+      mission.assignedScoutId !== scoutCtx.scoutProfile.id
+    ) {
+      return apiError("Forbidden: Mission is assigned to another scout", 403);
     }
 
     // 4. File sanitization & path traversal prevention
@@ -89,7 +80,7 @@ export async function POST(request: Request) {
       mimeType,
       bytes: buffer.length,
       missionId,
-      scoutId: principal.id,
+      scoutId: scoutCtx.userId,
     });
 
     return NextResponse.json(result, { status: 201 });

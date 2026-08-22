@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@scoutx/ui";
+import { IS_LIVESTREAM_ENABLED } from "@/lib/feature-flags";
 
 interface ScoutLivestreamBroadcasterProps {
   missionId: string;
@@ -212,6 +213,10 @@ export function ScoutLivestreamBroadcaster({
       stopLocalMediaAndConnection();
     };
   }, []);
+
+  if (!IS_LIVESTREAM_ENABLED) {
+    return null;
+  }
 
   return (
     <div className="rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm">
