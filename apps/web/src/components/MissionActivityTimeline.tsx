@@ -148,21 +148,60 @@ export function MissionActivityTimeline({
     }
   };
 
-  const getEventBadge = (eventType: string) => {
-    switch (eventType) {
-      case "EVIDENCE_UPLOADED":
-        return { icon: "📷", bg: "bg-blue-50 text-blue-700 border-blue-200", label: "Evidence" };
-      case "EVIDENCE_REQUESTED":
-        return { icon: "⚠️", bg: "bg-amber-50 text-amber-700 border-amber-200", label: "Request" };
-      case "MESSAGE_SENT":
-        return { icon: "💬", bg: "bg-gray-50 text-gray-700 border-gray-200", label: "Message" };
-      default:
+  const getEventBadge = (ev: TimelineEventItem) => {
+    const meta = ev.metadata as Record<string, unknown> | null;
+    const isOriginal = meta?.category === "ORIGINAL_REQUEST";
+
+    if (ev.eventType === "EVIDENCE_UPLOADED") {
+      if (isOriginal) {
         return {
           icon: "📌",
-          bg: "bg-purple-50 text-purple-700 border-purple-200",
-          label: "Status",
+          bg: "bg-purple-100 text-purple-800 border-purple-300",
+          label: "ORIGINAL REQUEST",
         };
+      }
+      if (ev.actor.role === "REQUESTER") {
+        return {
+          icon: "🖼️",
+          bg: "bg-purple-50 text-purple-700 border-purple-200",
+          label: "REQUESTER MEDIA",
+        };
+      }
+      return {
+        icon: "📷",
+        bg: "bg-emerald-50 text-emerald-700 border-emerald-200",
+        label: "SCOUT EVIDENCE",
+      };
     }
+
+    if (ev.eventType === "EVIDENCE_REQUESTED") {
+      return {
+        icon: "⚠️",
+        bg: "bg-amber-50 text-amber-700 border-amber-200",
+        label: "EVIDENCE REQUEST",
+      };
+    }
+
+    if (ev.eventType === "MESSAGE_SENT") {
+      if (ev.actor.role === "REQUESTER") {
+        return {
+          icon: "💬",
+          bg: "bg-purple-50 text-purple-700 border-purple-200",
+          label: "REQUESTER MESSAGE",
+        };
+      }
+      return { icon: "💬", bg: "bg-blue-50 text-blue-700 border-blue-200", label: "SCOUT MESSAGE" };
+    }
+
+    if (ev.eventType === "MISSION_CREATED") {
+      return {
+        icon: "🚀",
+        bg: "bg-indigo-50 text-indigo-700 border-indigo-200",
+        label: "SYSTEM EVENT",
+      };
+    }
+
+    return { icon: "📌", bg: "bg-gray-100 text-gray-700 border-gray-200", label: "SYSTEM EVENT" };
   };
 
   return (
@@ -193,9 +232,9 @@ export function MissionActivityTimeline({
 
       {/* Timeline Event Feed */}
       <div className="relative mb-6 min-h-[160px] space-y-6 before:absolute before:bottom-0 before:left-4 before:top-2 before:w-0.5 before:bg-gray-200">
-        {isLoading && events.length === 0 ? (
+        {isLoading ? (
           <div className="py-8 text-center text-xs text-[var(--scoutx-muted-foreground)]">
-            Loading timeline entries...
+            Đang tải timeline...
           </div>
         ) : events.length === 0 ? (
           <div className="py-8 text-center text-xs italic text-[var(--scoutx-muted-foreground)]">
@@ -203,7 +242,7 @@ export function MissionActivityTimeline({
           </div>
         ) : (
           events.map((ev) => {
-            const badge = getEventBadge(ev.eventType);
+            const badge = getEventBadge(ev);
             const isRequester = ev.actor.role === "REQUESTER";
             const isScout = ev.actor.role === "SCOUT";
 
@@ -216,7 +255,7 @@ export function MissionActivityTimeline({
 
                 <div className="flex-1 rounded-xl border border-[var(--scoutx-border)] bg-gray-50/50 p-4">
                   <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-semibold text-[var(--scoutx-foreground)] sm:text-sm">
                         {ev.actor.displayName}
                       </span>
@@ -230,6 +269,11 @@ export function MissionActivityTimeline({
                         }`}
                       >
                         {ev.actor.role}
+                      </span>
+                      <span
+                        className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-bold ${badge.bg}`}
+                      >
+                        {badge.label}
                       </span>
                     </div>
 
