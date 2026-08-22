@@ -70,6 +70,7 @@ model User {
   coinTransactions      CoinTransaction[]
   sessions              Session[]
   withdrawalRequests    WithdrawalRequest[]
+  pendingAttachments    PendingAttachment[]
 
   @@map("users")
 }
@@ -322,3 +323,20 @@ model WithdrawalRequest {
   @@map("withdrawal_requests")
 }
 
+model PendingAttachment {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  storageKey String    @unique
+  mediaUrl   String
+  fileName   String
+  mimeType   String
+  consumed   Boolean   @default(false)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([consumed, createdAt])
+  @@map("pending_attachments")
+}

@@ -8,6 +8,7 @@ import { Button, Input, Label } from "@scoutx/ui";
 import { useMissionComposerStore } from "@/stores/mission-composer";
 
 interface AttachmentItem {
+  token?: string;
   storageKey: string;
   url: string;
   fileName: string;
@@ -115,6 +116,7 @@ export default function NewMissionPage() {
         setAttachments((prev) => [
           ...prev,
           {
+            token: data.token,
             storageKey: data.storageKey,
             url: data.url,
             fileName: data.fileName,
@@ -132,7 +134,21 @@ export default function NewMissionPage() {
     }
   };
 
-  const removeAttachment = (index: number) => {
+  const removeAttachment = async (index: number) => {
+    const target = attachments[index];
+    if (target?.token) {
+      const authToken = localStorage.getItem("accessToken");
+      const headers: Record<string, string> = {};
+      if (authToken) {
+        headers.Authorization = `Bearer ${authToken}`;
+      }
+
+      fetch(`/api/evidence/upload/reference?token=${encodeURIComponent(target.token)}`, {
+        method: "DELETE",
+        headers,
+      }).catch(() => null);
+    }
+
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 

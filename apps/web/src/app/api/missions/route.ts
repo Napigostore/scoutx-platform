@@ -5,6 +5,7 @@ import { CreateMissionInputSchema } from "@scoutx/types";
 import { prisma } from "@/lib/prisma";
 
 import { getAuthenticatedPrincipal } from "@/lib/server-auth";
+import { verifyAttachmentToken } from "@/lib/attachment-auth";
 
 function getMissionUseCases() {
   const missionRepo = new PrismaMissionRepository();
@@ -57,31 +58,103 @@ export async function POST(request: Request) {
     console.log("[MISSION_DRAFT_DEBUG] validation_success");
 
     console.log("[MISSION_DRAFT_DEBUG] create_mission_started");
-    const attachments = Array.isArray((body as { attachments?: unknown[] }).attachments)
+    const rawAttachments = Array.isArray((body as { attachments?: unknown[] }).attachments)
       ? (
           body as {
             attachments: Array<{
-              storageKey: string;
-              url: string;
-              fileName: string;
+              token?: string;
+              storageKey?: string;
+              url?: string;
+              fileName?: string;
               mimeType?: string;
             }>;
           }
         ).attachments
       : [];
 
+    // 1. Verify all attachment tokens before creating mission
+    const verifiedAttachments: Array<{
+      storageKey: string;
+      url: string;
+      fileName: string;
+      mimeType: string;
+    }> = [];
+
+    for (const att of rawAttachments) {
+      if (att.token) {
+        const verified = verifyAttachmentToken(att.token);
+        if (!verified) {
+          return NextResponse.json(
+            { error: "Forbidden: Invalid or expired attachment token" },
+            { status: 403 },
+          );
+        }
+
+        if (verified.userId !== user.id && (user.role as string) !== "ADMIN") {
+          return NextResponse.json(
+            { error: "Forbidden: Attachment token does not belong to you" },
+            { status: 403 },
+          );
+        }
+
+        const pending = await prisma.pendingAttachment.findUnique({
+          where: { storageKey: verified.storageKey },
+        });
+
+        if (pending && pending.consumed) {
+          return NextResponse.json(
+            { error: "Bad Request: Attachment has already been attached to another mission" },
+            { status: 400 },
+          );
+        }
+
+        verifiedAttachments.push({
+          storageKey: verified.storageKey,
+          url: verified.url,
+          fileName: verified.fileName,
+          mimeType: verified.mimeType,
+        });
+      } else if (att.storageKey && att.url && att.fileName) {
+        // Fallback for commit 9b53434 compatibility
+        const pending = await prisma.pendingAttachment.findUnique({
+          where: { storageKey: att.storageKey },
+        });
+
+        if (pending) {
+          if (pending.userId !== user.id && (user.role as string) !== "ADMIN") {
+            return NextResponse.json(
+              { error: "Forbidden: Attachment does not belong to you" },
+              { status: 403 },
+            );
+          }
+          if (pending.consumed) {
+            return NextResponse.json(
+              { error: "Bad Request: Attachment has already been consumed" },
+              { status: 400 },
+            );
+          }
+        }
+
+        verifiedAttachments.push({
+          storageKey: att.storageKey,
+          url: att.url,
+          fileName: att.fileName,
+          mimeType: att.mimeType || "application/octet-stream",
+        });
+      }
+    }
+
     const { createMissionUseCase } = getMissionUseCases();
     const mission = await createMissionUseCase.execute(parsed.data, user.id, "REQUESTER");
     console.log("[MISSION_DRAFT_DEBUG] create_mission_success");
 
-    // Process initial reference attachments
+    // 2. Process initial reference attachments atomically
     try {
-      if (attachments.length > 0) {
+      if (verifiedAttachments.length > 0) {
         const anyScout = await prisma.scoutProfile.findFirst({ select: { id: true } });
         const scoutProfileId = anyScout?.id;
 
-        for (const att of attachments) {
-          if (!att.url || !att.fileName) continue;
+        for (const att of verifiedAttachments) {
           const isVideo =
             Boolean(att.mimeType?.startsWith("video/")) ||
             Boolean(att.fileName.match(/\.(mp4|webm|mov|ogg)$/i));
@@ -115,6 +188,14 @@ export async function POST(request: Request) {
               },
             },
           });
+
+          // Mark pending attachment as consumed
+          await prisma.pendingAttachment
+            .update({
+              where: { storageKey: att.storageKey },
+              data: { consumed: true, consumedAt: new Date() },
+            })
+            .catch(() => null);
         }
       }
 
@@ -122,11 +203,11 @@ export async function POST(request: Request) {
         data: {
           missionId: mission.id,
           eventType: "MISSION_CREATED",
-          summary: `Mission created${attachments.length > 0 ? ` with ${attachments.length} reference attachment(s)` : ""}`,
+          summary: `Mission created${verifiedAttachments.length > 0 ? ` with ${verifiedAttachments.length} reference attachment(s)` : ""}`,
           actorId: user.id,
           metadata: {
             role: "REQUESTER",
-            attachmentsCount: attachments.length,
+            attachmentsCount: verifiedAttachments.length,
           },
         },
       });
