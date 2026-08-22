@@ -38,6 +38,12 @@ interface Mission {
   requiredTags: string[];
   expiresAt: string;
   createdAt: string;
+  referenceAttachments?: Array<{
+    url: string;
+    fileName: string;
+    mimeType: string;
+    createdAt: string;
+  }>;
 }
 
 export default function ScoutMissionWorkPage({
@@ -329,6 +335,51 @@ export default function ScoutMissionWorkPage({
               {mission.description}
             </p>
           </div>
+
+          {mission.referenceAttachments && mission.referenceAttachments.length > 0 && (
+            <div className="rounded-2xl border border-[var(--scoutx-border)] bg-gray-50/70 p-5">
+              <h3 className="text-sm font-semibold text-[var(--scoutx-foreground)]">
+                📷 Reference photos & videos
+              </h3>
+              <p className="mt-1 text-xs text-[var(--scoutx-muted-foreground)]">
+                Uploaded by Requester to clarify scope & instructions.
+              </p>
+
+              <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                {mission.referenceAttachments.map((att, idx) => {
+                  const isVideo =
+                    att.mimeType?.startsWith("video/") || att.fileName.match(/\.(mp4|webm|mov)$/i);
+
+                  return (
+                    <div
+                      key={att.url || idx}
+                      className="overflow-hidden rounded-xl border border-[var(--scoutx-border)] bg-white p-2 shadow-sm"
+                    >
+                      {isVideo ? (
+                        <video
+                          controls
+                          src={att.url}
+                          className="h-32 w-full rounded-lg bg-black object-contain"
+                        />
+                      ) : (
+                        <a href={att.url} target="_blank" rel="noreferrer" className="block">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={att.url}
+                            alt={att.fileName}
+                            className="h-32 w-full rounded-lg object-cover hover:opacity-90"
+                          />
+                        </a>
+                      )}
+                      <p className="mt-2 truncate text-center text-[11px] font-medium text-gray-700">
+                        {att.fileName}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {(isInProgress || isMatched || hasRejectionReason) && (
             <ScoutLivestreamBroadcaster

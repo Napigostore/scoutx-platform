@@ -51,5 +51,26 @@ export async function GET(
     return NextResponse.json({ error: "Mission is not available" }, { status: 400 });
   }
 
-  return NextResponse.json(mission, { status: 200 });
+  // Fetch original reference attachments if any
+  const referenceTimeline = await prisma.timelineEntry.findMany({
+    where: { missionId, eventType: "EVIDENCE_UPLOADED" },
+  });
+
+  const referenceAttachments = referenceTimeline
+    .filter(
+      (tl) =>
+        (tl.metadata as Record<string, unknown> | null)?.category === "ORIGINAL_REQUEST" ||
+        (tl.metadata as Record<string, unknown> | null)?.role === "REQUESTER",
+    )
+    .map((tl) => {
+      const meta = (tl.metadata as Record<string, unknown> | null) || {};
+      return {
+        url: meta.url as string,
+        fileName: tl.summary.replace(/^Reference (video|photo): /, ""),
+        mimeType: (meta.mimeType as string) || "application/octet-stream",
+        createdAt: tl.createdAt.toISOString(),
+      };
+    });
+
+  return NextResponse.json({ ...mission, referenceAttachments }, { status: 200 });
 }

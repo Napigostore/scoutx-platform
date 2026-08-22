@@ -1,11 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Input, Label } from "@scoutx/ui";
 
 import { useMissionComposerStore } from "@/stores/mission-composer";
+
+interface AttachmentItem {
+  storageKey: string;
+  url: string;
+  fileName: string;
+  mimeType: string;
+}
 
 export default function NewMissionPage() {
   const router = useRouter();
@@ -20,6 +27,11 @@ export default function NewMissionPage() {
   const [radiusMeters, setRadiusMeters] = useState("1500");
   const [requiredTags, setRequiredTags] = useState("tokyo, shibuya");
   const [expiresAt, setExpiresAt] = useState("");
+
+  const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -39,6 +51,7 @@ export default function NewMissionPage() {
           if (parsed.coordinates?.longitude) setLongitude(String(parsed.coordinates.longitude));
           if (parsed.radiusMeters) setRadiusMeters(String(parsed.radiusMeters));
           if (parsed.requiredTags?.length) setRequiredTags(parsed.requiredTags.join(", "));
+          if (parsed.attachments) setAttachments(parsed.attachments);
           if (parsed.expiresAt) {
             try {
               setExpiresAt(new Date(parsed.expiresAt).toISOString().substring(0, 16));
@@ -66,6 +79,62 @@ export default function NewMissionPage() {
       return defaultDate.toISOString().substring(0, 16);
     });
   }, []);
+
+  const handleAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    setError("");
+
+    const token = localStorage.getItem("accessToken");
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (!file) continue;
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/evidence/upload/reference", {
+          method: "POST",
+          headers,
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || `Failed to upload ${file.name}`);
+        }
+
+        setAttachments((prev) => [
+          ...prev,
+          {
+            storageKey: data.storageKey,
+            url: data.url,
+            fileName: data.fileName,
+            mimeType: data.mimeType,
+          },
+        ]);
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,6 +185,7 @@ export default function NewMissionPage() {
       radiusMeters: radius,
       requiredTags: tags,
       expiresAt: new Date(expiresAt).toISOString(),
+      attachments,
     };
 
     const headers: Record<string, string> = {
@@ -218,6 +288,77 @@ export default function NewMissionPage() {
               onChange={(e) => setDescription(e.target.value)}
               disabled={isLoading}
             />
+          </div>
+
+          {/* Reference Media Attachments Section */}
+          <div className="space-y-3 rounded-2xl border border-[var(--scoutx-border)] bg-gray-50/50 p-5">
+            <div>
+              <Label className="text-base font-semibold text-[var(--scoutx-foreground)]">
+                Reference photos or videos
+              </Label>
+              <p className="mt-1 text-xs text-[var(--scoutx-muted-foreground)]">
+                Upload photos or videos that help Scouts understand exactly what you need.
+              </p>
+            </div>
+
+            {attachments.length > 0 && (
+              <div className="grid gap-3 sm:grid-cols-3">
+                {attachments.map((att, idx) => {
+                  const isVideo =
+                    att.mimeType?.startsWith("video/") || att.fileName.match(/\.(mp4|webm|mov)$/i);
+
+                  return (
+                    <div
+                      key={att.storageKey || idx}
+                      className="group relative overflow-hidden rounded-xl border border-[var(--scoutx-border)] bg-white p-2 shadow-sm"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => removeAttachment(idx)}
+                        className="absolute right-2 top-2 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-red-600 text-xs font-bold text-white shadow-md hover:bg-red-700"
+                        title="Remove attachment"
+                      >
+                        ✕
+                      </button>
+
+                      {isVideo ? (
+                        <video src={att.url} className="h-28 w-full rounded-lg object-cover" />
+                      ) : (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img
+                          src={att.url}
+                          alt={att.fileName}
+                          className="h-28 w-full rounded-lg object-cover"
+                        />
+                      )}
+
+                      <p className="mt-2 truncate text-center text-[11px] font-medium text-gray-700">
+                        {att.fileName}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onChange={handleAttachmentUpload}
+              className="hidden"
+            />
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isLoading || isUploading}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {isUploading ? "Uploading reference file..." : "📷 Add reference photo or video"}
+            </Button>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -341,7 +482,7 @@ export default function NewMissionPage() {
           <Button variant="outline" asChild disabled={isLoading}>
             <Link href="/missions">Cancel</Link>
           </Button>
-          <Button type="submit" disabled={isLoading}>
+          <Button type="submit" disabled={isLoading || isUploading}>
             {isLoading ? "Creating..." : "Create Mission"}
           </Button>
         </div>
