@@ -17,6 +17,8 @@ export function ScoutLivestreamBroadcaster({
   const [isStopping, setIsStopping] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [error, setError] = useState("");
+  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<string>("");
 
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -60,7 +62,20 @@ export function ScoutLivestreamBroadcaster({
 
   const handleStartStream = async () => {
     setError("");
+    setPermissionDenied(false);
+    setDebugInfo("");
     setIsStarting(true);
+
+    const isSecureContext = typeof window !== "undefined" && window.isSecureContext;
+    const protocol = typeof window !== "undefined" ? window.location.protocol : "unknown";
+
+    if (!isSecureContext) {
+      const secMsg = `Trình duyệt chặn truy cập Camera/Microphone do trang web chạy trên môi trường không an toàn (${protocol}). Yêu cầu HTTPS.`;
+      setError(secMsg);
+      setDebugInfo(`location.protocol: ${protocol}, isSecureContext: false`);
+      setIsStarting(false);
+      return;
+    }
 
     try {
       // 1. Request camera and microphone access
@@ -70,10 +85,39 @@ export function ScoutLivestreamBroadcaster({
           video: { width: { ideal: 1280 }, height: { ideal: 720 } },
           audio: true,
         });
-      } catch (camErr) {
-        throw new Error(
-          `Camera/Microphone permission denied: ${camErr instanceof Error ? camErr.message : "Access denied"}`,
+      } catch (camErr: unknown) {
+        const errName = camErr instanceof Error ? camErr.name : "UnknownError";
+        const errMsg = camErr instanceof Error ? camErr.message : String(camErr);
+
+        console.error("[CAMERA_PERMISSIONS_DEBUG]", {
+          name: errName,
+          message: errMsg,
+          protocol,
+          isSecureContext,
+        });
+
+        setDebugInfo(
+          `ErrorName: ${errName} | Message: ${errMsg} | Protocol: ${protocol} | SecureContext: ${isSecureContext}`,
         );
+
+        if (errName === "NotAllowedError" || errName === "PermissionDeniedError") {
+          setPermissionDenied(true);
+          throw new Error(
+            "Quyền truy cập Camera & Microphone bị từ chối trên trình duyệt của bạn.",
+          );
+        } else if (errName === "NotFoundError" || errName === "DevicesNotFoundError") {
+          throw new Error("Không tìm thấy Camera hoặc Microphone trên thiết bị của bạn.");
+        } else if (errName === "NotReadableError" || errName === "TrackStartError") {
+          throw new Error(
+            "Camera hoặc Microphone đang được sử dụng bởi ứng dụng khác. Vui lòng đóng ứng dụng đó và thử lại.",
+          );
+        } else if (errName === "SecurityError") {
+          throw new Error(
+            "Trình duyệt từ chối truy cập do chính sách bảo mật (Security Policy / Headers).",
+          );
+        } else {
+          throw new Error(`Không thể khởi tạo Camera/Microphone: ${errMsg}`);
+        }
       }
 
       mediaStreamRef.current = stream;
@@ -189,8 +233,35 @@ export function ScoutLivestreamBroadcaster({
       </div>
 
       {error && (
-        <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-3 text-xs text-red-600">
-          {error}
+        <div className="mt-4 rounded-md border border-red-200 bg-red-50 p-4 text-xs text-red-700">
+          <p className="font-semibold">{error}</p>
+
+          {permissionDenied && (
+            <div className="mt-3 rounded-md border border-red-300 bg-white p-3 text-gray-800">
+              <p className="mb-1 font-bold text-red-600">
+                🔒 Hướng dẫn mở lại Camera & Microphone:
+              </p>
+              <ol className="list-decimal space-y-1 pl-4 text-xs">
+                <li>
+                  Bấm vào biểu tượng <strong>Ổ khóa (Lock) 🔒</strong> hoặc{" "}
+                  <strong>Cài đặt trang web</strong> bên trái thanh địa chỉ URL.
+                </li>
+                <li>
+                  Tìm mục <strong>Camera</strong> và <strong>Microphone</strong>.
+                </li>
+                <li>
+                  Đổi trạng thái từ <em>Chặn (Block)</em> sang <strong>Cho phép (Allow)</strong>.
+                </li>
+                <li>Tải lại trang (F5 / Refresh) và bấm nút &quot;Bắt đầu Livestream&quot; lại.</li>
+              </ol>
+            </div>
+          )}
+
+          {debugInfo && (
+            <div className="mt-2 break-all font-mono text-[10px] text-gray-500">
+              [Debug Info] {debugInfo}
+            </div>
+          )}
         </div>
       )}
 
