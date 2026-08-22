@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAuthenticatedScoutContext } from "@/lib/server-auth";
+import { getMissionParticipantContext } from "@/lib/server-auth";
 import { apiError } from "@/lib/error-mapper";
 import { InMemoryEventBus } from "@scoutx/events";
 import { LocalStorageProvider, UploadService, createStorageProvider } from "@scoutx/storage";
@@ -25,14 +25,6 @@ const eventBus = new InMemoryEventBus();
 const uploadService = new UploadService({ storageProvider, eventBus });
 
 export async function POST(request: Request) {
-  // 1. Authentication & Scout Authorization check
-  const scoutCtx = await getAuthenticatedScoutContext(request);
-  if (!scoutCtx || "error" in scoutCtx) {
-    const errorMsg = (scoutCtx && "error" in scoutCtx && scoutCtx.error) || "Unauthorized";
-    const errorStatus = (scoutCtx && "status" in scoutCtx && scoutCtx.status) || 401;
-    return apiError(errorMsg, errorStatus);
-  }
-
   try {
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -42,28 +34,20 @@ export async function POST(request: Request) {
       return apiError("file and missionId are required", 422);
     }
 
-    // 2. Mission ownership & assignment check
-    const mission = await prisma.mission.findUnique({
-      where: { id: missionId },
-      select: { id: true, assignedScoutId: true, status: true },
-    });
-
-    if (!mission) {
-      return apiError("Mission not found", 404);
+    // 1. Mission Participant Authorization Check (Requester or Assigned Scout)
+    const participantCtx = await getMissionParticipantContext(request, missionId);
+    if (!participantCtx || "error" in participantCtx) {
+      const errorMsg =
+        (participantCtx && "error" in participantCtx && participantCtx.error) || "Unauthorized";
+      const errorStatus =
+        (participantCtx && "status" in participantCtx && participantCtx.status) || 401;
+      return apiError(errorMsg, errorStatus);
     }
 
-    if (
-      scoutCtx.scoutProfile &&
-      mission.assignedScoutId &&
-      mission.assignedScoutId !== scoutCtx.scoutProfile.id
-    ) {
-      return apiError("Forbidden: Mission is assigned to another scout", 403);
-    }
-
-    // 4. File sanitization & path traversal prevention
+    // 2. File sanitization & path traversal prevention
     const sanitizedFileName = path.basename(file.name).replace(/[^a-zA-Z0-9._-]/g, "_");
 
-    // 5. File type and size validation
+    // 3. File type and size validation
     const mimeType = file.type || "application/octet-stream";
     const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -74,13 +58,13 @@ export async function POST(request: Request) {
       return apiError(message, 422);
     }
 
-    // 6. Execute secure upload
+    // 4. Execute secure upload to R2 / Storage Provider
     const result = await uploadService.upload(buffer, {
       fileName: sanitizedFileName,
       mimeType,
       bytes: buffer.length,
       missionId,
-      scoutId: scoutCtx.userId,
+      scoutId: participantCtx.userId,
     });
 
     let downloadUrl = "";
@@ -90,11 +74,59 @@ export async function POST(request: Request) {
       downloadUrl = `/api/evidence/download?key=${encodeURIComponent(result.storageKey)}`;
     }
 
+    const finalUrl =
+      downloadUrl || `/api/evidence/download?key=${encodeURIComponent(result.storageKey)}`;
+
+    // 5. Record Evidence and TimelineEntry in Database
+    try {
+      const isVideo = mimeType.startsWith("video/");
+      const evidenceType = isVideo ? "VIDEO" : "PHOTO";
+
+      // If assigned scout exists or user is scout, find profile; otherwise fallback to mission assignedScoutId
+      let scoutProfileId =
+        participantCtx.scoutProfile?.id || participantCtx.mission.assignedScoutId;
+
+      if (!scoutProfileId) {
+        const anyScout = await prisma.scoutProfile.findFirst({ select: { id: true } });
+        if (anyScout) scoutProfileId = anyScout.id;
+      }
+
+      if (scoutProfileId) {
+        await prisma.evidence.create({
+          data: {
+            missionId,
+            scoutId: scoutProfileId,
+            userId: participantCtx.userId,
+            caption: sanitizedFileName,
+            type: evidenceType,
+            mediaUrl: finalUrl,
+          },
+        });
+      }
+
+      await prisma.timelineEntry.create({
+        data: {
+          missionId,
+          eventType: "EVIDENCE_UPLOADED",
+          summary: `${participantCtx.participantRole === "REQUESTER" ? "Requester" : "Scout"} uploaded ${isVideo ? "video" : "photo"} evidence: ${sanitizedFileName}`,
+          actorId: participantCtx.userId,
+          metadata: {
+            url: finalUrl,
+            storageKey: result.storageKey,
+            mimeType,
+            role: participantCtx.participantRole,
+          },
+        },
+      });
+    } catch (dbErr) {
+      console.error("Error recording evidence/timeline in DB:", dbErr);
+    }
+
     return NextResponse.json(
       {
         evidenceId: result.evidenceId,
         storageKey: result.storageKey,
-        url: downloadUrl || `/api/evidence/download?key=${encodeURIComponent(result.storageKey)}`,
+        url: finalUrl,
       },
       { status: 201 },
     );

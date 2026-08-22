@@ -256,3 +256,78 @@ export async function getAuthenticatedScoutContext(request: Request) {
     effectiveRole: "SCOUT" as const,
   };
 }
+
+export async function getMissionParticipantContext(request: Request, missionId: string) {
+  const principal = await getAuthenticatedPrincipal(request);
+  if (!principal) {
+    return { error: "Unauthorized", status: 401 as const };
+  }
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    principal.id,
+  );
+
+  let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
+  if (!user && principal.email) {
+    user = await prisma.user.findUnique({ where: { email: principal.email } });
+  }
+
+  const userId = user ? user.id : principal.id;
+  const userRole = user ? user.role : principal.role;
+
+  const mission = await prisma.mission.findUnique({
+    where: { id: missionId },
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      status: true,
+      requesterId: true,
+      assignedScoutId: true,
+    },
+  });
+
+  if (!mission) {
+    return { error: "Mission not found", status: 404 as const };
+  }
+
+  let scoutProfile = await prisma.scoutProfile.findUnique({
+    where: { userId },
+  });
+
+  if (!scoutProfile && user) {
+    scoutProfile = await prisma.scoutProfile.findFirst({
+      where: { userId: user.id },
+    });
+  }
+
+  const isRequester = mission.requesterId === userId;
+  const isAssignedScout = Boolean(scoutProfile && mission.assignedScoutId === scoutProfile.id);
+  const isAdmin = userRole === "ADMIN";
+
+  if (!isRequester && !isAssignedScout && !isAdmin) {
+    return {
+      error: "Forbidden: You are not an authorized participant for this mission",
+      status: 403 as const,
+    };
+  }
+
+  const participantRole: "REQUESTER" | "SCOUT" | "ADMIN" = isAdmin
+    ? "ADMIN"
+    : isRequester
+      ? "REQUESTER"
+      : "SCOUT";
+
+  return {
+    principal,
+    user,
+    userId,
+    userRole,
+    scoutProfile,
+    mission,
+    participantRole,
+    isRequester,
+    isAssignedScout,
+    isAdmin,
+  };
+}

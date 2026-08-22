@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Input, Label } from "@scoutx/ui";
 import { ScoutLivestreamBroadcaster } from "@/components/ScoutLivestreamBroadcaster";
+import { MissionActivityTimeline } from "@/components/MissionActivityTimeline";
 
 interface Submission {
   id: string;
@@ -339,6 +340,8 @@ export default function ScoutMissionWorkPage({
               }}
             />
           )}
+
+          <MissionActivityTimeline missionId={missionId} currentRole="SCOUT" />
 
           {hasRejectionReason && (
             <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">

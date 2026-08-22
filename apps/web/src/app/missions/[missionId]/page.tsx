@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@scoutx/ui";
 import { RequesterLivestreamViewer } from "@/components/RequesterLivestreamViewer";
+import { MissionActivityTimeline } from "@/components/MissionActivityTimeline";
 
 interface Submission {
   id: string;
@@ -279,6 +280,8 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
           </div>
 
           <RequesterLivestreamViewer missionId={missionId} />
+
+          <MissionActivityTimeline missionId={missionId} currentRole="REQUESTER" />
 
           <div className="rounded-2xl border border-[var(--scoutx-border)] bg-gray-50 p-6">
             <h3 className="text-sm font-semibold text-[var(--scoutx-foreground)]">
