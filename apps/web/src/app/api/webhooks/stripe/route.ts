@@ -79,13 +79,22 @@ export async function POST(request: Request) {
               stripeSignature: signature ?? "none",
             });
           } catch (createErr) {
-            auditLogger.log("coin_change", requesterId, {
-              action: "stripe_webhook_duplicate_event_ignored",
-              eventId: event.id,
-              missionId,
-              error: createErr instanceof Error ? createErr.message : "Duplicate event",
-            });
-            return NextResponse.json({ received: true, status: "duplicate_event_ignored" });
+            const isUniqueConstraint =
+              createErr instanceof Error &&
+              (createErr.message.includes("Unique constraint") ||
+                createErr.message.includes("P2002") ||
+                createErr.message.includes("PrimaryKey"));
+
+            if (isUniqueConstraint) {
+              auditLogger.log("coin_change", requesterId, {
+                action: "stripe_webhook_duplicate_event_ignored",
+                eventId: event.id,
+                missionId,
+                error: createErr.message,
+              });
+              return NextResponse.json({ received: true, status: "duplicate_event_ignored" });
+            }
+            throw createErr;
           }
         }
         break;
@@ -129,13 +138,22 @@ export async function POST(request: Request) {
               amountCents,
             });
           } catch (createErr) {
-            auditLogger.log("coin_change", requesterId, {
-              action: "stripe_webhook_duplicate_refund_ignored",
-              eventId: event.id,
-              missionId,
-              error: createErr instanceof Error ? createErr.message : "Duplicate refund event",
-            });
-            return NextResponse.json({ received: true, status: "duplicate_refund_ignored" });
+            const isUniqueConstraint =
+              createErr instanceof Error &&
+              (createErr.message.includes("Unique constraint") ||
+                createErr.message.includes("P2002") ||
+                createErr.message.includes("PrimaryKey"));
+
+            if (isUniqueConstraint) {
+              auditLogger.log("coin_change", requesterId, {
+                action: "stripe_webhook_duplicate_refund_ignored",
+                eventId: event.id,
+                missionId,
+                error: createErr.message,
+              });
+              return NextResponse.json({ received: true, status: "duplicate_refund_ignored" });
+            }
+            throw createErr;
           }
         }
         break;
