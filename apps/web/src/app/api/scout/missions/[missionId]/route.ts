@@ -47,8 +47,20 @@ export async function GET(
     );
   }
 
-  if (mission.status !== "OPEN" && mission.assignedScoutId !== user.id) {
-    return NextResponse.json({ error: "Mission is not available" }, { status: 400 });
+  let scoutProfile = await prisma.scoutProfile.findUnique({
+    where: { userId: user.id },
+  });
+  if (!scoutProfile) {
+    scoutProfile = await prisma.scoutProfile.findFirst({
+      where: { userId: user.id },
+    });
+  }
+
+  if (mission.status !== "OPEN" && (!scoutProfile || mission.assignedScoutId !== scoutProfile.id)) {
+    return NextResponse.json(
+      { error: "Forbidden: You are not assigned to this mission" },
+      { status: 403 },
+    );
   }
 
   // Fetch original reference attachments if any

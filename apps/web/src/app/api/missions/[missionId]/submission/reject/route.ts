@@ -59,6 +59,17 @@ export async function POST(
       rejectionReason,
     });
 
+    // Record TimelineEntry
+    await prisma.timelineEntry.create({
+      data: {
+        missionId,
+        eventType: "MISSION_REJECTED",
+        summary: `Submission rejected by Requester: ${rejectionReason}`,
+        actorId: user.id,
+        metadata: { role: "REQUESTER", rejectionReason },
+      },
+    });
+
     // Fetch updated mission with submission
     const mission = await prisma.mission.findUnique({
       where: { id: missionId },

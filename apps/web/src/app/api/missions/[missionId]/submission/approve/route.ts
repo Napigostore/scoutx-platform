@@ -42,6 +42,17 @@ export async function POST(
     const approveMissionSubmissionUseCase = getApproveMissionSubmissionUseCase();
     await approveMissionSubmissionUseCase.execute(missionId, user.id, "REQUESTER");
 
+    // Record TimelineEntry
+    await prisma.timelineEntry.create({
+      data: {
+        missionId,
+        eventType: "MISSION_VERIFIED",
+        summary: "Submission approved & payout reward issued by Requester",
+        actorId: user.id,
+        metadata: { role: "REQUESTER" },
+      },
+    });
+
     // Fetch updated mission with submission
     const mission = await prisma.mission.findUnique({
       where: { id: missionId },

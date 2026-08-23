@@ -37,6 +37,18 @@ export async function POST(
   try {
     const claimMissionUseCase = getClaimMissionUseCase();
     const mission = await claimMissionUseCase.execute(missionId, user.id, "SCOUT");
+
+    // Record TimelineEntry
+    await prisma.timelineEntry.create({
+      data: {
+        missionId,
+        eventType: "SCOUT_CLAIMED",
+        summary: "Mission claimed by Scout",
+        actorId: user.id,
+        metadata: { role: "SCOUT" },
+      },
+    });
+
     return NextResponse.json(mission, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to claim mission";

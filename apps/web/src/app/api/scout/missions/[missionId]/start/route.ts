@@ -37,6 +37,18 @@ export async function POST(
   try {
     const startMissionUseCase = getStartMissionUseCase();
     const mission = await startMissionUseCase.execute(missionId, user.id, "SCOUT");
+
+    // Record TimelineEntry
+    await prisma.timelineEntry.create({
+      data: {
+        missionId,
+        eventType: "WORK_STARTED",
+        summary: "Scout started working on-site",
+        actorId: user.id,
+        metadata: { role: "SCOUT" },
+      },
+    });
+
     return NextResponse.json(mission, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to start mission";

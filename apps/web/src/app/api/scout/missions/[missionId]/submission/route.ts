@@ -81,6 +81,16 @@ export async function POST(
           observedAt: (bodyRecord.observedAt as string) || new Date().toISOString(),
         });
 
+        await prisma.timelineEntry.create({
+          data: {
+            missionId,
+            eventType: "MISSION_SUBMITTED",
+            summary: "Scout resubmitted work for review",
+            actorId: user.id,
+            metadata: { role: "SCOUT", isResubmission: true },
+          },
+        });
+
         const updatedSubmission = await prisma.missionSubmission.findFirst({
           where: { missionId },
         });
@@ -95,6 +105,17 @@ export async function POST(
       user.id,
       "SCOUT",
     );
+
+    await prisma.timelineEntry.create({
+      data: {
+        missionId,
+        eventType: "MISSION_SUBMITTED",
+        summary: "Scout submitted work for review",
+        actorId: user.id,
+        metadata: { role: "SCOUT" },
+      },
+    });
+
     return NextResponse.json(submission, { status: 201 });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
