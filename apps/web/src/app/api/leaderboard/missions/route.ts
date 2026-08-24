@@ -31,335 +31,96 @@ interface MissionRecord {
   timelineEntries?: { id: string; createdAt: Date }[];
 }
 
-const MOCK_20_MISSIONS = [
-  {
-    id: "m-01",
-    title: "Retail Storefront Construction Audit",
-    category: "VENUE_STATUS",
-    urgency: "CRITICAL",
-    budgetCents: 1850000,
-    city: "Ho Chi Minh City",
-    country: "Vietnam",
-    uniqueScoutsCount: 14,
-    estimatedTimeMins: 25,
-    difficulty: "Easy",
-    evidenceRequiredCount: 3,
-    requesterName: "VinGroup Retail Audit",
-    requesterReputation: 4.95,
-    hoursLeft: 4,
-  },
-  {
-    id: "m-02",
-    title: "Intersection Traffic & Congestion Survey",
-    category: "STREET_CONDITIONS",
-    urgency: "HIGH",
-    budgetCents: 1450000,
-    city: "Hanoi",
-    country: "Vietnam",
-    uniqueScoutsCount: 11,
-    estimatedTimeMins: 35,
-    difficulty: "Medium",
-    evidenceRequiredCount: 4,
-    requesterName: "Urban Mobility Analytics",
-    requesterReputation: 4.9,
-    hoursLeft: 8,
-  },
-  {
-    id: "m-03",
-    title: "On-Site EV Charging Station Availability",
-    category: "PRODUCT_AVAILABILITY",
-    urgency: "HIGH",
-    budgetCents: 1200000,
-    city: "Da Nang",
-    country: "Vietnam",
-    uniqueScoutsCount: 9,
-    estimatedTimeMins: 20,
-    difficulty: "Easy",
-    evidenceRequiredCount: 2,
-    requesterName: "GreenCharge Asia",
-    requesterReputation: 4.88,
-    hoursLeft: 12,
-  },
-  {
-    id: "m-04",
-    title: "Supermarket Shelf Stock & Price Tag Check",
-    category: "PRODUCT_AVAILABILITY",
-    urgency: "NORMAL",
-    budgetCents: 950000,
-    city: "Can Tho",
-    country: "Vietnam",
-    uniqueScoutsCount: 8,
-    estimatedTimeMins: 30,
-    difficulty: "Medium",
-    evidenceRequiredCount: 3,
-    requesterName: "FMCG Intelligence Co",
-    requesterReputation: 4.85,
-    hoursLeft: 18,
-  },
-  {
-    id: "m-05",
-    title: "Coastal Weather & Water Level Inspection",
-    category: "WEATHER_ON_SITE",
-    urgency: "CRITICAL",
-    budgetCents: 2200000,
-    city: "Hai Phong",
-    country: "Vietnam",
-    uniqueScoutsCount: 15,
-    estimatedTimeMins: 45,
-    difficulty: "Advanced",
-    evidenceRequiredCount: 5,
-    requesterName: "Maritime Risk Institute",
-    requesterReputation: 4.92,
-    hoursLeft: 3,
-  },
-  {
-    id: "m-06",
-    title: "Night Market Crowd Density & Event Check",
-    category: "CROWD_DENSITY",
-    urgency: "NORMAL",
-    budgetCents: 850000,
-    city: "Ho Chi Minh City",
-    country: "Vietnam",
-    uniqueScoutsCount: 7,
-    estimatedTimeMins: 20,
-    difficulty: "Easy",
-    evidenceRequiredCount: 2,
-    requesterName: "City Pulse Media",
-    requesterReputation: 4.78,
-    hoursLeft: 24,
-  },
-  {
-    id: "m-07",
-    title: "Historic Landmark Facade Photo Verification",
-    category: "PHOTO_VERIFICATION",
-    urgency: "LOW",
-    budgetCents: 650000,
-    city: "Hanoi",
-    country: "Vietnam",
-    uniqueScoutsCount: 6,
-    estimatedTimeMins: 15,
-    difficulty: "Easy",
-    evidenceRequiredCount: 2,
-    requesterName: "Heritage Preservation Fund",
-    requesterReputation: 4.82,
-    hoursLeft: 36,
-  },
-  {
-    id: "m-08",
-    title: "Logistics Hub Cargo Loading Observation",
-    category: "GENERAL_OBSERVATION",
-    urgency: "HIGH",
-    budgetCents: 1600000,
-    city: "Da Nang",
-    country: "Vietnam",
-    uniqueScoutsCount: 10,
-    estimatedTimeMins: 40,
-    difficulty: "Medium",
-    evidenceRequiredCount: 4,
-    requesterName: "TransAsia Supply Chain",
-    requesterReputation: 4.87,
-    hoursLeft: 9,
-  },
-  {
-    id: "m-09",
-    title: "Pop-Up Store Foot Traffic Count",
-    category: "CROWD_DENSITY",
-    urgency: "NORMAL",
-    budgetCents: 780000,
-    city: "Ho Chi Minh City",
-    country: "Vietnam",
-    uniqueScoutsCount: 5,
-    estimatedTimeMins: 25,
-    difficulty: "Medium",
-    evidenceRequiredCount: 3,
-    requesterName: "BrandMetrics SEA",
-    requesterReputation: 4.75,
-    hoursLeft: 14,
-  },
-  {
-    id: "m-10",
-    title: "Bridge Clearance & Waterway Obstruction Inspection",
-    category: "STREET_CONDITIONS",
-    urgency: "HIGH",
-    budgetCents: 1750000,
-    city: "Can Tho",
-    country: "Vietnam",
-    uniqueScoutsCount: 8,
-    estimatedTimeMins: 35,
-    difficulty: "Advanced",
-    evidenceRequiredCount: 4,
-    requesterName: "Mekong Hydro Engineering",
-    requesterReputation: 4.91,
-    hoursLeft: 7,
-  },
-  {
-    id: "m-11",
-    title: "Pharmacy Chain Cold Storage Display Verification",
-    category: "PRODUCT_AVAILABILITY",
-    urgency: "NORMAL",
-    budgetCents: 900000,
-    city: "Hai Phong",
-    country: "Vietnam",
-    uniqueScoutsCount: 4,
-    estimatedTimeMins: 20,
-    difficulty: "Easy",
-    evidenceRequiredCount: 2,
-    requesterName: "PharmaCare Regional",
-    requesterReputation: 4.8,
-    hoursLeft: 20,
-  },
-  {
-    id: "m-12",
-    title: "Construction Noise & Dust Pollution Assessment",
-    category: "GENERAL_OBSERVATION",
-    urgency: "CRITICAL",
-    budgetCents: 1950000,
-    city: "Hanoi",
-    country: "Vietnam",
-    uniqueScoutsCount: 12,
-    estimatedTimeMins: 45,
-    difficulty: "Advanced",
-    evidenceRequiredCount: 5,
-    requesterName: "EcoSurv Compliance",
-    requesterReputation: 4.94,
-    hoursLeft: 5,
-  },
-  {
-    id: "m-13",
-    title: "Billboard Display & Lighting Audit",
-    category: "PHOTO_VERIFICATION",
-    urgency: "LOW",
-    budgetCents: 550000,
-    city: "Ho Chi Minh City",
-    country: "Vietnam",
-    uniqueScoutsCount: 3,
-    estimatedTimeMins: 15,
-    difficulty: "Easy",
-    evidenceRequiredCount: 2,
-    requesterName: "Out-of-Home Media Group",
-    requesterReputation: 4.72,
-    hoursLeft: 48,
-  },
-  {
-    id: "m-14",
-    title: "Industrial Zone Warehouse Entrance Gate Log",
-    category: "GENERAL_OBSERVATION",
-    urgency: "NORMAL",
-    budgetCents: 1100000,
-    city: "Hai Phong",
-    country: "Vietnam",
-    uniqueScoutsCount: 6,
-    estimatedTimeMins: 30,
-    difficulty: "Medium",
-    evidenceRequiredCount: 3,
-    requesterName: "Global Freight Watch",
-    requesterReputation: 4.86,
-    hoursLeft: 16,
-  },
-  {
-    id: "m-15",
-    title: "Food Street Hygiene & Sanitation Sampling",
-    category: "VENUE_STATUS",
-    urgency: "HIGH",
-    budgetCents: 1300000,
-    city: "Da Nang",
-    country: "Vietnam",
-    uniqueScoutsCount: 9,
-    estimatedTimeMins: 25,
-    difficulty: "Medium",
-    evidenceRequiredCount: 3,
-    requesterName: "Culinary Safety Board",
-    requesterReputation: 4.89,
-    hoursLeft: 10,
-  },
-  {
-    id: "m-16",
-    title: "Solar Panel Farm Shading & Dust Inspection",
-    category: "WEATHER_ON_SITE",
-    urgency: "NORMAL",
-    budgetCents: 1500000,
-    city: "Can Tho",
-    country: "Vietnam",
-    uniqueScoutsCount: 5,
-    estimatedTimeMins: 40,
-    difficulty: "Advanced",
-    evidenceRequiredCount: 4,
-    requesterName: "SunPower Field Ops",
-    requesterReputation: 4.83,
-    hoursLeft: 22,
-  },
-  {
-    id: "m-17",
-    title: "Convention Center Event Entrance Registration Check",
-    category: "LOCAL_EVENT",
-    urgency: "CRITICAL",
-    budgetCents: 2100000,
-    city: "Ho Chi Minh City",
-    country: "Vietnam",
-    uniqueScoutsCount: 13,
-    estimatedTimeMins: 30,
-    difficulty: "Medium",
-    evidenceRequiredCount: 4,
-    requesterName: "ExpoGlobal Asia",
-    requesterReputation: 4.96,
-    hoursLeft: 2,
-  },
-  {
-    id: "m-18",
-    title: "Public Park Playground Equipment Safety Audit",
-    category: "STREET_CONDITIONS",
-    urgency: "LOW",
-    budgetCents: 600000,
-    city: "Hanoi",
-    country: "Vietnam",
-    uniqueScoutsCount: 2,
-    estimatedTimeMins: 20,
-    difficulty: "Easy",
-    evidenceRequiredCount: 2,
-    requesterName: "Civic Safety NGO",
-    requesterReputation: 4.7,
-    hoursLeft: 52,
-  },
-  {
-    id: "m-19",
-    title: "Seaport Container Stacking Density Photo Log",
-    category: "PHOTO_VERIFICATION",
-    urgency: "HIGH",
-    budgetCents: 1700000,
-    city: "Hai Phong",
-    country: "Vietnam",
-    uniqueScoutsCount: 8,
-    estimatedTimeMins: 35,
-    difficulty: "Medium",
-    evidenceRequiredCount: 4,
-    requesterName: "Port Logistics Corp",
-    requesterReputation: 4.88,
-    hoursLeft: 11,
-  },
-  {
-    id: "m-20",
-    title: "Resort Beach Area Cleanliness & Weather Monitor",
-    category: "WEATHER_ON_SITE",
-    urgency: "NORMAL",
-    budgetCents: 1050000,
-    city: "Da Nang",
-    country: "Vietnam",
-    uniqueScoutsCount: 6,
-    estimatedTimeMins: 25,
-    difficulty: "Easy",
-    evidenceRequiredCount: 3,
-    requesterName: "Coastal Hospitality Analytics",
-    requesterReputation: 4.81,
-    hoursLeft: 19,
-  },
+const CATEGORIES = [
+  "STREET_CONDITIONS",
+  "VENUE_STATUS",
+  "LOCAL_EVENT",
+  "PRODUCT_AVAILABILITY",
+  "CROWD_DENSITY",
+  "WEATHER_ON_SITE",
+  "PHOTO_VERIFICATION",
+  "GENERAL_OBSERVATION",
 ];
+
+const CITIES = [
+  { name: "Ho Chi Minh City", country: "Vietnam" },
+  { name: "Hanoi", country: "Vietnam" },
+  { name: "Da Nang", country: "Vietnam" },
+  { name: "Can Tho", country: "Vietnam" },
+  { name: "Hai Phong", country: "Vietnam" },
+  { name: "Nha Trang", country: "Vietnam" },
+  { name: "Da Lat", country: "Vietnam" },
+  { name: "Phu Quoc", country: "Vietnam" },
+  { name: "Tokyo", country: "Japan" },
+  { name: "Singapore", country: "Singapore" },
+  { name: "New York", country: "United States" },
+  { name: "London", country: "United Kingdom" },
+];
+
+const REQUESTERS = [
+  { name: "Global Infrastructure Group", rating: 4.98 },
+  { name: "Maritime Logistics Corp", rating: 4.95 },
+  { name: "VinGroup Retail Audit", rating: 4.92 },
+  { name: "Urban Mobility Analytics", rating: 4.9 },
+  { name: "GreenCharge Energy Asia", rating: 4.88 },
+  { name: "EcoSurv Compliance Int", rating: 4.86 },
+  { name: "FMCG Intelligence Co", rating: 4.84 },
+  { name: "TransAsia Supply Chain", rating: 4.81 },
+  { name: "BrandMetrics SEA", rating: 4.79 },
+  { name: "Heritage Preservation NGO", rating: 4.75 },
+];
+
+// Generate 50 mock missions with rewards ranging from 100,000 VND ($4) to 12,500,000,000 VND ($500,000 USD)
+const MOCK_50_MISSIONS = Array.from({ length: 50 }, (_, i) => {
+  const num = i + 1;
+  const category = CATEGORIES[i % CATEGORIES.length] || "PHOTO_VERIFICATION";
+  const cityObj = CITIES[i % CITIES.length] || { name: "Ho Chi Minh City", country: "Vietnam" };
+  const requester = REQUESTERS[i % REQUESTERS.length] || {
+    name: "Global Intelligence",
+    rating: 4.9,
+  };
+
+  let budgetCents: number;
+  if (i === 0) budgetCents = 12500000000;
+  else if (i === 1) budgetCents = 7500000000;
+  else if (i === 2) budgetCents = 3750000000;
+  else if (i === 3) budgetCents = 2500000000;
+  else if (i < 15) budgetCents = Math.round(1500000000 * Math.pow(0.75, i - 4));
+  else if (i < 35) budgetCents = Math.round(100000000 * Math.pow(0.85, i - 15));
+  else budgetCents = Math.max(100000, Math.round(10000000 * Math.pow(0.8, i - 35)));
+
+  const urgency = i % 4 === 0 ? "CRITICAL" : i % 3 === 0 ? "HIGH" : i % 2 === 0 ? "NORMAL" : "LOW";
+  const uniqueScoutsCount = Math.max(1, Math.floor(25 * Math.pow(0.93, i)));
+  const estimatedTimeMins = 15 + (i % 6) * 10;
+  const difficulty =
+    budgetCents > 100000000 ? "Advanced" : budgetCents > 10000000 ? "Medium" : "Easy";
+  const evidenceRequiredCount = 2 + (i % 4);
+  const hoursLeft = Math.max(1, 48 - i * 0.9);
+
+  return {
+    id: `m-${String(num).padStart(2, "0")}`,
+    title: `[Mission #${num}] Verification of ${category.replace("_", " ")} at ${cityObj.name}`,
+    category,
+    urgency,
+    budgetCents,
+    city: cityObj.name,
+    country: cityObj.country,
+    uniqueScoutsCount,
+    estimatedTimeMins,
+    difficulty,
+    evidenceRequiredCount,
+    requesterName: requester.name,
+    requesterReputation: requester.rating,
+    hoursLeft: Math.ceil(hoursLeft),
+  };
+});
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get("filter") || "trending";
     const category = searchParams.get("category");
-    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const limit = parseInt(searchParams.get("limit") || "50", 10);
 
     let missions: MissionRecord[] = [];
     try {
@@ -438,7 +199,8 @@ export async function GET(request: Request) {
         uniqueScoutsCount > 0 ? `${uniqueScoutsCount} scouts active` : "Open for claims";
 
       let trendingReason = demandText;
-      if (rewardCents >= 1000000) trendingReason = "Top Bounty";
+      if (rewardCents >= 100000000) trendingReason = "Mega Bounty ($500k)";
+      else if (rewardCents >= 1000000) trendingReason = "Top Bounty";
       else if (m.urgency === "CRITICAL" || hoursLeft < 12)
         trendingReason = `Due in ${Math.ceil(hoursLeft)}h`;
 
@@ -451,7 +213,7 @@ export async function GET(request: Request) {
         id: m.id,
         title: m.title,
         description: m.description,
-        category: m.category,
+        category: m.category || "PHOTO_VERIFICATION",
         urgency: m.urgency,
         status: m.status,
         budgetCents: m.budgetCents,
@@ -488,7 +250,7 @@ export async function GET(request: Request) {
     });
 
     if (scoredMissions.length === 0) {
-      scoredMissions = MOCK_20_MISSIONS.map((m) => {
+      scoredMissions = MOCK_50_MISSIONS.map((m) => {
         const budgetLabel = new Intl.NumberFormat("vi-VN", {
           style: "currency",
           currency: "VND",
@@ -499,13 +261,14 @@ export async function GET(request: Request) {
         const demandText = `${m.uniqueScoutsCount} scouts active`;
 
         let trendingReason = demandText;
-        if (m.budgetCents >= 1800000) trendingReason = "Top Bounty";
+        if (m.budgetCents >= 1000000000) trendingReason = "Mega Bounty ($500k)";
+        else if (m.budgetCents >= 50000000) trendingReason = "High Reward";
         else if (m.hoursLeft <= 4) trendingReason = `Due in ${m.hoursLeft}h`;
 
         return {
           id: m.id,
           title: m.title,
-          description: `Detailed field intelligence observation and status audit for ${m.category}.`,
+          description: `Detailed real-world intelligence observation and status audit for ${m.category} in ${m.city}.`,
           category: m.category,
           urgency: m.urgency,
           status: "OPEN",

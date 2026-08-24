@@ -27,255 +27,158 @@ interface ScoutProfileRecord {
   }[];
 }
 
-const MOCK_20_SCOUTS = [
-  {
-    scoutId: "scout-01",
-    userId: "u-01",
-    name: "Minh Tran",
-    avatarUrl: null,
-    location: "District 1, Ho Chi Minh City",
-    reputation: 4.95,
-    completedMissions: 48,
-    successRate: 98.8,
-    totalEarnedCents: 16800000,
-    badges: ["Top Operator", "Fast Responder", "Evidence Expert"],
-  },
-  {
-    scoutId: "scout-02",
-    userId: "u-02",
-    name: "Linh Nguyen",
-    avatarUrl: null,
-    location: "Hoan Kiem, Hanoi",
-    reputation: 4.91,
-    completedMissions: 42,
-    successRate: 97.6,
-    totalEarnedCents: 14700000,
-    badges: ["Top Operator", "Trusted Operator"],
-  },
-  {
-    scoutId: "scout-03",
-    userId: "u-03",
-    name: "Duc Pham",
-    avatarUrl: null,
-    location: "Hai Chau, Da Nang",
-    reputation: 4.88,
-    completedMissions: 36,
-    successRate: 96.5,
-    totalEarnedCents: 12600000,
-    badges: ["Top Operator", "Evidence Expert"],
-  },
-  {
-    scoutId: "scout-04",
-    userId: "u-04",
-    name: "An Vo",
-    avatarUrl: null,
-    location: "Ninh Kieu, Can Tho",
-    reputation: 4.84,
-    completedMissions: 31,
-    successRate: 95.8,
-    totalEarnedCents: 10850000,
-    badges: ["Fast Responder"],
-  },
-  {
-    scoutId: "scout-05",
-    userId: "u-05",
-    name: "Bao Hoang",
-    avatarUrl: null,
-    location: "Ngo Quyen, Hai Phong",
-    reputation: 4.81,
-    completedMissions: 27,
-    successRate: 95.2,
-    totalEarnedCents: 9450000,
-    badges: ["Trusted Operator"],
-  },
-  {
-    scoutId: "scout-06",
-    userId: "u-06",
-    name: "Trang Le",
-    avatarUrl: null,
-    location: "District 3, Ho Chi Minh City",
-    reputation: 4.79,
-    completedMissions: 25,
-    successRate: 94.8,
-    totalEarnedCents: 8750000,
-    badges: ["Evidence Expert"],
-  },
-  {
-    scoutId: "scout-07",
-    userId: "u-07",
-    name: "Huy Dang",
-    avatarUrl: null,
-    location: "Cau Giay, Hanoi",
-    reputation: 4.76,
-    completedMissions: 22,
-    successRate: 94.1,
-    totalEarnedCents: 7700000,
-    badges: ["Fast Responder"],
-  },
-  {
-    scoutId: "scout-08",
-    userId: "u-08",
-    name: "Vy Bui",
-    avatarUrl: null,
-    location: "Son Tra, Da Nang",
-    reputation: 4.72,
-    completedMissions: 20,
-    successRate: 93.9,
-    totalEarnedCents: 7000000,
-    badges: ["Trusted Operator"],
-  },
-  {
-    scoutId: "scout-09",
-    userId: "u-09",
-    name: "Tuan Do",
-    avatarUrl: null,
-    location: "Thuy Nguyen, Hai Phong",
-    reputation: 4.69,
-    completedMissions: 18,
-    successRate: 93.2,
-    totalEarnedCents: 6300000,
-    badges: ["Verified Scout"],
-  },
-  {
-    scoutId: "scout-10",
-    userId: "u-10",
-    name: "Mai Truong",
-    avatarUrl: null,
-    location: "District 7, Ho Chi Minh City",
-    reputation: 4.66,
-    completedMissions: 16,
-    successRate: 92.8,
-    totalEarnedCents: 5600000,
-    badges: ["Verified Scout"],
-  },
-  {
-    scoutId: "scout-11",
-    userId: "u-11",
-    name: "Nam Phan",
-    avatarUrl: null,
-    location: "Ba Dinh, Hanoi",
-    reputation: 4.63,
-    completedMissions: 15,
-    successRate: 92.5,
-    totalEarnedCents: 5250000,
-    badges: ["Verified Scout"],
-  },
-  {
-    scoutId: "scout-12",
-    userId: "u-12",
-    name: "Khoa Dinh",
-    avatarUrl: null,
-    location: "Ngu Hanh Son, Da Nang",
-    reputation: 4.6,
-    completedMissions: 14,
-    successRate: 92.0,
-    totalEarnedCents: 4900000,
-    badges: ["Verified Scout"],
-  },
-  {
-    scoutId: "scout-13",
-    userId: "u-13",
-    name: "Thao Vu",
-    avatarUrl: null,
-    location: "Binh Thach, Ho Chi Minh City",
-    reputation: 4.58,
-    completedMissions: 13,
-    successRate: 91.5,
-    totalEarnedCents: 4550000,
-    badges: ["Verified Scout"],
-  },
-  {
-    scoutId: "scout-14",
-    userId: "u-14",
-    name: "Phuc Ngo",
-    avatarUrl: null,
-    location: "Dong Da, Hanoi",
-    reputation: 4.55,
-    completedMissions: 12,
-    successRate: 91.0,
-    totalEarnedCents: 4200000,
-    badges: ["Verified Scout"],
-  },
-  {
-    scoutId: "scout-15",
-    userId: "u-15",
-    name: "Quyen Lai",
-    avatarUrl: null,
-    location: "Hong Bang, Hai Phong",
-    reputation: 4.52,
-    completedMissions: 11,
-    successRate: 90.8,
-    totalEarnedCents: 3850000,
-    badges: ["Verified Scout"],
-  },
-  {
-    scoutId: "scout-16",
-    userId: "u-16",
-    name: "Thanh Ly",
-    avatarUrl: null,
-    location: "Tan Binh, Ho Chi Minh City",
-    reputation: 4.49,
-    completedMissions: 10,
-    successRate: 90.2,
-    totalEarnedCents: 3500000,
-    badges: ["Verified Scout"],
-  },
-  {
-    scoutId: "scout-17",
-    userId: "u-17",
-    name: "Kiet Trinh",
-    avatarUrl: null,
-    location: "Tay Ho, Hanoi",
-    reputation: 4.46,
-    completedMissions: 9,
-    successRate: 89.9,
-    totalEarnedCents: 3150000,
-    badges: ["Verified Scout"],
-  },
-  {
-    scoutId: "scout-18",
-    userId: "u-18",
-    name: "Ngan Duong",
-    avatarUrl: null,
-    location: "Cai Rang, Can Tho",
-    reputation: 4.43,
-    completedMissions: 8,
-    successRate: 89.5,
-    totalEarnedCents: 2800000,
-    badges: ["Verified Scout"],
-  },
-  {
-    scoutId: "scout-19",
-    userId: "u-19",
-    name: "Hung Mac",
-    avatarUrl: null,
-    location: "Cam Le, Da Nang",
-    reputation: 4.4,
-    completedMissions: 7,
-    successRate: 89.0,
-    totalEarnedCents: 2450000,
-    badges: ["Verified Scout"],
-  },
-  {
-    scoutId: "scout-20",
-    userId: "u-20",
-    name: "Ha Cao",
-    avatarUrl: null,
-    location: "Thu Duc City, Ho Chi Minh City",
-    reputation: 4.38,
-    completedMissions: 6,
-    successRate: 88.5,
-    totalEarnedCents: 2100000,
-    badges: ["Verified Scout"],
-  },
+const FIRST_NAMES = [
+  "Minh",
+  "Linh",
+  "Duc",
+  "An",
+  "Bao",
+  "Trang",
+  "Huy",
+  "Vy",
+  "Tuan",
+  "Mai",
+  "Nam",
+  "Khoa",
+  "Thao",
+  "Phuc",
+  "Quyen",
+  "Thanh",
+  "Kiet",
+  "Ngan",
+  "Hung",
+  "Ha",
+  "Tien",
+  "Yen",
+  "Quang",
+  "Nhu",
+  "Khanh",
+  "Son",
+  "Phuong",
+  "Duy",
+  "Chi",
+  "Hoang",
+  "Lan",
+  "Long",
+  "Giang",
+  "Nhat",
+  "Dat",
+  "Nhan",
+  "Tram",
+  "Tri",
+  "Van",
+  "Tam",
+  "Bich",
+  "Cuong",
+  "Diep",
+  "Kien",
+  "Loan",
+  "Phong",
+  "Quan",
+  "Tu",
+  "Viet",
+  "Xuan",
 ];
+
+const LAST_NAMES = [
+  "Tran",
+  "Nguyen",
+  "Pham",
+  "Vo",
+  "Hoang",
+  "Le",
+  "Dang",
+  "Bui",
+  "Do",
+  "Truong",
+  "Phan",
+  "Dinh",
+  "Vu",
+  "Ngo",
+  "Lai",
+  "Ly",
+  "Trinh",
+  "Duong",
+  "Mac",
+  "Cao",
+];
+
+const CITIES = [
+  "District 1, Ho Chi Minh City",
+  "Hoan Kiem, Hanoi",
+  "Hai Chau, Da Nang",
+  "Ninh Kieu, Can Tho",
+  "Ngo Quyen, Hai Phong",
+  "District 7, Ho Chi Minh City",
+  "Cau Giay, Hanoi",
+  "Son Tra, Da Nang",
+  "Thuy Nguyen, Hai Phong",
+  "Nha Trang, Khanh Hoa",
+  "Da Lat, Lam Dong",
+  "Phu Quoc, Kien Giang",
+  "Vung Tau, Ba Ria",
+  "Bien Hoa, Dong Nai",
+  "Hue, Thua Thien Hue",
+  "Shinjuku, Tokyo",
+  "Marina Bay, Singapore",
+  "Manhattan, New York",
+  "City of London, London",
+  "Central, Hong Kong",
+];
+
+// Generate 50 mock scouts with rating 1.0 star to 5.0 star and rewards from 100k VND to 12.5B VND ($500,000 USD)
+const MOCK_50_SCOUTS = Array.from({ length: 50 }, (_, i) => {
+  const rank = i + 1;
+  const firstName = FIRST_NAMES[i % FIRST_NAMES.length] || "Scout";
+  const lastName = LAST_NAMES[i % LAST_NAMES.length] || "Operator";
+  const name = `${firstName} ${lastName}`;
+  const location = CITIES[i % CITIES.length] || "District 1, Ho Chi Minh City";
+
+  const reputation = Math.max(1.0, Math.min(5.0, Math.round((5.0 - (i * 3.8) / 49) * 100) / 100));
+  const reliabilityScore = Math.round(reputation * 20);
+
+  const completedMissions = Math.max(1, Math.round(185 * Math.pow(0.93, i)));
+  const successRate = Math.max(65.0, Math.round((99.5 - i * 0.65) * 10) / 10);
+
+  let totalEarnedCents: number;
+  if (i === 0) totalEarnedCents = 12500000000;
+  else if (i === 1) totalEarnedCents = 7500000000;
+  else if (i === 2) totalEarnedCents = 3750000000;
+  else if (i < 10) totalEarnedCents = Math.round(2500000000 * Math.pow(0.7, i - 3));
+  else if (i < 30) totalEarnedCents = Math.round(250000000 * Math.pow(0.85, i - 10));
+  else totalEarnedCents = Math.max(100000, Math.round(10000000 * Math.pow(0.85, i - 30)));
+
+  const badges: string[] = [];
+  if (reputation >= 4.8) badges.push("Top Operator");
+  if (reputation >= 4.5) badges.push("Evidence Expert");
+  if (reputation >= 4.0) badges.push("Verified Scout");
+  if (reputation >= 3.0) badges.push("Fast Responder");
+  if (badges.length === 0) badges.push("Field Operator");
+
+  return {
+    rank,
+    scoutId: `scout-${String(rank).padStart(2, "0")}`,
+    userId: `u-${String(rank).padStart(2, "0")}`,
+    name,
+    avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=scout_${rank}`,
+    location,
+    reputation,
+    reliabilityScore,
+    completedMissions,
+    successRate,
+    totalEarnedCents,
+    badges,
+    availability: i % 5 === 0 ? "BUSY" : "AVAILABLE",
+    streakDays: Math.max(1, Math.floor(completedMissions * 0.2)),
+  };
+});
 
 export async function GET() {
   try {
     let scoutProfiles: ScoutProfileRecord[] = [];
     try {
       const dbScouts = await prisma.scoutProfile.findMany({
-        take: 20,
+        take: 50,
         include: {
           user: {
             select: {
@@ -354,11 +257,11 @@ export async function GET() {
     });
 
     if (calculatedScouts.length === 0) {
-      calculatedScouts = MOCK_20_SCOUTS.map((s) => ({
+      calculatedScouts = MOCK_50_SCOUTS.map((s) => ({
         ...s,
-        availability: "AVAILABLE",
-        reliabilityScore: s.reputation * 20,
-        streakDays: Math.floor(s.completedMissions * 0.3),
+        availability: s.availability,
+        reliabilityScore: s.reliabilityScore,
+        streakDays: s.streakDays,
       }));
     }
 
