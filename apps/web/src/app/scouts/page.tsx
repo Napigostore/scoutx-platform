@@ -12,7 +12,7 @@ export default function ScoutsLeaderboardPage() {
   useEffect(() => {
     async function fetchLeaderboard() {
       try {
-        const res = await fetch("/api/leaderboard/scouts");
+        const res = await fetch("/api/leaderboard/scouts?limit=50");
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
           setScouts(json.data);

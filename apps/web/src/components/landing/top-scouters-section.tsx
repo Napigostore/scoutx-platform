@@ -23,11 +23,12 @@ export interface TopScout {
 export function TopScoutersSection() {
   const [scouts, setScouts] = useState<TopScout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     async function fetchTopScouters() {
       try {
-        const res = await fetch("/api/leaderboard/scouts");
+        const res = await fetch("/api/leaderboard/scouts?limit=50");
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
           setScouts(json.data);
@@ -209,7 +210,7 @@ export function TopScoutersSection() {
           </div>
         )}
 
-        {/* COMPACT LEADERBOARD (Ranks 4..10) */}
+        {/* COMPACT / EXPANDABLE LEADERBOARD (Ranks 4..50) */}
         {remaining.length > 0 && (
           <div className="mt-12 overflow-hidden rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] shadow-md">
             <div className="bg-[var(--scoutx-muted)]/40 flex items-center justify-between border-b border-[var(--scoutx-border)] px-6 py-4">
@@ -217,12 +218,12 @@ export function TopScoutersSection() {
                 Field Operator Rankings (#4 – #{scouts.length})
               </h4>
               <span className="text-xs font-medium text-[var(--scoutx-muted-foreground)]">
-                Updated in real-time
+                {scouts.length} Verified Scouts Listed
               </span>
             </div>
 
             <div className="divide-y divide-[var(--scoutx-border)]">
-              {remaining.map((scout) => (
+              {(isExpanded ? remaining : remaining.slice(0, 7)).map((scout) => (
                 <div
                   key={scout.scoutId}
                   className="hover:bg-[var(--scoutx-muted)]/30 flex flex-col gap-4 p-4 transition-colors sm:flex-row sm:items-center sm:justify-between sm:px-6"
@@ -285,18 +286,33 @@ export function TopScoutersSection() {
                 </div>
               ))}
             </div>
+
+            {remaining.length > 7 && (
+              <div className="bg-[var(--scoutx-muted)]/20 border-t border-[var(--scoutx-border)] p-4 text-center">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="hover:bg-[var(--scoutx-primary)]/10 font-bold text-[var(--scoutx-primary)]"
+                >
+                  {isExpanded
+                    ? "▲ Thu gọn danh sách Top 10"
+                    : `▼ Xem toàn bộ ${scouts.length} Top Scouts (Hạng #4 đến #${scouts.length})`}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
         {/* Bottom CTA */}
-        <div className="mt-8 flex justify-center">
+        <div className="mt-8 flex justify-center gap-4">
           <Button
             variant="outline"
             size="lg"
             className="rounded-full px-8 text-sm font-semibold"
             asChild
           >
-            <Link href="/scouts">View all top Scouts →</Link>
+            <Link href="/scouts">Xem Bảng Xếp Hạng Chi Tiết (50 Scouts) →</Link>
           </Button>
         </div>
       </div>
