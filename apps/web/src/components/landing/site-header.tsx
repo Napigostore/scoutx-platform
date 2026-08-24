@@ -4,9 +4,9 @@ import { AuthHeaderActions } from "@/components/auth/auth-header";
 import { BRAND } from "@/lib/branding";
 
 const navItems = [
-  { href: "#composer", label: "Compose" },
-  { href: "#how-it-works", label: "How it works" },
-  { href: "#trending", label: "Trending" },
+  { href: "/missions", label: "Missions" },
+  { href: "/scouts", label: "Top Scouters" },
+  { href: "/market", label: "Market Intelligence" },
 ] as const;
 
 export function SiteHeader() {

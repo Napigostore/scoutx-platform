@@ -19,32 +19,34 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="font-display text-4xl leading-none tracking-tight sm:text-5xl md:text-6xl">
-            ScoutX
-          </p>
-          <h1 className="max-w-xl text-3xl font-semibold leading-tight tracking-tight sm:text-4xl md:text-5xl">
-            Real-world answers, verified on the ground.
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-white shadow-sm backdrop-blur-md">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+            Field Intelligence Network
+          </div>
+          <h1 className="font-display max-w-2xl text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
+            Real World.
+            <br />
+            <span className="text-emerald-300">Real Impact.</span>
           </h1>
-          <p className="max-w-lg text-base text-white/80 sm:text-lg">
-            Compose a mission, match nearby scouts, and receive timestamped evidence from the
-            places that matter — streets, venues, events, and conditions you cannot see from a
-            screen.
+          <p className="max-w-lg text-base text-white/85 sm:text-lg">
+            Turn local presence into verified intelligence. Compose a mission, match nearby scouts,
+            and receive timestamped evidence from the places that matter.
           </p>
           <div className="flex flex-wrap items-center gap-3">
             <Button
               size="lg"
-              className="bg-white text-[var(--scoutx-hero-from)] hover:bg-white/90"
+              className="rounded-full bg-emerald-400 px-8 font-bold text-slate-950 shadow-xl hover:bg-emerald-300"
               asChild
             >
-              <Link href="#composer">Compose a mission</Link>
+              <Link href="/missions">Explore Missions</Link>
             </Button>
             <Button
               size="lg"
               variant="outline"
-              className="border-white/40 bg-transparent text-white hover:bg-white/10"
+              className="rounded-full border-white/40 bg-white/10 px-8 font-semibold text-white backdrop-blur-md hover:bg-white/20"
               asChild
             >
-              <Link href="#how-it-works">See how it works</Link>
+              <Link href="/scout/missions">Become a Scout</Link>
             </Button>
           </div>
         </motion.div>
@@ -58,7 +60,9 @@ export function HeroSection() {
           <WorldPreviewMap />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-[rgba(8,40,28,0.72)] to-transparent p-5">
             <p className="text-sm font-medium text-white">Live scout coverage across six cities</p>
-            <p className="text-xs text-white/70">Tokyo · New York · London · Singapore · Barcelona · HCMC</p>
+            <p className="text-xs text-white/70">
+              Tokyo · New York · London · Singapore · Barcelona · HCMC
+            </p>
           </div>
         </motion.div>
       </div>

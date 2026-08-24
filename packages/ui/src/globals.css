@@ -13,18 +13,18 @@
 :root {
   /* ── Color System ── */
   --scoutx-background: #f4f7f5;
-  --scoutx-foreground: #12201a;
+  --scoutx-foreground: #0a1611;
   --scoutx-card: #ffffff;
-  --scoutx-card-foreground: #12201a;
+  --scoutx-card-foreground: #0a1611;
   --scoutx-muted: #e4ece7;
-  --scoutx-muted-foreground: #5b6d64;
-  --scoutx-border: #cfdad3;
+  --scoutx-muted-foreground: #3a473e;
+  --scoutx-border: #b4c5ba;
   --scoutx-primary: #0f6b4c;
   --scoutx-primary-hover: #0c563d;
   --scoutx-primary-foreground: #f4fbf7;
   --scoutx-secondary: #d8ebe2;
   --scoutx-secondary-hover: #c5ddd2;
-  --scoutx-secondary-foreground: #143528;
+  --scoutx-secondary-foreground: #0e291e;
   --scoutx-ring: #1f8f68;
   --scoutx-success: #1f7a4d;
   --scoutx-success-foreground: #f3fbf6;

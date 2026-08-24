@@ -126,54 +126,73 @@ export default function MissionsPage() {
       {/* Page Header */}
       <div className="flex flex-col gap-4 border-b border-[var(--scoutx-border)] pb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="font-display text-3xl font-bold text-[var(--scoutx-foreground)]">
-            My Missions Dashboard
+          <span className="text-xs font-bold uppercase tracking-wider text-[var(--scoutx-primary)]">
+            Global Field Intelligence Platform
+          </span>
+          <h1 className="font-display mt-1 text-3xl font-black text-[var(--scoutx-foreground)] sm:text-4xl">
+            MISSION MARKETPLACE
           </h1>
-          <p className="mt-2 text-sm text-[var(--scoutx-muted-foreground)]">
-            Quản lý và theo dõi toàn bộ tiến trình nhiệm vụ thực địa của bạn
+          <p className="mt-1 text-sm text-[var(--scoutx-muted-foreground)]">
+            Explore live field verification bounties, claim tasks, or launch on-site intelligence
+            requests.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={handleSignOut}>
             Sign out
           </Button>
           <Button asChild>
-            <Link href="/missions/new">➕ Tạo Nhiệm Vụ Mới</Link>
+            <Link href="/missions/new">➕ Launch New Mission</Link>
           </Button>
         </div>
       </div>
 
-      {/* Filter Tabs & Sort Control */}
-      <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {STATUS_FILTERS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => handleFilterChange(tab.id)}
-              className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
-                activeFilter === tab.id
-                  ? "bg-[var(--scoutx-primary)] text-white shadow-sm"
-                  : "bg-[var(--scoutx-muted)] text-[var(--scoutx-muted-foreground)] hover:bg-[var(--scoutx-secondary)] hover:text-[var(--scoutx-foreground)]"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+      {/* Search & Discovery Filter Bar */}
+      <div className="mt-6 space-y-4">
+        {/* Search Bar Input */}
+        <div className="relative">
+          <input
+            type="text"
+            placeholder="Search missions, locations, keywords ('What do you want to scout?')..."
+            className="w-full rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-5 py-3.5 pl-12 text-sm text-[var(--scoutx-foreground)] placeholder-[var(--scoutx-muted-foreground)] shadow-sm focus:border-[var(--scoutx-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)]"
+          />
+          <span className="absolute left-4 top-3.5 text-lg">🔍</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-[var(--scoutx-muted-foreground)]">Sắp xếp:</span>
-          <select
-            value={sortOrder}
-            onChange={(e) =>
-              setSortOrder(e.target.value as "last_activity_desc" | "created_at_desc")
-            }
-            className="rounded-lg border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--scoutx-foreground)] focus:outline-none"
-          >
-            <option value="last_activity_desc">Mới cập nhật nhất</option>
-            <option value="created_at_desc">Mới tạo nhất</option>
-          </select>
+        {/* Filter Tabs & Sort Control */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap gap-2">
+            {STATUS_FILTERS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => handleFilterChange(tab.id)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-bold transition-colors ${
+                  activeFilter === tab.id
+                    ? "bg-[var(--scoutx-primary)] text-white shadow-sm"
+                    : "bg-[var(--scoutx-muted)] text-[var(--scoutx-muted-foreground)] hover:bg-[var(--scoutx-secondary)] hover:text-[var(--scoutx-foreground)]"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
+              Sort by:
+            </span>
+            <select
+              value={sortOrder}
+              onChange={(e) =>
+                setSortOrder(e.target.value as "last_activity_desc" | "created_at_desc")
+              }
+              className="rounded-xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-3 py-1.5 text-xs font-bold text-[var(--scoutx-foreground)] focus:outline-none"
+            >
+              <option value="last_activity_desc">Recommended / Popular</option>
+              <option value="created_at_desc">Highest Bounty / Newest</option>
+            </select>
+          </div>
         </div>
       </div>
 
