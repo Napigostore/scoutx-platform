@@ -337,7 +337,7 @@ export default function ScoutMissionWorkPage({
           </div>
 
           {mission.referenceAttachments && mission.referenceAttachments.length > 0 && (
-            <div className="rounded-2xl border border-[var(--scoutx-border)] bg-gray-50/70 p-5">
+            <div className="bg-[var(--scoutx-muted)]/50 rounded-2xl border border-[var(--scoutx-border)] p-5">
               <h3 className="text-sm font-semibold text-[var(--scoutx-foreground)]">
                 📷 Reference photos & videos
               </h3>
@@ -353,7 +353,7 @@ export default function ScoutMissionWorkPage({
                   return (
                     <div
                       key={att.url || idx}
-                      className="overflow-hidden rounded-xl border border-[var(--scoutx-border)] bg-white p-2 shadow-sm"
+                      className="overflow-hidden rounded-xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-2 shadow-sm"
                     >
                       {isVideo ? (
                         <video
@@ -371,7 +371,7 @@ export default function ScoutMissionWorkPage({
                           />
                         </a>
                       )}
-                      <p className="mt-2 truncate text-center text-[11px] font-medium text-gray-700">
+                      <p className="mt-2 truncate text-center text-[11px] font-medium text-[var(--scoutx-foreground)]">
                         {att.fileName}
                       </p>
                     </div>
@@ -395,13 +395,13 @@ export default function ScoutMissionWorkPage({
           <MissionActivityTimeline missionId={missionId} currentRole="SCOUT" />
 
           {hasRejectionReason && (
-            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300">
               <strong>Submission was rejected.</strong> Please review the reason below, update your
               report, and resubmit.
-              <div className="mt-2 rounded-md border border-red-100 bg-white p-3">
+              <div className="mt-2 rounded-md border border-red-100 bg-[var(--scoutx-card)] p-3 dark:border-red-900">
                 <strong>Reason:</strong> {submission!.rejectionReason}
                 {submission!.reviewedAt && (
-                  <div className="mt-1 text-xs text-gray-500">
+                  <div className="mt-1 text-xs text-[var(--scoutx-muted-foreground)]">
                     Reviewed at: {new Date(submission!.reviewedAt).toLocaleString()}
                   </div>
                 )}
@@ -410,13 +410,13 @@ export default function ScoutMissionWorkPage({
           )}
 
           {(isInProgress || hasRejectionReason) && (
-            <div className="rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm">
+            <div className="rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-[var(--scoutx-foreground)]">
                 {hasExistingSubmission ? "Resubmit Mission Report" : "Submit Mission Report"}
               </h3>
               <form onSubmit={handleSubmit} className="mt-4 space-y-4">
                 {error && (
-                  <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+                  <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300">
                     {error}
                   </div>
                 )}
@@ -427,7 +427,7 @@ export default function ScoutMissionWorkPage({
                     id="summary"
                     required
                     rows={4}
-                    className="flex w-full rounded-md border border-[var(--scoutx-border)] bg-white px-3 py-2 text-sm placeholder-[var(--scoutx-muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)]"
+                    className="flex w-full rounded-md border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-3 py-2 text-sm text-[var(--scoutx-foreground)] placeholder-[var(--scoutx-muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)]"
                     placeholder="Describe what you observed on-site..."
                     value={summary}
                     onChange={(e) => setSummary(e.target.value)}
@@ -460,7 +460,9 @@ export default function ScoutMissionWorkPage({
                     </div>
 
                     {uploadError && (
-                      <p className="text-xs font-medium text-red-600">{uploadError}</p>
+                      <p className="text-xs font-medium text-red-600 dark:text-red-400">
+                        {uploadError}
+                      </p>
                     )}
 
                     {mediaUrls.length > 0 ? (
@@ -471,7 +473,7 @@ export default function ScoutMissionWorkPage({
                           return (
                             <div
                               key={`${url}-${idx}`}
-                              className="relative flex items-center justify-between rounded-lg border border-[var(--scoutx-border)] bg-gray-50 p-2.5 text-xs"
+                              className="bg-[var(--scoutx-muted)]/50 relative flex items-center justify-between rounded-lg border border-[var(--scoutx-border)] p-2.5 text-xs"
                             >
                               <div className="flex items-center gap-2 overflow-hidden">
                                 <span className="text-sm">{isVideo ? "🎥" : "🖼️"}</span>
@@ -479,7 +481,7 @@ export default function ScoutMissionWorkPage({
                                   href={url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="max-w-[180px] truncate font-medium text-blue-600 hover:underline"
+                                  className="max-w-[180px] truncate font-medium text-[var(--scoutx-primary)] hover:underline"
                                 >
                                   {fileName}
                                 </a>
@@ -488,7 +490,7 @@ export default function ScoutMissionWorkPage({
                                 type="button"
                                 onClick={() => handleRemoveMedia(url)}
                                 disabled={isSubmitting}
-                                className="ml-2 text-sm font-bold text-red-500 hover:text-red-700"
+                                className="ml-2 text-sm font-bold text-red-500 hover:text-red-700 dark:text-red-400"
                                 title="Remove file"
                               >
                                 ✕
@@ -554,7 +556,7 @@ export default function ScoutMissionWorkPage({
           )}
 
           {isSubmitted && (
-            <div className="rounded-2xl border border-green-200 bg-green-50 p-6 text-green-800">
+            <div className="rounded-2xl border border-green-200 bg-green-50 p-6 text-green-800 dark:border-green-800 dark:bg-green-950/60 dark:text-green-300">
               <h3 className="text-lg font-semibold">Report Submitted Successfully!</h3>
               <p className="mt-2 text-sm">
                 Your report has been submitted and is currently awaiting review by the requester.
@@ -563,7 +565,7 @@ export default function ScoutMissionWorkPage({
           )}
         </div>
 
-        <div className="space-y-6 rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm">
+        <div className="space-y-6 rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6 shadow-sm">
           <div>
             <span className="text-xs uppercase tracking-wider text-[var(--scoutx-muted-foreground)]">
               Budget

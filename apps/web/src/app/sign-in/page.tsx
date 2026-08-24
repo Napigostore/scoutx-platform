@@ -64,7 +64,7 @@ function SignInFormContent() {
 
   return (
     <div className="flex min-h-[80vh] items-center justify-center bg-[var(--scoutx-background)] px-4 py-12 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8 rounded-2xl border border-[var(--scoutx-border)] bg-white p-8 shadow-[0_20px_50px_rgba(18,32,26,0.04)]">
+      <div className="w-full max-w-md space-y-8 rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-8 text-[var(--scoutx-card-foreground)] shadow-[0_20px_50px_rgba(18,32,26,0.04)] dark:shadow-none">
         <div className="text-center">
           <h2 className="font-display text-3xl font-bold tracking-tight text-[var(--scoutx-foreground)]">
             Sign in to ScoutX
@@ -116,7 +116,7 @@ function SignInFormContent() {
             <div className="w-full border-t border-[var(--scoutx-border)]" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-[var(--scoutx-muted-foreground)]">
+            <span className="bg-[var(--scoutx-card)] px-2 text-[var(--scoutx-muted-foreground)]">
               Or continue with email
             </span>
           </div>
@@ -124,7 +124,7 @@ function SignInFormContent() {
 
         <form className="space-y-6" onSubmit={handleSubmit}>
           {error && (
-            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
+            <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300">
               {error}
             </div>
           )}

@@ -137,7 +137,7 @@ export default function ScoutAssignedMissionsPage() {
               className={`rounded-xl px-3 py-1.5 text-xs font-semibold transition-colors ${
                 activeFilter === tab.id
                   ? "bg-[var(--scoutx-primary)] text-white shadow-sm"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  : "bg-[var(--scoutx-muted)] text-[var(--scoutx-muted-foreground)] hover:bg-[var(--scoutx-secondary)] hover:text-[var(--scoutx-foreground)]"
               }`}
             >
               {tab.label}
@@ -152,7 +152,7 @@ export default function ScoutAssignedMissionsPage() {
             onChange={(e) =>
               setSortOrder(e.target.value as "last_activity_desc" | "created_at_desc")
             }
-            className="rounded-lg border border-[var(--scoutx-border)] bg-white px-2.5 py-1.5 text-xs font-medium text-[var(--scoutx-foreground)] focus:outline-none"
+            className="rounded-lg border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--scoutx-foreground)] focus:outline-none"
           >
             <option value="last_activity_desc">Mới cập nhật nhất</option>
             <option value="created_at_desc">Mới nhận nhất</option>
@@ -171,14 +171,14 @@ export default function ScoutAssignedMissionsPage() {
 
       {/* Error State */}
       {error && (
-        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+        <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300">
           {error}
         </div>
       )}
 
       {/* Empty State */}
       {!isLoading && !error && missions.length === 0 && (
-        <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--scoutx-border)] p-8 text-center">
+        <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-8 text-center">
           <h3 className="font-display text-lg font-semibold text-[var(--scoutx-foreground)]">
             {activeFilter === "ALL"
               ? "Bạn chưa được giao nhiệm vụ nào."
@@ -201,7 +201,7 @@ export default function ScoutAssignedMissionsPage() {
           {missions.map((mission) => (
             <div
               key={mission.id}
-              className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm transition-all hover:border-gray-300 hover:shadow-md"
+              className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6 shadow-sm transition-all hover:border-[var(--scoutx-primary)] hover:shadow-md"
             >
               <div>
                 {/* Header: Status & Price */}
@@ -229,16 +229,16 @@ export default function ScoutAssignedMissionsPage() {
                 </p>
 
                 {/* Requester Badge */}
-                <div className="mt-4 flex items-center justify-between rounded-xl bg-gray-50 px-3 py-2 text-xs">
+                <div className="bg-[var(--scoutx-muted)]/60 mt-4 flex items-center justify-between rounded-xl px-3 py-2 text-xs">
                   <span className="text-[var(--scoutx-muted-foreground)]">Requester:</span>
-                  <span className="font-semibold text-gray-800">
+                  <span className="font-semibold text-[var(--scoutx-foreground)]">
                     👤 {mission.requester?.displayName || "Requester"}
                   </span>
                 </div>
 
                 {/* Latest Media Thumbnail (if present) */}
                 {mission.latestMediaUrl && (
-                  <div className="mt-3 overflow-hidden rounded-xl border border-gray-100 bg-black/5">
+                  <div className="mt-3 overflow-hidden rounded-xl border border-[var(--scoutx-border)] bg-black/5 dark:bg-black/40">
                     {mission.latestMediaUrl.match(/\.(mp4|webm|ogg|mov)$/i) ? (
                       <video src={mission.latestMediaUrl} className="h-28 w-full object-cover" />
                     ) : (
@@ -253,7 +253,7 @@ export default function ScoutAssignedMissionsPage() {
                 )}
 
                 {/* Latest Activity Summary Banner */}
-                <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/50 p-2.5 text-[11px] text-blue-900">
+                <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50/70 p-2.5 text-[11px] text-blue-900 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-200">
                   <span className="font-semibold">Hoạt động gần nhất:</span>{" "}
                   <span className="line-clamp-1">{mission.lastActivitySummary}</span>
                 </div>

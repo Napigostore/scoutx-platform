@@ -91,19 +91,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --scoutx-background: #0f1a14;
+    --scoutx-background: #0d1712;
     --scoutx-foreground: #e6ede8;
-    --scoutx-card: #1a2a21;
+    --scoutx-card: #16241c;
     --scoutx-card-foreground: #e6ede8;
-    --scoutx-muted: #1f3027;
-    --scoutx-muted-foreground: #809388;
-    --scoutx-border: #2a3f33;
+    --scoutx-muted: #1e3027;
+    --scoutx-muted-foreground: #a8c0b2;
+    --scoutx-border: #344e3f;
     --scoutx-primary: #31a36f;
     --scoutx-primary-hover: #57b387;
     --scoutx-primary-foreground: #12201a;
-    --scoutx-secondary: #1f3d30;
-    --scoutx-secondary-hover: #295240;
-    --scoutx-secondary-foreground: #d8ebe2;
+    --scoutx-secondary: #1e362a;
+    --scoutx-secondary-hover: #284737;
+    --scoutx-secondary-foreground: #e0f0e8;
     --scoutx-ring: #57b387;
     --scoutx-success: #2ea86a;
     --scoutx-success-foreground: #12201a;
@@ -126,19 +126,19 @@
 /* ─── Dark mode with class toggle ─── */
 
 .dark {
-  --scoutx-background: #0f1a14;
+  --scoutx-background: #0d1712;
   --scoutx-foreground: #e6ede8;
-  --scoutx-card: #1a2a21;
+  --scoutx-card: #16241c;
   --scoutx-card-foreground: #e6ede8;
-  --scoutx-muted: #1f3027;
-  --scoutx-muted-foreground: #809388;
-  --scoutx-border: #2a3f33;
+  --scoutx-muted: #1e3027;
+  --scoutx-muted-foreground: #a8c0b2;
+  --scoutx-border: #344e3f;
   --scoutx-primary: #31a36f;
   --scoutx-primary-hover: #57b387;
   --scoutx-primary-foreground: #12201a;
-  --scoutx-secondary: #1f3d30;
-  --scoutx-secondary-hover: #295240;
-  --scoutx-secondary-foreground: #d8ebe2;
+  --scoutx-secondary: #1e362a;
+  --scoutx-secondary-hover: #284737;
+  --scoutx-secondary-foreground: #e0f0e8;
   --scoutx-ring: #57b387;
   --scoutx-success: #2ea86a;
   --scoutx-success-foreground: #12201a;

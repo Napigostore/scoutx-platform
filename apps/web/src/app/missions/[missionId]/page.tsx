@@ -286,7 +286,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
           </div>
 
           {mission.referenceAttachments && mission.referenceAttachments.length > 0 && (
-            <div className="rounded-2xl border border-[var(--scoutx-border)] bg-gray-50/70 p-5">
+            <div className="bg-[var(--scoutx-muted)]/50 rounded-2xl border border-[var(--scoutx-border)] p-5">
               <h3 className="text-sm font-semibold text-[var(--scoutx-foreground)]">
                 📷 Reference photos & videos
               </h3>
@@ -302,7 +302,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
                   return (
                     <div
                       key={att.url || idx}
-                      className="overflow-hidden rounded-xl border border-[var(--scoutx-border)] bg-white p-2 shadow-sm"
+                      className="overflow-hidden rounded-xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-2 shadow-sm"
                     >
                       {isVideo ? (
                         <video
@@ -320,7 +320,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
                           />
                         </a>
                       )}
-                      <p className="mt-2 truncate text-center text-[11px] font-medium text-gray-700">
+                      <p className="mt-2 truncate text-center text-[11px] font-medium text-[var(--scoutx-foreground)]">
                         {att.fileName}
                       </p>
                     </div>
@@ -334,7 +334,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
 
           <MissionActivityTimeline missionId={missionId} currentRole="REQUESTER" />
 
-          <div className="rounded-2xl border border-[var(--scoutx-border)] bg-gray-50 p-6">
+          <div className="rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6">
             <h3 className="text-sm font-semibold text-[var(--scoutx-foreground)]">
               Location Details
             </h3>
@@ -356,17 +356,17 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
           </div>
 
           {mission.submission && (
-            <div className="space-y-4 rounded-2xl border border-yellow-200 bg-yellow-50/30 p-6">
+            <div className="space-y-4 rounded-2xl border border-yellow-200 bg-yellow-50/30 p-6 dark:border-amber-800/60 dark:bg-amber-950/30">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-yellow-900">
+                <h3 className="text-lg font-semibold text-yellow-900 dark:text-amber-200">
                   Submission Report
                   {mission.submission.verified && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+                    <span className="ml-2 inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-950/60 dark:text-green-300">
                       Verified
                     </span>
                   )}
                   {mission.submission.reviewedAt && !mission.submission.verified && (
-                    <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">
+                    <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700 dark:bg-red-950/60 dark:text-red-300">
                       Rejected
                     </span>
                   )}
@@ -374,40 +374,48 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
               </div>
 
               {mission.submission.rejectionReason && (
-                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+                <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300">
                   <strong>Rejection Reason:</strong> {mission.submission.rejectionReason}
                 </div>
               )}
 
               {mission.submission.reviewedAt && (
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-[var(--scoutx-muted-foreground)]">
                   Reviewed at: {new Date(mission.submission.reviewedAt).toLocaleString()}
                 </div>
               )}
 
               <div className="space-y-2 text-sm">
                 <div>
-                  <span className="font-semibold text-yellow-800">Summary / Findings:</span>
-                  <p className="mt-1 whitespace-pre-wrap text-gray-700">
+                  <span className="font-semibold text-yellow-800 dark:text-amber-300">
+                    Summary / Findings:
+                  </span>
+                  <p className="mt-1 whitespace-pre-wrap text-[var(--scoutx-foreground)]">
                     {mission.submission.summary}
                   </p>
                 </div>
                 <div>
-                  <span className="font-semibold text-yellow-800">Observed Coordinates:</span>
-                  <p className="mt-1 text-gray-700">
+                  <span className="font-semibold text-yellow-800 dark:text-amber-300">
+                    Observed Coordinates:
+                  </span>
+                  <p className="mt-1 text-[var(--scoutx-foreground)]">
                     {mission.submission.latitude.toFixed(6)},{" "}
                     {mission.submission.longitude.toFixed(6)}
                   </p>
                 </div>
                 <div>
-                  <span className="font-semibold text-yellow-800">Observed At:</span>
-                  <p className="mt-1 text-gray-700">
+                  <span className="font-semibold text-yellow-800 dark:text-amber-300">
+                    Observed At:
+                  </span>
+                  <p className="mt-1 text-[var(--scoutx-foreground)]">
                     {new Date(mission.submission.observedAt).toLocaleString()}
                   </p>
                 </div>
                 {mission.submission.mediaUrls.length > 0 && (
                   <div>
-                    <span className="font-semibold text-yellow-800">Evidence Images:</span>
+                    <span className="font-semibold text-yellow-800 dark:text-amber-300">
+                      Evidence Images:
+                    </span>
                     <div className="mt-2 grid grid-cols-2 gap-2">
                       {mission.submission.mediaUrls.map((url, idx) => (
                         <div key={idx}>
@@ -415,7 +423,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
                           <img
                             src={url}
                             alt={"Evidence " + (idx + 1)}
-                            className="max-h-48 rounded-lg border border-yellow-100 object-cover"
+                            className="max-h-48 rounded-lg border border-yellow-100 object-cover dark:border-amber-800/50"
                           />
                         </div>
                       ))}
@@ -425,7 +433,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
               </div>
 
               {isSubmitted && !isReviewed && (
-                <div className="mt-6 space-y-4 border-t border-yellow-200 pt-4">
+                <div className="mt-6 space-y-4 border-t border-yellow-200 pt-4 dark:border-amber-800/60">
                   <div className="flex gap-3">
                     <Button
                       onClick={handleApprove}
@@ -436,7 +444,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
                     </Button>
                     <Button
                       variant="secondary"
-                      className="border-red-200 bg-red-50 text-red-600 hover:bg-red-100"
+                      className="border-red-200 bg-red-50 text-red-600 hover:bg-red-100 dark:border-red-800 dark:bg-red-950/60 dark:text-red-300"
                       onClick={() => setShowRejectForm(!showRejectForm)}
                       disabled={isRejecting}
                     >
@@ -445,12 +453,12 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
                   </div>
 
                   {showRejectForm && (
-                    <div className="space-y-3 rounded-md border border-red-200 bg-red-50 p-4">
-                      <label className="block text-sm font-medium text-red-800">
+                    <div className="space-y-3 rounded-md border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/60">
+                      <label className="block text-sm font-medium text-red-800 dark:text-red-300">
                         Rejection Reason
                       </label>
                       <textarea
-                        className="flex w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
+                        className="flex w-full rounded-md border border-red-300 bg-[var(--scoutx-card)] px-3 py-2 text-sm text-[var(--scoutx-foreground)] placeholder-[var(--scoutx-muted-foreground)] focus:outline-none focus:ring-2 focus:ring-red-500"
                         rows={3}
                         placeholder="Explain why the submission is being rejected..."
                         value={rejectionReason}
@@ -483,7 +491,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
           )}
         </div>
 
-        <div className="space-y-6 rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm">
+        <div className="space-y-6 rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6 shadow-sm">
           <div>
             <span className="text-xs uppercase tracking-wider text-[var(--scoutx-muted-foreground)]">
               Budget
@@ -524,7 +532,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
                 {mission.requiredTags.map((tag) => (
                   <span
                     key={tag}
-                    className="inline-flex items-center rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-600"
+                    className="inline-flex items-center rounded-md bg-[var(--scoutx-muted)] px-2 py-1 text-xs font-medium text-[var(--scoutx-muted-foreground)]"
                   >
                     {tag}
                   </span>

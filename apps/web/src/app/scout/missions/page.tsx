@@ -171,11 +171,11 @@ export default function ScoutMissionsPage() {
                   router.push(`/scout/missions/${mission.id}`);
                 }
               }}
-              className="group flex cursor-pointer flex-col justify-between rounded-2xl border border-[var(--scoutx-border)] bg-white p-6 shadow-sm transition-shadow hover:border-[var(--scoutx-primary)] hover:shadow-md"
+              className="group flex cursor-pointer flex-col justify-between rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6 shadow-sm transition-shadow hover:border-[var(--scoutx-primary)] hover:shadow-md"
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                  <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 dark:border dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-300">
                     {mission.status}
                   </span>
                   <span className="text-sm font-semibold text-[var(--scoutx-primary)]">

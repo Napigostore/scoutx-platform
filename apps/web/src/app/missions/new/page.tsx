@@ -298,7 +298,7 @@ export default function NewMissionPage() {
               id="description"
               required
               rows={4}
-              className="flex w-full rounded-md border border-[var(--scoutx-border)] bg-white px-3 py-2 text-sm placeholder-[var(--scoutx-muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full rounded-md border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-3 py-2 text-sm text-[var(--scoutx-foreground)] placeholder-[var(--scoutx-muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)] disabled:cursor-not-allowed disabled:opacity-50"
               placeholder="Provide detailed instructions for the scout..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -307,7 +307,7 @@ export default function NewMissionPage() {
           </div>
 
           {/* Reference Media Attachments Section */}
-          <div className="space-y-3 rounded-2xl border border-[var(--scoutx-border)] bg-gray-50/50 p-5">
+          <div className="bg-[var(--scoutx-muted)]/50 space-y-3 rounded-2xl border border-[var(--scoutx-border)] p-5">
             <div>
               <Label className="text-base font-semibold text-[var(--scoutx-foreground)]">
                 Reference photos or videos
@@ -326,7 +326,7 @@ export default function NewMissionPage() {
                   return (
                     <div
                       key={att.storageKey || idx}
-                      className="group relative overflow-hidden rounded-xl border border-[var(--scoutx-border)] bg-white p-2 shadow-sm"
+                      className="group relative overflow-hidden rounded-xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-2 shadow-sm"
                     >
                       <button
                         type="button"
@@ -348,7 +348,7 @@ export default function NewMissionPage() {
                         />
                       )}
 
-                      <p className="mt-2 truncate text-center text-[11px] font-medium text-gray-700">
+                      <p className="mt-2 truncate text-center text-[11px] font-medium text-[var(--scoutx-foreground)]">
                         {att.fileName}
                       </p>
                     </div>
@@ -382,7 +382,7 @@ export default function NewMissionPage() {
               <Label htmlFor="category">Category</Label>
               <select
                 id="category"
-                className="flex h-10 w-full rounded-md border border-[var(--scoutx-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)]"
+                className="flex h-10 w-full rounded-md border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-3 py-2 text-sm text-[var(--scoutx-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)]"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
                 disabled={isLoading}
@@ -402,7 +402,7 @@ export default function NewMissionPage() {
               <Label htmlFor="urgency">Urgency</Label>
               <select
                 id="urgency"
-                className="flex h-10 w-full rounded-md border border-[var(--scoutx-border)] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)]"
+                className="flex h-10 w-full rounded-md border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-3 py-2 text-sm text-[var(--scoutx-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)]"
                 value={urgency}
                 onChange={(e) => setUrgency(e.target.value)}
                 disabled={isLoading}
