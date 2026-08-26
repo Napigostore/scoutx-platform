@@ -17,6 +17,13 @@ export interface UserProfileResponse {
     avatarUrl: string | null;
     role: string;
     memberSince: string;
+    notificationSettings: {
+      emailNotifyActivity: boolean;
+      emailNotifyEvidence: boolean;
+      emailNotifyReward: boolean;
+      emailNotifyDispute: boolean;
+      emailNotifySystem: boolean;
+    };
   };
   publicProfile: {
     bio: string;
@@ -103,8 +110,6 @@ export const STANDARD_CITIES = [
   "Berlin",
 ] as const;
 
-
-
 export async function getUserProfile(
   targetUserId: string,
   requestingUserId?: string | null,
@@ -162,8 +167,14 @@ export async function getUserProfile(
   ]);
 
   // Compute completed missions
-  const completedSubmissions = submissions.filter((s) => s.verified || s.mission.status === "COMPLETED" || s.mission.status === "VERIFIED");
-  const rejectedSubmissions = submissions.filter((s) => s.rejectionReason || (!s.verified && (s.mission.status === "CANCELLED" || s.mission.status === "EXPIRED")));
+  const completedSubmissions = submissions.filter(
+    (s) => s.verified || s.mission.status === "COMPLETED" || s.mission.status === "VERIFIED",
+  );
+  const rejectedSubmissions = submissions.filter(
+    (s) =>
+      s.rejectionReason ||
+      (!s.verified && (s.mission.status === "CANCELLED" || s.mission.status === "EXPIRED")),
+  );
 
   const completedCount = completedSubmissions.length;
   const totalFinishedSubmissions = completedCount + rejectedSubmissions.length;
@@ -183,7 +194,8 @@ export async function getUserProfile(
   if (completedSubmissions.length > 0) {
     let totalMs = 0;
     for (const sub of completedSubmissions) {
-      const duration = new Date(sub.createdAt).getTime() - new Date(sub.mission.createdAt).getTime();
+      const duration =
+        new Date(sub.createdAt).getTime() - new Date(sub.mission.createdAt).getTime();
       totalMs += Math.max(0, duration);
     }
     const avgMs = totalMs / completedSubmissions.length;
@@ -238,8 +250,7 @@ export async function getUserProfile(
     scoreLabel = `${scoreNumeric}/100`;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const p = user.userProfile as (Record<string, any> | null);
+  const p = user.userProfile as Record<string, any> | null;
 
   const currentYear = new Date().getFullYear();
   let ageRange = "ANY";
@@ -253,16 +264,24 @@ export async function getUserProfile(
 
   const publicProfile = {
     bio: p?.bio || user.scoutProfile?.bio || "No bio added yet.",
-    expertise: p?.expertise || (user.scoutProfile?.categories.join(", ")) || "Field Verification & Inspection",
+    expertise:
+      p?.expertise || user.scoutProfile?.categories.join(", ") || "Field Verification & Inspection",
     livingCity: p?.livingCity || "Ho Chi Minh City",
     livingCountry: p?.livingCountry || "Vietnam",
     livingCountryCode: p?.livingCountryCode || "VN",
     latitude: p?.latitude ?? 10.7769,
     longitude: p?.longitude ?? 106.7009,
     availableForMissions: p?.availableForMissions ?? true,
-    missionCities: p?.missionCities && p.missionCities.length > 0 ? p.missionCities : ["Ho Chi Minh City"],
-    skills: p?.skills && p.skills.length > 0 ? p.skills : (user.scoutProfile?.tags || ["On-Site Inspection", "Photo Audit"]),
-    preferredMissionTypes: p?.preferredMissionTypes && p.preferredMissionTypes.length > 0 ? p.preferredMissionTypes : ["PHOTO_VERIFICATION", "STREET_CONDITIONS"],
+    missionCities:
+      p?.missionCities && p.missionCities.length > 0 ? p.missionCities : ["Ho Chi Minh City"],
+    skills:
+      p?.skills && p.skills.length > 0
+        ? p.skills
+        : user.scoutProfile?.tags || ["On-Site Inspection", "Photo Audit"],
+    preferredMissionTypes:
+      p?.preferredMissionTypes && p.preferredMissionTypes.length > 0
+        ? p.preferredMissionTypes
+        : ["PHOTO_VERIFICATION", "STREET_CONDITIONS"],
     gender: p?.gender || "ANY",
     ageRange,
     languages: p?.languages && p.languages.length > 0 ? p.languages : ["English", "Vietnamese"],
@@ -296,6 +315,13 @@ export async function getUserProfile(
       avatarUrl: user.avatarUrl,
       role: user.role,
       memberSince: user.createdAt.toISOString(),
+      notificationSettings: {
+        emailNotifyActivity: user.emailNotifyActivity ?? true,
+        emailNotifyEvidence: user.emailNotifyEvidence ?? true,
+        emailNotifyReward: user.emailNotifyReward ?? true,
+        emailNotifyDispute: user.emailNotifyDispute ?? true,
+        emailNotifySystem: user.emailNotifySystem ?? true,
+      },
     },
     publicProfile,
     performance: {
@@ -331,7 +357,15 @@ export async function getUserProfile(
 
 export async function updateUserProfile(
   userId: string,
-  data: UserProfileUpdateInput,
+  data: UserProfileUpdateInput & {
+    notificationSettings?: {
+      emailNotifyActivity?: boolean;
+      emailNotifyEvidence?: boolean;
+      emailNotifyReward?: boolean;
+      emailNotifyDispute?: boolean;
+      emailNotifySystem?: boolean;
+    };
+  },
 ): Promise<boolean> {
   // Update User table fields if present
   const userUpdates: Record<string, unknown> = {};
@@ -340,6 +374,19 @@ export async function updateUserProfile(
   }
   if (data.avatarUrl !== undefined) {
     userUpdates.avatarUrl = data.avatarUrl;
+  }
+
+  if (data.notificationSettings) {
+    if (data.notificationSettings.emailNotifyActivity !== undefined)
+      userUpdates.emailNotifyActivity = data.notificationSettings.emailNotifyActivity;
+    if (data.notificationSettings.emailNotifyEvidence !== undefined)
+      userUpdates.emailNotifyEvidence = data.notificationSettings.emailNotifyEvidence;
+    if (data.notificationSettings.emailNotifyReward !== undefined)
+      userUpdates.emailNotifyReward = data.notificationSettings.emailNotifyReward;
+    if (data.notificationSettings.emailNotifyDispute !== undefined)
+      userUpdates.emailNotifyDispute = data.notificationSettings.emailNotifyDispute;
+    if (data.notificationSettings.emailNotifySystem !== undefined)
+      userUpdates.emailNotifySystem = data.notificationSettings.emailNotifySystem;
   }
 
   if (Object.keys(userUpdates).length > 0) {

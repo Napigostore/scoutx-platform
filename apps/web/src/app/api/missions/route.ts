@@ -39,10 +39,14 @@ export async function POST(request: Request) {
 
     if (!user || (user.role !== "REQUESTER" && user.role !== "ADMIN")) {
       console.log("[MISSION_DRAFT_ERROR] stage=authorization message=Permission denied");
-      return NextResponse.json({
-        error: "PERMISSION_DENIED",
-        message: "Only Requesters or Admins can create missions. Please sign in with a Requester account.",
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          error: "PERMISSION_DENIED",
+          message:
+            "Only Requesters or Admins can create missions. Please sign in with a Requester account.",
+        },
+        { status: 403 },
+      );
     }
 
     const body = await request.json().catch(() => null);
@@ -57,10 +61,13 @@ export async function POST(request: Request) {
       const fieldErrors: Record<string, string> = {};
       const formatted = parsed.error.format();
       if (formatted.title?._errors?.length) fieldErrors.title = formatted.title._errors[0]!;
-      if (formatted.description?._errors?.length) fieldErrors.description = formatted.description._errors[0]!;
-      if (formatted.category?._errors?.length) fieldErrors.category = formatted.category._errors[0]!;
+      if (formatted.description?._errors?.length)
+        fieldErrors.description = formatted.description._errors[0]!;
+      if (formatted.category?._errors?.length)
+        fieldErrors.category = formatted.category._errors[0]!;
       if (formatted.budget?._errors?.length) fieldErrors.budget = formatted.budget._errors[0]!;
-      if (formatted.coordinates?._errors?.length) fieldErrors.coordinates = formatted.coordinates._errors[0]!;
+      if (formatted.coordinates?._errors?.length)
+        fieldErrors.coordinates = formatted.coordinates._errors[0]!;
 
       return NextResponse.json(
         {
@@ -73,6 +80,24 @@ export async function POST(request: Request) {
       );
     }
     console.log("[MISSION_DRAFT_DEBUG] validation_success");
+
+    // --- COIN & QUOTA CHECK ---
+    const budget = parsed.data.budget?.amountCents || 0;
+    const { PrismaCoinRepository } = await import("@scoutx/infrastructure");
+    const coinRepo = new PrismaCoinRepository();
+    const balance = await coinRepo.balanceByUserId(user.id);
+    const hasFreeQuota = (user.freeMissions || 0) > 0;
+
+    if (!hasFreeQuota && balance < budget) {
+      return NextResponse.json(
+        {
+          error: "INSUFFICIENT_FUNDS",
+          message: "Bạn đã hết lượt miễn phí. Hãy nạp coin để tạo nhiệm vụ.",
+        },
+        { status: 402 },
+      );
+    }
+    // --- END CHECK ---
 
     console.log("[MISSION_DRAFT_DEBUG] create_mission_started");
     const rawAttachments = Array.isArray((body as { attachments?: unknown[] }).attachments)
@@ -139,11 +164,7 @@ export async function POST(request: Request) {
 
         const pending = await prisma.pendingAttachment.findFirst({
           where: {
-            OR: [
-              { storageKey: keyOrUrl },
-              { mediaUrl: keyOrUrl },
-              { id: keyOrUrl },
-            ],
+            OR: [{ storageKey: keyOrUrl }, { mediaUrl: keyOrUrl }, { id: keyOrUrl }],
           },
         });
 
@@ -182,15 +203,42 @@ export async function POST(request: Request) {
     const mission = await createMissionUseCase.execute(parsed.data, user.id, "REQUESTER");
     console.log("[MISSION_DRAFT_DEBUG] create_mission_success");
 
+    // Deduct quota or coins
+    if (hasFreeQuota) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { freeMissions: { decrement: 1 } },
+      });
+    } else if (budget > 0) {
+      await prisma.coinTransaction.create({
+        data: {
+          userId: user.id,
+          amountCents: -budget,
+          currency: "VND",
+          reason: "MISSION_FUNDING",
+          description: `Funded mission ${mission.id}`,
+          eventType: "DEBIT",
+          missionId: mission.id,
+        },
+      });
+    }
+
     // Save Mission Visibility & Individual Recipients
-    const visibility = body.visibility === "PRIVATE" || body.visibility === "INDIVIDUAL" ? body.visibility : "PUBLIC";
+    const visibility =
+      body.visibility === "PRIVATE" || body.visibility === "INDIVIDUAL"
+        ? body.visibility
+        : "PUBLIC";
     const publicLogs = body.publicLogs !== undefined ? Boolean(body.publicLogs) : true;
 
     const targetCities: string[] = Array.isArray(body.targetCities) ? body.targetCities : [];
     const targetGender: string = typeof body.targetGender === "string" ? body.targetGender : "ANY";
-    const targetAgeRange: string = typeof body.targetAgeRange === "string" ? body.targetAgeRange : "ANY";
-    const targetExperienceLevel: string = typeof body.targetExperienceLevel === "string" ? body.targetExperienceLevel : "ANY";
-    const targetLanguages: string[] = Array.isArray(body.targetLanguages) ? body.targetLanguages : [];
+    const targetAgeRange: string =
+      typeof body.targetAgeRange === "string" ? body.targetAgeRange : "ANY";
+    const targetExperienceLevel: string =
+      typeof body.targetExperienceLevel === "string" ? body.targetExperienceLevel : "ANY";
+    const targetLanguages: string[] = Array.isArray(body.targetLanguages)
+      ? body.targetLanguages
+      : [];
 
     await prisma.mission.update({
       where: { id: mission.id },
@@ -209,8 +257,8 @@ export async function POST(request: Request) {
       const recipientUsernames: string[] = Array.isArray(body.recipientUsernames)
         ? body.recipientUsernames
         : typeof body.recipientUsername === "string"
-        ? [body.recipientUsername]
-        : [];
+          ? [body.recipientUsername]
+          : [];
       const recipientIds: string[] = Array.isArray(body.recipientIds) ? body.recipientIds : [];
 
       const cleanUsernames = recipientUsernames

@@ -266,7 +266,12 @@ export default function NewMissionPage() {
       });
 
       const contentType = res.headers.get("content-type") ?? "";
-      let data: { error?: string; message?: string; fields?: Record<string, string>; id?: string } | null = null;
+      let data: {
+        error?: string;
+        message?: string;
+        fields?: Record<string, string>;
+        id?: string;
+      } | null = null;
       if (contentType.includes("application/json")) {
         data = await res.json();
       } else {
@@ -278,9 +283,7 @@ export default function NewMissionPage() {
           router.push("/sign-in?callbackUrl=/missions/new");
           return;
         }
-        throw new Error(
-          `API returned non-JSON response (${res.status}): ${text.slice(0, 200)}`,
-        );
+        throw new Error(`API returned non-JSON response (${res.status}): ${text.slice(0, 200)}`);
       }
 
       if (!res.ok) {
@@ -330,14 +333,27 @@ export default function NewMissionPage() {
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-6">
         {error && (
-          <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-600">
-            {error}
+          <div className="flex flex-col justify-between gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-600 sm:flex-row sm:items-center">
+            <div>{error}</div>
+            {(error.includes("INSUFFICIENT_FUNDS") ||
+              error.includes("Bạn đã hết lượt miễn phí")) && (
+              <Button
+                asChild
+                size="sm"
+                className="whitespace-nowrap bg-amber-500 font-bold text-white hover:bg-amber-600"
+              >
+                <Link href="/wallet">Nạp coin</Link>
+              </Button>
+            )}
           </div>
         )}
 
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="title" className={fieldErrors.title ? "text-red-600 dark:text-red-400 font-bold" : ""}>
+            <Label
+              htmlFor="title"
+              className={fieldErrors.title ? "font-bold text-red-600 dark:text-red-400" : ""}
+            >
               Mission Title {fieldErrors.title && <span className="text-red-500">*</span>}
             </Label>
             <Input
@@ -353,14 +369,17 @@ export default function NewMissionPage() {
               className={fieldErrors.title ? "border-red-500 ring-2 ring-red-500/20" : ""}
             />
             {fieldErrors.title && (
-              <p className="text-xs font-semibold text-red-600 dark:text-red-400 mt-1">
+              <p className="mt-1 text-xs font-semibold text-red-600 dark:text-red-400">
                 ⚠️ {fieldErrors.title}
               </p>
             )}
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description" className={fieldErrors.description ? "text-red-600 dark:text-red-400 font-bold" : ""}>
+            <Label
+              htmlFor="description"
+              className={fieldErrors.description ? "font-bold text-red-600 dark:text-red-400" : ""}
+            >
               Description {fieldErrors.description && <span className="text-red-500">*</span>}
             </Label>
             <textarea
@@ -368,18 +387,21 @@ export default function NewMissionPage() {
               required
               rows={4}
               className={`flex w-full rounded-md border bg-[var(--scoutx-card)] px-3 py-2 text-sm text-[var(--scoutx-foreground)] placeholder-[var(--scoutx-muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)] disabled:cursor-not-allowed disabled:opacity-50 ${
-                fieldErrors.description ? "border-red-500 ring-2 ring-red-500/20" : "border-[var(--scoutx-border)]"
+                fieldErrors.description
+                  ? "border-red-500 ring-2 ring-red-500/20"
+                  : "border-[var(--scoutx-border)]"
               }`}
               placeholder="Provide detailed instructions for the scout..."
               value={description}
               onChange={(e) => {
                 setDescription(e.target.value);
-                if (fieldErrors.description) setFieldErrors((prev) => ({ ...prev, description: "" }));
+                if (fieldErrors.description)
+                  setFieldErrors((prev) => ({ ...prev, description: "" }));
               }}
               disabled={isLoading}
             />
             {fieldErrors.description && (
-              <p className="text-xs font-semibold text-red-600 dark:text-red-400 mt-1">
+              <p className="mt-1 text-xs font-semibold text-red-600 dark:text-red-400">
                 ⚠️ {fieldErrors.description}
               </p>
             )}
@@ -387,15 +409,15 @@ export default function NewMissionPage() {
 
           {/* Mission Visibility Controls */}
           <div className="space-y-3 rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-5 shadow-sm">
-            <Label className="text-base font-semibold text-[var(--scoutx-foreground)] block">
+            <Label className="block text-base font-semibold text-[var(--scoutx-foreground)]">
               Mission Visibility & Audience Mode
             </Label>
 
             <div className="grid gap-3 sm:grid-cols-3">
               <label
-                className={`flex flex-col cursor-pointer rounded-xl border p-3.5 transition-all ${
+                className={`flex cursor-pointer flex-col rounded-xl border p-3.5 transition-all ${
                   visibility === "PUBLIC"
-                    ? "border-emerald-500 bg-emerald-500/10 shadow-xs"
+                    ? "shadow-xs border-emerald-500 bg-emerald-500/10"
                     : "border-[var(--scoutx-border)]"
                 }`}
               >
@@ -407,7 +429,9 @@ export default function NewMissionPage() {
                     checked={visibility === "PUBLIC"}
                     onChange={() => setVisibility("PUBLIC")}
                   />
-                  <span className="font-bold text-sm text-[var(--scoutx-foreground)]">🌐 Public</span>
+                  <span className="text-sm font-bold text-[var(--scoutx-foreground)]">
+                    🌐 Public
+                  </span>
                 </div>
                 <span className="mt-1 text-[11px] text-[var(--scoutx-muted-foreground)]">
                   Visible to all scouts on Marketplace & Search
@@ -415,9 +439,9 @@ export default function NewMissionPage() {
               </label>
 
               <label
-                className={`flex flex-col cursor-pointer rounded-xl border p-3.5 transition-all ${
+                className={`flex cursor-pointer flex-col rounded-xl border p-3.5 transition-all ${
                   visibility === "PRIVATE"
-                    ? "border-amber-500 bg-amber-500/10 shadow-xs"
+                    ? "shadow-xs border-amber-500 bg-amber-500/10"
                     : "border-[var(--scoutx-border)]"
                 }`}
               >
@@ -429,7 +453,9 @@ export default function NewMissionPage() {
                     checked={visibility === "PRIVATE"}
                     onChange={() => setVisibility("PRIVATE")}
                   />
-                  <span className="font-bold text-sm text-[var(--scoutx-foreground)]">🔒 Private</span>
+                  <span className="text-sm font-bold text-[var(--scoutx-foreground)]">
+                    🔒 Private
+                  </span>
                 </div>
                 <span className="mt-1 text-[11px] text-[var(--scoutx-muted-foreground)]">
                   Hidden from search; visible only to you & assigned worker
@@ -437,9 +463,9 @@ export default function NewMissionPage() {
               </label>
 
               <label
-                className={`flex flex-col cursor-pointer rounded-xl border p-3.5 transition-all ${
+                className={`flex cursor-pointer flex-col rounded-xl border p-3.5 transition-all ${
                   visibility === "INDIVIDUAL"
-                    ? "border-blue-500 bg-blue-500/10 shadow-xs"
+                    ? "shadow-xs border-blue-500 bg-blue-500/10"
                     : "border-[var(--scoutx-border)]"
                 }`}
               >
@@ -451,7 +477,9 @@ export default function NewMissionPage() {
                     checked={visibility === "INDIVIDUAL"}
                     onChange={() => setVisibility("INDIVIDUAL")}
                   />
-                  <span className="font-bold text-sm text-[var(--scoutx-foreground)]">👤 Individual</span>
+                  <span className="text-sm font-bold text-[var(--scoutx-foreground)]">
+                    👤 Individual
+                  </span>
                 </div>
                 <span className="mt-1 text-[11px] text-[var(--scoutx-muted-foreground)]">
                   Assigned directly to specific @username scouts
@@ -463,7 +491,7 @@ export default function NewMissionPage() {
               <div className="mt-3 space-y-1.5 border-t border-[var(--scoutx-border)] pt-3">
                 <Label
                   htmlFor="recipients"
-                  className="text-xs font-bold uppercase tracking-wider text-[var(--scoutx-primary)] block"
+                  className="block text-xs font-bold uppercase tracking-wider text-[var(--scoutx-primary)]"
                 >
                   Target @username scouts (comma separated)
                 </Label>
@@ -476,7 +504,7 @@ export default function NewMissionPage() {
               </div>
             )}
 
-            <div className="flex items-center gap-2 pt-2 border-t border-[var(--scoutx-border)] mt-2">
+            <div className="mt-2 flex items-center gap-2 border-t border-[var(--scoutx-border)] pt-2">
               <input
                 type="checkbox"
                 id="publicLogs"
@@ -486,7 +514,7 @@ export default function NewMissionPage() {
               />
               <label
                 htmlFor="publicLogs"
-                className="text-xs font-medium text-[var(--scoutx-foreground)] cursor-pointer"
+                className="cursor-pointer text-xs font-medium text-[var(--scoutx-foreground)]"
               >
                 Allow public activity logs & evidence when mission is Public
               </label>
@@ -496,17 +524,21 @@ export default function NewMissionPage() {
           {/* Mission Targeting Attributes Section */}
           <div className="space-y-4 rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-5 shadow-sm">
             <div>
-              <Label className="text-base font-semibold text-[var(--scoutx-foreground)] block">
+              <Label className="block text-base font-semibold text-[var(--scoutx-foreground)]">
                 🎯 Who should see / receive this mission? (Targeting)
               </Label>
-              <p className="text-xs text-[var(--scoutx-muted-foreground)] mt-0.5">
-                Targeting boosts matching ranking for qualified scouts without restricting public view.
+              <p className="mt-0.5 text-xs text-[var(--scoutx-muted-foreground)]">
+                Targeting boosts matching ranking for qualified scouts without restricting public
+                view.
               </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <Label htmlFor="targetCities" className="text-xs font-bold text-[var(--scoutx-foreground)]">
+                <Label
+                  htmlFor="targetCities"
+                  className="text-xs font-bold text-[var(--scoutx-foreground)]"
+                >
                   Target Cities / Areas
                 </Label>
                 <Input
@@ -518,7 +550,10 @@ export default function NewMissionPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="targetGender" className="text-xs font-bold text-[var(--scoutx-foreground)]">
+                <Label
+                  htmlFor="targetGender"
+                  className="text-xs font-bold text-[var(--scoutx-foreground)]"
+                >
                   Target Gender
                 </Label>
                 <select
@@ -534,7 +569,10 @@ export default function NewMissionPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="targetAgeRange" className="text-xs font-bold text-[var(--scoutx-foreground)]">
+                <Label
+                  htmlFor="targetAgeRange"
+                  className="text-xs font-bold text-[var(--scoutx-foreground)]"
+                >
                   Target Age Range
                 </Label>
                 <select
@@ -552,7 +590,10 @@ export default function NewMissionPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="targetExperienceLevel" className="text-xs font-bold text-[var(--scoutx-foreground)]">
+                <Label
+                  htmlFor="targetExperienceLevel"
+                  className="text-xs font-bold text-[var(--scoutx-foreground)]"
+                >
                   Target Experience Level
                 </Label>
                 <select
@@ -568,8 +609,11 @@ export default function NewMissionPage() {
                 </select>
               </div>
 
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label htmlFor="targetLanguages" className="text-xs font-bold text-[var(--scoutx-foreground)]">
+              <div className="space-y-1.5 sm:col-span-2">
+                <Label
+                  htmlFor="targetLanguages"
+                  className="text-xs font-bold text-[var(--scoutx-foreground)]"
+                >
                   Required Languages
                 </Label>
                 <Input
@@ -801,23 +845,23 @@ export default function NewMissionPage() {
           <Button variant="outline" asChild disabled={isLoading}>
             <Link href="/missions">Cancel</Link>
           </Button>
-          <Button 
-            type="button" 
+          <Button
+            type="button"
             variant="secondary"
             disabled={isLoading || isUploading}
             onClick={(e) => {
-                if (visibility !== "INDIVIDUAL") setVisibility("PRIVATE");
-                handleSubmit(e as unknown as React.FormEvent);
+              if (visibility !== "INDIVIDUAL") setVisibility("PRIVATE");
+              handleSubmit(e as unknown as React.FormEvent);
             }}
           >
             {isLoading ? "Saving..." : "Create Mission"}
           </Button>
-          <Button 
-            type="button" 
+          <Button
+            type="button"
             disabled={isLoading || isUploading}
             onClick={(e) => {
-                if (visibility !== "INDIVIDUAL") setVisibility("PUBLIC");
-                handleSubmit(e as unknown as React.FormEvent);
+              if (visibility !== "INDIVIDUAL") setVisibility("PUBLIC");
+              handleSubmit(e as unknown as React.FormEvent);
             }}
           >
             {isLoading ? "Publishing..." : "Publish"}

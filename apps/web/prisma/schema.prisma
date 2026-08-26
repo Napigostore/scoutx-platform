@@ -70,6 +70,15 @@ model User {
   passwordHash     String
   avatarUrl        String?
   reliabilityScore Float    @default(50)
+  freeMissions     Int      @default(3)
+  
+  // Notification Settings
+  emailNotifyActivity Boolean @default(true)
+  emailNotifyEvidence Boolean @default(true)
+  emailNotifyReward   Boolean @default(true)
+  emailNotifyDispute  Boolean @default(true)
+  emailNotifySystem   Boolean @default(true)
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 

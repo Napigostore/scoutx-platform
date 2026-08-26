@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "users" ADD COLUMN "freeMissions" INTEGER NOT NULL DEFAULT 3,
+ADD COLUMN "emailNotifyActivity" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "emailNotifyEvidence" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "emailNotifyReward" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "emailNotifyDispute" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "emailNotifySystem" BOOLEAN NOT NULL DEFAULT true;

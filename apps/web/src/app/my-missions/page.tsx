@@ -81,20 +81,23 @@ export default async function MyMissionsPage({
 
   const drafts = allItems.filter((m) => draftStatuses.includes(m.status));
   const done = allItems.filter((m) => doneStatuses.includes(m.status));
-  const inProgress = allItems.filter(
+  const allInProgress = allItems.filter(
     (m) => !draftStatuses.includes(m.status) && !doneStatuses.includes(m.status),
   );
+  const inProgress = allInProgress.filter((m) => m.role === "REQUESTER");
+  const receiving = allInProgress.filter((m) => m.role === "WORKER");
 
   let displayList = inProgress;
   if (activeTab === "draft") displayList = drafts;
   else if (activeTab === "done") displayList = done;
+  else if (activeTab === "receiving") displayList = receiving;
 
   const TabLink = ({ id, label, count }: { id: string; label: string; count: number }) => {
     const isActive = activeTab === id;
     return (
       <Link
         href={`/my-missions?tab=${id}`}
-        className={`border-b-2 px-4 py-2 text-sm font-bold transition-colors ${
+        className={`whitespace-nowrap border-b-2 px-4 py-2 text-sm font-bold transition-colors ${
           isActive
             ? "border-[var(--scoutx-primary)] text-[var(--scoutx-foreground)]"
             : "border-transparent text-[var(--scoutx-muted-foreground)] hover:text-[var(--scoutx-foreground)]"
@@ -112,6 +115,7 @@ export default async function MyMissionsPage({
       <div className="mb-6 flex overflow-x-auto border-b border-[var(--scoutx-border)]">
         <TabLink id="draft" label="Drafts" count={drafts.length} />
         <TabLink id="in-progress" label="In Progress" count={inProgress.length} />
+        <TabLink id="receiving" label="Receiving Mission" count={receiving.length} />
         <TabLink id="done" label="Done" count={done.length} />
       </div>
 

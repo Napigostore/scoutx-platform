@@ -45,6 +45,12 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState("");
   const [privateNotes, setPrivateNotes] = useState("");
 
+  const [emailNotifyActivity, setEmailNotifyActivity] = useState(true);
+  const [emailNotifyEvidence, setEmailNotifyEvidence] = useState(true);
+  const [emailNotifyReward, setEmailNotifyReward] = useState(true);
+  const [emailNotifyDispute, setEmailNotifyDispute] = useState(true);
+  const [emailNotifySystem, setEmailNotifySystem] = useState(true);
+
   const fetchProfile = async () => {
     setIsLoading(true);
     setError("");
@@ -179,6 +185,13 @@ export default function ProfilePage() {
       legalName,
       phone,
       privateNotes,
+      notificationSettings: {
+        emailNotifyActivity,
+        emailNotifyEvidence,
+        emailNotifyReward,
+        emailNotifyDispute,
+        emailNotifySystem,
+      },
     };
 
     try {
@@ -261,7 +274,11 @@ export default function ProfilePage() {
           ← Back to Mission Marketplace
         </Link>
         <span className="text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
-          Member since {new Date(user.memberSince).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+          Member since{" "}
+          {new Date(user.memberSince).toLocaleDateString("en-US", {
+            month: "short",
+            year: "numeric",
+          })}
         </span>
       </div>
 
@@ -270,7 +287,7 @@ export default function ProfilePage() {
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-5 sm:items-center">
             {/* Avatar container */}
-            <div className="relative group flex-shrink-0">
+            <div className="group relative flex-shrink-0">
               <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-[var(--scoutx-primary)] bg-[var(--scoutx-muted)] shadow">
                 {user.avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -287,7 +304,7 @@ export default function ProfilePage() {
               </div>
               <label
                 htmlFor="avatar-upload-input"
-                className="absolute bottom-0 right-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-[var(--scoutx-primary)] text-xs text-white shadow hover:scale-105 transition-transform"
+                className="absolute bottom-0 right-0 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full bg-[var(--scoutx-primary)] text-xs text-white shadow transition-transform hover:scale-105"
                 title="Upload avatar"
               >
                 📷
@@ -303,26 +320,26 @@ export default function ProfilePage() {
             </div>
 
             <div>
-              <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex flex-wrap items-center gap-3">
                 <h1 className="font-display text-2xl font-black text-[var(--scoutx-foreground)] sm:text-3xl">
                   {user.displayName}
                 </h1>
-                <span className="rounded-full bg-[var(--scoutx-primary)]/10 px-3 py-1 text-xs font-bold text-[var(--scoutx-primary)]">
+                <span className="bg-[var(--scoutx-primary)]/10 rounded-full px-3 py-1 text-xs font-bold text-[var(--scoutx-primary)]">
                   {user.role}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-[var(--scoutx-muted-foreground)] max-w-xl">
+              <p className="mt-1 max-w-xl text-sm text-[var(--scoutx-muted-foreground)]">
                 {pub.bio}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-col sm:items-end gap-2">
+          <div className="flex flex-col gap-2 sm:items-end">
             <Button variant="outline" onClick={() => setIsEditing(true)}>
               ✏️ Edit Profile
             </Button>
             {isUploadingAvatar && (
-              <span className="text-xs text-[var(--scoutx-primary)] animate-pulse">
+              <span className="animate-pulse text-xs text-[var(--scoutx-primary)]">
                 Uploading avatar...
               </span>
             )}
@@ -333,11 +350,11 @@ export default function ProfilePage() {
         {/* Header Trust Badge Banner */}
         <div className="mt-6 flex flex-wrap items-center gap-6 border-t border-[var(--scoutx-border)] pt-6">
           <div>
-            <span className="text-xs font-semibold text-[var(--scoutx-muted-foreground)] block">
+            <span className="block text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
               Trust Rating
             </span>
-            <div className="flex items-center gap-2 mt-0.5">
-              <span className="text-lg text-amber-500 tracking-wider font-bold">
+            <div className="mt-0.5 flex items-center gap-2">
+              <span className="text-lg font-bold tracking-wider text-amber-500">
                 {trust.scoreStars}
               </span>
               <span className="text-sm font-black text-[var(--scoutx-foreground)]">
@@ -346,36 +363,38 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="h-8 w-px bg-[var(--scoutx-border)] hidden sm:block" />
+          <div className="hidden h-8 w-px bg-[var(--scoutx-border)] sm:block" />
 
           <div>
-            <span className="text-xs font-semibold text-[var(--scoutx-muted-foreground)] block">
+            <span className="block text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
               Living Location
             </span>
-            <span className="text-sm font-bold text-[var(--scoutx-foreground)] block">
+            <span className="block text-sm font-bold text-[var(--scoutx-foreground)]">
               📍 {pub.livingCity}, {pub.livingCountry}
             </span>
           </div>
 
-          <div className="h-8 w-px bg-[var(--scoutx-border)] hidden sm:block" />
+          <div className="hidden h-8 w-px bg-[var(--scoutx-border)] sm:block" />
 
           <div>
-            <span className="text-xs font-semibold text-[var(--scoutx-muted-foreground)] block">
+            <span className="block text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
               Global Scout Map Status
             </span>
-            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full inline-block mt-0.5 ${
-              pub.availableForMissions
-                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                : "bg-zinc-500/10 text-zinc-500 border border-zinc-500/20"
-            }`}>
+            <span
+              className={`mt-0.5 inline-block rounded-full px-2.5 py-0.5 text-xs font-bold ${
+                pub.availableForMissions
+                  ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                  : "border border-zinc-500/20 bg-zinc-500/10 text-zinc-500"
+              }`}
+            >
               {pub.availableForMissions ? "⚡ Available for Missions" : "⏸️ Offline / Hidden"}
             </span>
           </div>
 
-          <div className="h-8 w-px bg-[var(--scoutx-border)] hidden sm:block" />
+          <div className="hidden h-8 w-px bg-[var(--scoutx-border)] sm:block" />
 
           <div>
-            <span className="text-xs font-semibold text-[var(--scoutx-muted-foreground)] block">
+            <span className="block text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
               Specialized Field
             </span>
             <span className="text-sm font-bold text-[var(--scoutx-foreground)]">
@@ -397,7 +416,10 @@ export default function ProfilePage() {
               Completed
             </span>
             <div className="mt-2 text-2xl font-black text-[var(--scoutx-foreground)]">
-              {perf.completedMissions} <span className="text-xs font-medium text-[var(--scoutx-muted-foreground)]">missions</span>
+              {perf.completedMissions}{" "}
+              <span className="text-xs font-medium text-[var(--scoutx-muted-foreground)]">
+                missions
+              </span>
             </div>
           </div>
 
@@ -412,7 +434,7 @@ export default function ProfilePage() {
             {perf.successRatePercentage !== null && (
               <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-[var(--scoutx-muted)]">
                 <div
-                  className="h-full bg-emerald-500 rounded-full transition-all"
+                  className="h-full rounded-full bg-emerald-500 transition-all"
                   style={{ width: `${perf.successRatePercentage}%` }}
                 />
               </div>
@@ -462,7 +484,7 @@ export default function ProfilePage() {
 
             <div className="mt-4 space-y-4">
               <div>
-                <span className="text-xs font-semibold text-[var(--scoutx-muted-foreground)] block">
+                <span className="block text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
                   Primary Specialization:
                 </span>
                 <span className="mt-1 inline-block text-sm font-bold text-[var(--scoutx-foreground)]">
@@ -471,7 +493,7 @@ export default function ProfilePage() {
               </div>
 
               <div>
-                <span className="text-xs font-semibold text-[var(--scoutx-muted-foreground)] block mb-2">
+                <span className="mb-2 block text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
                   Skills & Capabilities:
                 </span>
                 <div className="flex flex-wrap gap-2">
@@ -487,14 +509,14 @@ export default function ProfilePage() {
               </div>
 
               <div>
-                <span className="text-xs font-semibold text-[var(--scoutx-muted-foreground)] block mb-2">
+                <span className="mb-2 block text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
                   Preferred Mission Categories:
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {pub.preferredMissionTypes.map((cat, idx) => (
                     <span
                       key={idx}
-                      className="rounded-full border border-[var(--scoutx-primary)]/30 bg-[var(--scoutx-primary)]/5 px-3 py-1 text-xs font-bold text-[var(--scoutx-primary)]"
+                      className="border-[var(--scoutx-primary)]/30 bg-[var(--scoutx-primary)]/5 rounded-full border px-3 py-1 text-xs font-bold text-[var(--scoutx-primary)]"
                     >
                       🎯 {cat.replace(/_/g, " ")}
                     </span>
@@ -514,23 +536,23 @@ export default function ProfilePage() {
 
             <div className="mt-4 space-y-4">
               <div>
-                <span className="text-xs font-semibold text-[var(--scoutx-muted-foreground)] block">
+                <span className="block text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
                   Primary Living City:
                 </span>
-                <span className="mt-1 text-sm font-bold text-[var(--scoutx-foreground)] block">
+                <span className="mt-1 block text-sm font-bold text-[var(--scoutx-foreground)]">
                   🏢 {pub.livingCity}
                 </span>
               </div>
 
               <div>
-                <span className="text-xs font-semibold text-[var(--scoutx-muted-foreground)] block mb-2">
+                <span className="mb-2 block text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
                   Active Mission Coverage Cities:
                 </span>
                 <div className="flex flex-wrap gap-2">
                   {pub.missionCities.map((city, idx) => (
                     <span
                       key={idx}
-                      className="rounded-xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-3 py-1.5 text-xs font-bold text-[var(--scoutx-foreground)] shadow-xs"
+                      className="shadow-xs rounded-xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-3 py-1.5 text-xs font-bold text-[var(--scoutx-foreground)]"
                     >
                       📍 {city}
                     </span>
@@ -552,31 +574,40 @@ export default function ProfilePage() {
                 </span>
               </div>
               <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
-                Visible only to you and system administrators. Omitted from public APIs and Marketplace views.
+                Visible only to you and system administrators. Omitted from public APIs and
+                Marketplace views.
               </p>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 text-xs">
+              <div className="mt-4 grid grid-cols-1 gap-3 text-xs sm:grid-cols-2">
                 <div>
-                  <span className="font-semibold text-amber-900 dark:text-amber-300 block">Legal Name:</span>
+                  <span className="block font-semibold text-amber-900 dark:text-amber-300">
+                    Legal Name:
+                  </span>
                   <span className="font-bold text-amber-950 dark:text-amber-100">
                     {privateContact.legalName || "Not specified"}
                   </span>
                 </div>
                 <div>
-                  <span className="font-semibold text-amber-900 dark:text-amber-300 block">Email Address:</span>
+                  <span className="block font-semibold text-amber-900 dark:text-amber-300">
+                    Email Address:
+                  </span>
                   <span className="font-bold text-amber-950 dark:text-amber-100">
                     {privateContact.email}
                   </span>
                 </div>
                 <div>
-                  <span className="font-semibold text-amber-900 dark:text-amber-300 block">Phone Number:</span>
+                  <span className="block font-semibold text-amber-900 dark:text-amber-300">
+                    Phone Number:
+                  </span>
                   <span className="font-bold text-amber-950 dark:text-amber-100">
                     {privateContact.phone || "Not specified"}
                   </span>
                 </div>
                 {privateContact.privateNotes && (
                   <div>
-                    <span className="font-semibold text-amber-900 dark:text-amber-300 block">Private Notes:</span>
+                    <span className="block font-semibold text-amber-900 dark:text-amber-300">
+                      Private Notes:
+                    </span>
                     <span className="font-bold text-amber-950 dark:text-amber-100">
                       {privateContact.privateNotes}
                     </span>
@@ -596,7 +627,8 @@ export default function ProfilePage() {
               📜 PUBLIC VERIFIED WORK HISTORY
             </h3>
             <p className="text-xs text-[var(--scoutx-muted-foreground)]">
-              Verified public missions completed by this scout. Private and individual missions are strictly excluded.
+              Verified public missions completed by this scout. Private and individual missions are
+              strictly excluded.
             </p>
           </div>
           <span className="rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-bold text-emerald-600 dark:text-emerald-400">
@@ -604,14 +636,17 @@ export default function ProfilePage() {
           </span>
         </div>
 
-        {(!profile.publicWorkHistory || profile.publicWorkHistory.length === 0) ? (
+        {!profile.publicWorkHistory || profile.publicWorkHistory.length === 0 ? (
           <div className="py-8 text-center text-xs text-[var(--scoutx-muted-foreground)]">
             No public verified mission history available.
           </div>
         ) : (
           <div className="mt-4 divide-y divide-[var(--scoutx-border)]">
             {profile.publicWorkHistory.map((item) => (
-              <div key={item.id} className="flex flex-col gap-2 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+              <div
+                key={item.id}
+                className="flex flex-col gap-2 py-3.5 sm:flex-row sm:items-center sm:justify-between"
+              >
                 <div>
                   <Link
                     href={`/missions/${item.id}`}
@@ -620,7 +655,7 @@ export default function ProfilePage() {
                     {item.title}
                   </Link>
                   <div className="mt-1 flex items-center gap-2 text-xs text-[var(--scoutx-muted-foreground)]">
-                    <span className="rounded-full bg-[var(--scoutx-muted)] px-2 py-0.5 font-semibold text-[10px] uppercase">
+                    <span className="rounded-full bg-[var(--scoutx-muted)] px-2 py-0.5 text-[10px] font-semibold uppercase">
                       {item.category.replace(/_/g, " ")}
                     </span>
                     <span>• Completed on {new Date(item.completedDate).toLocaleDateString()}</span>
@@ -631,7 +666,7 @@ export default function ProfilePage() {
                   <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
                     {item.rewardFormatted}
                   </span>
-                  <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-600 border border-emerald-500/20">
+                  <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-600">
                     ✓ Verified
                   </span>
                 </div>
@@ -643,7 +678,7 @@ export default function ProfilePage() {
 
       {/* EDIT PROFILE MODAL */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs overflow-y-auto">
+        <div className="backdrop-blur-xs fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4">
           <div className="my-8 w-full max-w-2xl rounded-3xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6 shadow-xl sm:p-8">
             <div className="flex items-center justify-between border-b border-[var(--scoutx-border)] pb-4">
               <h2 className="font-display text-xl font-bold text-[var(--scoutx-foreground)]">
@@ -720,10 +755,10 @@ export default function ProfilePage() {
 
               {/* Mission Cities Coverage */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--scoutx-foreground)] mb-1">
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[var(--scoutx-foreground)]">
                   Active Coverage Cities
                 </label>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <div className="mt-1 flex flex-wrap gap-2">
                   {STANDARD_CITIES.map((city) => {
                     const active = missionCities.includes(city);
                     return (
@@ -761,10 +796,10 @@ export default function ProfilePage() {
 
               {/* Preferred Mission Categories */}
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-[var(--scoutx-foreground)] mb-1">
+                <label className="mb-1 block text-xs font-bold uppercase tracking-wider text-[var(--scoutx-foreground)]">
                   Preferred Mission Categories
                 </label>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <div className="mt-1 flex flex-wrap gap-2">
                   {MISSION_CATEGORIES.map((cat) => {
                     const active = preferredMissionTypes.includes(cat.id);
                     return (
@@ -787,8 +822,8 @@ export default function ProfilePage() {
               </div>
 
               {/* Private Contact Fields */}
-              <div className="rounded-2xl border border-amber-200 bg-amber-50/50 p-4 space-y-4 dark:border-amber-900/50 dark:bg-amber-950/20">
-                <span className="text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300 block">
+              <div className="space-y-4 rounded-2xl border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900/50 dark:bg-amber-950/20">
+                <span className="block text-xs font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300">
                   🔒 Private Information (Only visible to you & Admin)
                 </span>
 
@@ -831,6 +866,75 @@ export default function ProfilePage() {
                     placeholder="e.g. Preferred contact method or Telegram ID"
                     className="mt-1 w-full rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs text-slate-900 focus:outline-none dark:border-amber-800 dark:bg-slate-900 dark:text-slate-100"
                   />
+                </div>
+              </div>
+
+              {/* Notification Settings */}
+              <div className="space-y-4 rounded-xl border border-[var(--scoutx-border)] bg-[var(--scoutx-background)] p-4">
+                <h3 className="border-b border-[var(--scoutx-border)] pb-2 font-bold text-[var(--scoutx-foreground)]">
+                  Email Notifications
+                </h3>
+
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={emailNotifyActivity}
+                      onChange={(e) => setEmailNotifyActivity(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-[var(--scoutx-primary)] focus:ring-[var(--scoutx-primary)]"
+                    />
+                    <span className="text-sm font-semibold text-[var(--scoutx-foreground)]">
+                      Mission Activity (New missions, assigned, completed)
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={emailNotifyEvidence}
+                      onChange={(e) => setEmailNotifyEvidence(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-[var(--scoutx-primary)] focus:ring-[var(--scoutx-primary)]"
+                    />
+                    <span className="text-sm font-semibold text-[var(--scoutx-foreground)]">
+                      Evidence Uploaded (When scouts submit proof)
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={emailNotifyReward}
+                      onChange={(e) => setEmailNotifyReward(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-[var(--scoutx-primary)] focus:ring-[var(--scoutx-primary)]"
+                    />
+                    <span className="text-sm font-semibold text-[var(--scoutx-foreground)]">
+                      Reward Requests & Payments
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={emailNotifyDispute}
+                      onChange={(e) => setEmailNotifyDispute(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-[var(--scoutx-primary)] focus:ring-[var(--scoutx-primary)]"
+                    />
+                    <span className="text-sm font-semibold text-[var(--scoutx-foreground)]">
+                      Disputes & Voting
+                    </span>
+                  </label>
+
+                  <label className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={emailNotifySystem}
+                      onChange={(e) => setEmailNotifySystem(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-[var(--scoutx-primary)] focus:ring-[var(--scoutx-primary)]"
+                    />
+                    <span className="text-sm font-semibold text-[var(--scoutx-foreground)]">
+                      System Updates
+                    </span>
+                  </label>
                 </div>
               </div>
 
