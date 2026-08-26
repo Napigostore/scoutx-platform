@@ -19,14 +19,26 @@ export async function POST(
     return NextResponse.json({ error: "Requesters cannot request a reward" }, { status: 403 });
   }
   const hasEvidence = await prisma.evidence.findFirst({ where: { missionId, userId: ctx.userId } });
-  if (!hasEvidence) {
-    return NextResponse.json({ error: "Submit evidence first before requesting reward" }, { status: 400 });
+  const hasSubmission = await prisma.missionSubmission.findFirst({
+    where: { missionId, userId: ctx.userId },
+  });
+  if (!hasEvidence && !hasSubmission) {
+    return NextResponse.json(
+      { error: "Submit evidence or report first before requesting reward" },
+      { status: 403 },
+    );
   }
   const mission = await prisma.mission.findUnique({
     where: { id: missionId },
     select: { status: true, requesterId: true },
   });
-  const locked = ["COMPLETED", "REWARDED", "VOTING_FINALIZED", "SETTLEMENT_PENDING", "COMPLETED_PENDING_SETTLEMENT"];
+  const locked = [
+    "COMPLETED",
+    "REWARDED",
+    "VOTING_FINALIZED",
+    "SETTLEMENT_PENDING",
+    "COMPLETED_PENDING_SETTLEMENT",
+  ];
   if (mission && locked.includes(mission.status)) {
     return NextResponse.json({ error: "Mission is already completed" }, { status: 409 });
   }
@@ -39,7 +51,10 @@ export async function POST(
     if (mission) await notifyRewardRequest(missionId, mission.requesterId);
     return NextResponse.json({ success: true, request: rewardRequest }, { status: 201 });
   } catch (err) {
-    return NextResponse.json({ error: err instanceof Error ? err.message : "Failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : "Failed" },
+      { status: 500 },
+    );
   }
 }
 

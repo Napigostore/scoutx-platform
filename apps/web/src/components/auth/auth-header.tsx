@@ -20,21 +20,7 @@ export function AuthHeaderActions() {
 
   useEffect(() => {
     if (session?.user) {
-      if (session.user.role === "SCOUT") {
-        setDashboardHref("/scout/missions");
-      } else {
-        fetch("/api/scout/missions/assigned", { cache: "no-store" })
-          .then((res) => {
-            if (res.ok) {
-              setDashboardHref("/scout/missions");
-            } else {
-              setDashboardHref("/missions");
-            }
-          })
-          .catch(() => {
-            setDashboardHref("/missions");
-          });
-      }
+      setDashboardHref("/my-missions");
     }
   }, [session]);
 
@@ -48,11 +34,12 @@ export function AuthHeaderActions() {
   }
 
   if (session?.user) {
-    const targetHref =
-      dashboardHref || (session.user.role === "SCOUT" ? "/scout/missions" : "/missions");
+    const targetHref = dashboardHref || "/my-missions";
 
     const avatarUrl = session.user.image || null;
-    const userInitials = (session.user.name || session.user.email || "U").substring(0, 2).toUpperCase();
+    const userInitials = (session.user.name || session.user.email || "U")
+      .substring(0, 2)
+      .toUpperCase();
 
     return (
       <div className="flex items-center gap-2">
@@ -69,7 +56,7 @@ export function AuthHeaderActions() {
               {userInitials}
             </span>
           )}
-          <span className="hidden sm:inline font-bold">Profile</span>
+          <span className="hidden font-bold sm:inline">Profile</span>
         </Link>
 
         <Button variant="ghost" size="sm" asChild>

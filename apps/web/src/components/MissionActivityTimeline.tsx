@@ -102,6 +102,7 @@ export function MissionActivityTimeline({
 
       setMessage("");
       fetchTimeline();
+      window.dispatchEvent(new CustomEvent("refresh-mission"));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -138,6 +139,7 @@ export function MissionActivityTimeline({
       }
 
       fetchTimeline();
+      window.dispatchEvent(new CustomEvent("refresh-mission"));
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {

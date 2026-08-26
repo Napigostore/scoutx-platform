@@ -78,7 +78,14 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
 
   useEffect(() => {
     fetchMission();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    const handleRefresh = () => {
+      fetchMission();
+    };
+    window.addEventListener("refresh-mission", handleRefresh);
+    return () => {
+      window.removeEventListener("refresh-mission", handleRefresh);
+    };
   }, [missionId]);
 
   const getAuthHeaders = (): Record<string, string> => {
