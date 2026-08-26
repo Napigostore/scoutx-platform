@@ -1,0 +1,58 @@
+import type { Location } from "@scoutx/types";
+
+export const mockLocations: Location[] = [
+  {
+    id: "11111111-1111-4111-8111-111111111101",
+    name: "Shibuya Crossing",
+    city: "Tokyo",
+    country: "Japan",
+    countryCode: "JP",
+    coordinates: { latitude: 35.6595, longitude: 139.7005 },
+    timezone: "Asia/Tokyo",
+  },
+  {
+    id: "11111111-1111-4111-8111-111111111102",
+    name: "Times Square",
+    city: "New York",
+    country: "United States",
+    countryCode: "US",
+    coordinates: { latitude: 40.758, longitude: -73.9855 },
+    timezone: "America/New_York",
+  },
+  {
+    id: "11111111-1111-4111-8111-111111111103",
+    name: "Borough Market",
+    city: "London",
+    country: "United Kingdom",
+    countryCode: "GB",
+    coordinates: { latitude: 51.5055, longitude: -0.091 },
+    timezone: "Europe/London",
+  },
+  {
+    id: "11111111-1111-4111-8111-111111111104",
+    name: "Orchard Road",
+    city: "Singapore",
+    country: "Singapore",
+    countryCode: "SG",
+    coordinates: { latitude: 1.3048, longitude: 103.8318 },
+    timezone: "Asia/Singapore",
+  },
+  {
+    id: "11111111-1111-4111-8111-111111111105",
+    name: "La Rambla",
+    city: "Barcelona",
+    country: "Spain",
+    countryCode: "ES",
+    coordinates: { latitude: 41.381, longitude: 2.1734 },
+    timezone: "Europe/Madrid",
+  },
+  {
+    id: "11111111-1111-4111-8111-111111111106",
+    name: "Nguyen Hue Walking Street",
+    city: "Ho Chi Minh City",
+    country: "Vietnam",
+    countryCode: "VN",
+    coordinates: { latitude: 10.7731, longitude: 106.7031 },
+    timezone: "Asia/Ho_Chi_Minh",
+  },
+];

@@ -4,8 +4,10 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@scoutx/ui";
+import { formatCurrency } from "@scoutx/application";
 import { RequesterLivestreamViewer } from "@/components/RequesterLivestreamViewer";
 import { MissionActivityTimeline } from "@/components/MissionActivityTimeline";
+import { MissionSettlementControls } from "@/components/mission-settlement-controls";
 
 interface Submission {
   id: string;
@@ -26,6 +28,10 @@ interface Mission {
   category: string;
   status: string;
   urgency: string;
+  requesterId?: string;
+  assignedScoutId?: string | null;
+  budgetCents?: number;
+  currency?: string;
   budget: {
     amountCents: number;
     currency: string;
@@ -39,12 +45,21 @@ interface Mission {
   expiresAt: string;
   createdAt: string;
   submission?: Submission | null;
+  participantCount?: number;
   referenceAttachments?: Array<{
     url: string;
     fileName: string;
     mimeType: string;
     createdAt: string;
   }>;
+  userContext?: {
+    isRequester: boolean;
+    isAssignedOrRecipient: boolean;
+    hasSubmittedReport: boolean;
+    canCompleteMission: boolean;
+    canRequestReward: boolean;
+    canDispute: boolean;
+  } | null;
 }
 
 export default function MissionDetailsPage({ params }: { params: Promise<{ missionId: string }> }) {
@@ -244,6 +259,11 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
             <span className="text-sm text-[var(--scoutx-muted-foreground)]">
               Category: {mission.category}
             </span>
+            {mission.participantCount !== undefined && mission.participantCount > 0 && (
+              <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-bold text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                👥 {mission.participantCount} người đang tham gia
+              </span>
+            )}
           </div>
           <h1 className="font-display mt-3 text-3xl font-bold text-[var(--scoutx-foreground)]">
             {mission.title}
@@ -329,6 +349,17 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
               </div>
             </div>
           )}
+
+          <MissionSettlementControls
+            missionId={missionId}
+            status={mission.status}
+            requesterId={mission.requesterId || ""}
+            assignedScoutId={mission.assignedScoutId}
+            budgetCents={mission.budgetCents || mission.budget?.amountCents || 1000}
+            currency={mission.currency || mission.budget?.currency || "VND"}
+            userContext={mission.userContext}
+            onRefresh={fetchMission}
+          />
 
           <RequesterLivestreamViewer missionId={missionId} />
 
@@ -432,7 +463,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
                 )}
               </div>
 
-              {isSubmitted && !isReviewed && (
+              {isSubmitted && !isReviewed && mission.userContext?.isRequester && (
                 <div className="mt-6 space-y-4 border-t border-yellow-200 pt-4 dark:border-amber-800/60">
                   <div className="flex gap-3">
                     <Button
@@ -497,13 +528,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
               Budget
             </span>
             <p className="mt-1 text-3xl font-bold text-[var(--scoutx-foreground)]">
-              {mission.budget.currency?.trim().toUpperCase() === "VND"
-                ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-                    mission.budget.amountCents,
-                  )
-                : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-                    mission.budget.amountCents / 100,
-                  )}
+              {formatCurrency(mission.budget.amountCents, mission.budget.currency)}
             </p>
           </div>
 

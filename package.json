@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "turbo run build",
+    "db:update-seed": "pnpm --filter @scoutx/web db:update-seed",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",

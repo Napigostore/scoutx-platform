@@ -1,0 +1,11 @@
+{
+  "extends": "@scoutx/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "composite": true,
+    "moduleResolution": "bundler",
+    "module": "ESNext"
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

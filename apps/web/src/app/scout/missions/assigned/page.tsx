@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@scoutx/ui";
+import { formatCurrency } from "@scoutx/application";
 import { MissionStatusBadge } from "@/components/MissionStatusBadge";
 
 interface MissionSummary {
@@ -37,7 +38,7 @@ interface Pagination {
 }
 
 const STATUS_FILTERS = [
-  { id: "ALL", label: "Tất cả" },
+  { id: "ALL", label: "All" },
   { id: "OPEN_MATCHED", label: "Matched" },
   { id: "IN_PROGRESS", label: "In Progress" },
   { id: "SUBMITTED", label: "Submitted" },
@@ -116,12 +117,12 @@ export default function ScoutAssignedMissionsPage() {
             My Assigned Missions
           </h1>
           <p className="mt-2 text-sm text-[var(--scoutx-muted-foreground)]">
-            Quản lý và cập nhật báo cáo thực địa cho các nhiệm vụ bạn đã nhận
+            Manage and update field reports for your assigned missions
           </p>
         </div>
         <div>
           <Button variant="outline" asChild>
-            <Link href="/scout/missions">🔍 Khám Phá Nhiệm Vụ Mới</Link>
+            <Link href="/scout/missions">🔍 Discover New Missions</Link>
           </Button>
         </div>
       </div>
@@ -146,7 +147,7 @@ export default function ScoutAssignedMissionsPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-[var(--scoutx-muted-foreground)]">Sắp xếp:</span>
+          <span className="text-xs text-[var(--scoutx-muted-foreground)]">Sort by:</span>
           <select
             value={sortOrder}
             onChange={(e) =>
@@ -154,8 +155,8 @@ export default function ScoutAssignedMissionsPage() {
             }
             className="rounded-lg border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-2.5 py-1.5 text-xs font-medium text-[var(--scoutx-foreground)] focus:outline-none"
           >
-            <option value="last_activity_desc">Mới cập nhật nhất</option>
-            <option value="created_at_desc">Mới nhận nhất</option>
+            <option value="last_activity_desc">Recently updated</option>
+            <option value="created_at_desc">Recently assigned</option>
           </select>
         </div>
       </div>
@@ -164,7 +165,7 @@ export default function ScoutAssignedMissionsPage() {
       {isLoading && (
         <div className="flex h-64 items-center justify-center">
           <p className="text-sm text-[var(--scoutx-muted-foreground)]">
-            Đang tải danh sách nhiệm vụ được giao...
+            Loading assigned missions...
           </p>
         </div>
       )}
@@ -181,16 +182,16 @@ export default function ScoutAssignedMissionsPage() {
         <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-8 text-center">
           <h3 className="font-display text-lg font-semibold text-[var(--scoutx-foreground)]">
             {activeFilter === "ALL"
-              ? "Bạn chưa được giao nhiệm vụ nào."
-              : "Không có nhiệm vụ phù hợp."}
+              ? "You haven't been assigned any missions yet."
+              : "No matching missions found."}
           </h3>
           <p className="mt-2 text-sm text-[var(--scoutx-muted-foreground)]">
             {activeFilter === "ALL"
-              ? "Chuyển đến trang khám phá để nhận nhiệm vụ thực địa đầu tiên."
-              : "Thử thay đổi bộ lọc trạng thái để tìm nhiệm vụ khác."}
+              ? "Go to the discovery page to claim your first field mission."
+              : "Try changing status filter to find other missions."}
           </p>
           <Button className="mt-4" asChild>
-            <Link href="/scout/missions">🔍 Khám Phá Nhiệm Vụ Mới</Link>
+            <Link href="/scout/missions">🔍 Discover New Missions</Link>
           </Button>
         </div>
       )}
@@ -208,15 +209,7 @@ export default function ScoutAssignedMissionsPage() {
                 <div className="flex items-center justify-between gap-2">
                   <MissionStatusBadge status={mission.status} />
                   <span className="text-sm font-bold text-[var(--scoutx-primary)]">
-                    {mission.budget.currency.toUpperCase() === "VND"
-                      ? new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                        }).format(mission.budget.amountCents)
-                      : new Intl.NumberFormat("en-US", {
-                          style: "currency",
-                          currency: "USD",
-                        }).format(mission.budget.amountCents / 100)}
+                    {formatCurrency(mission.budget.amountCents, mission.budget.currency)}
                   </span>
                 </div>
 
@@ -254,7 +247,7 @@ export default function ScoutAssignedMissionsPage() {
 
                 {/* Latest Activity Summary Banner */}
                 <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50/70 p-2.5 text-[11px] text-blue-900 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-200">
-                  <span className="font-semibold">Hoạt động gần nhất:</span>{" "}
+                  <span className="font-semibold">Latest activity:</span>{" "}
                   <span className="line-clamp-1">{mission.lastActivitySummary}</span>
                 </div>
               </div>
@@ -262,15 +255,15 @@ export default function ScoutAssignedMissionsPage() {
               {/* Card Footer */}
               <div className="mt-6 flex items-center justify-between border-t border-[var(--scoutx-border)] pt-4">
                 <div className="flex items-center gap-3 text-xs text-[var(--scoutx-muted-foreground)]">
-                  <span>📷 {mission.evidenceCount} file</span>
+                  <span>📷 {mission.evidenceCount} files</span>
                   <span>•</span>
-                  <span>{new Date(mission.lastActivityAt).toLocaleDateString("vi-VN")}</span>
+                  <span>{new Date(mission.lastActivityAt).toLocaleDateString("en-US")}</span>
                 </div>
                 <Link
                   href={`/scout/missions/${mission.id}/work`}
                   className="text-xs font-bold text-[var(--scoutx-primary)] hover:underline"
                 >
-                  Thực hiện &rarr;
+                  View / Execute &rarr;
                 </Link>
               </div>
             </div>
@@ -287,10 +280,10 @@ export default function ScoutAssignedMissionsPage() {
             disabled={currentPage <= 1}
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
           >
-            &larr; Trang trước
+            &larr; Previous
           </Button>
           <span className="text-xs text-[var(--scoutx-muted-foreground)]">
-            Trang {pagination.page} / {pagination.totalPages} (Tổng {pagination.total} nhiệm vụ)
+            Page {pagination.page} / {pagination.totalPages} (Total {pagination.total} missions)
           </span>
           <Button
             variant="outline"
@@ -298,7 +291,7 @@ export default function ScoutAssignedMissionsPage() {
             disabled={currentPage >= pagination.totalPages}
             onClick={() => setCurrentPage((prev) => Math.min(pagination.totalPages, prev + 1))}
           >
-            Trang sau &rarr;
+            Next &rarr;
           </Button>
         </div>
       )}

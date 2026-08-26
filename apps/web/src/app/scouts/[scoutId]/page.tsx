@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { Button } from "@scoutx/ui";
+import { formatCurrency as formatRewardCurrency } from "@scoutx/application";
 
 interface ScoutDetail {
   id: string;
@@ -59,7 +60,7 @@ export default function ScoutProfilePage({ params }: { params: Promise<{ scoutId
   }, [scoutId]);
 
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(cents);
+    return formatRewardCurrency(cents, "USD");
   };
 
   if (isLoading) {

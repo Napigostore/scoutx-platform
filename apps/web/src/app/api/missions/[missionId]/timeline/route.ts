@@ -8,7 +8,6 @@ export async function GET(
 ) {
   const { missionId } = await params;
 
-  // 1. Mission Participant Authorization Check (Requester or Assigned Scout)
   const participantCtx = await getMissionParticipantContext(request, missionId);
   if (!participantCtx || "error" in participantCtx) {
     const errorMsg =
@@ -17,27 +16,33 @@ export async function GET(
     return NextResponse.json({ error: errorMsg }, { status: errorStatus });
   }
 
+  const isRequester =
+    participantCtx.participantRole === "REQUESTER" || participantCtx.participantRole === "ADMIN";
+  const currentUserId = participantCtx.userId;
+
   try {
-    // Fetch timeline entries for this mission
+    // Requesters see all entries; recipients see only their own + system entries
+    const timelineWhere = isRequester
+      ? { missionId }
+      : { missionId, OR: [{ actorId: currentUserId }, { actorId: null }] };
+
     const timelineEntries = await prisma.timelineEntry.findMany({
-      where: { missionId },
+      where: timelineWhere,
       orderBy: { createdAt: "asc" },
     });
 
-    // Fetch evidence records for this mission
+    // Evidence: requester sees all; recipient sees only their own
+    const evidenceWhere = isRequester ? { missionId } : { missionId, userId: currentUserId };
     const evidenceRecords = await prisma.evidence.findMany({
-      where: { missionId },
+      where: evidenceWhere,
       orderBy: { createdAt: "asc" },
     });
 
-    // Collect all actor user IDs to populate names & avatars
     const userIds = new Set<string>();
     if (participantCtx.mission.requesterId) userIds.add(participantCtx.mission.requesterId);
-
     timelineEntries.forEach((entry) => {
       if (entry.actorId) userIds.add(entry.actorId);
     });
-
     evidenceRecords.forEach((ev) => {
       if (ev.userId) userIds.add(ev.userId);
     });
@@ -48,20 +53,13 @@ export async function GET(
     });
 
     const userMap = new Map(users.map((u) => [u.id, u]));
-
-    // Track URLs already represented in timeline entries to avoid duplicate rendering
     const timelineMediaUrls = new Set<string>();
 
-    // Format timeline items
     const formattedTimelineEvents = timelineEntries.map((entry) => {
       const actor = entry.actorId ? userMap.get(entry.actorId) : null;
       const meta = (entry.metadata as Record<string, unknown> | null) || {};
       const mediaUrl = (meta.url as string) || null;
-
-      if (mediaUrl) {
-        timelineMediaUrls.add(mediaUrl);
-      }
-
+      if (mediaUrl) timelineMediaUrls.add(mediaUrl);
       return {
         id: entry.id,
         eventType: entry.eventType,
@@ -77,16 +75,10 @@ export async function GET(
               avatarUrl: actor.avatarUrl,
               role: (meta.role as string) || actor.role,
             }
-          : {
-              id: "system",
-              displayName: "System",
-              avatarUrl: null,
-              role: "SYSTEM",
-            },
+          : { id: "system", displayName: "System", avatarUrl: null, role: "SYSTEM" },
       };
     });
 
-    // Format historical evidence items that do not have a corresponding timeline entry
     const legacyEvidenceEvents = evidenceRecords
       .filter((ev) => !ev.mediaUrl || !timelineMediaUrls.has(ev.mediaUrl))
       .map((ev) => {
@@ -105,16 +97,10 @@ export async function GET(
                 avatarUrl: actor.avatarUrl,
                 role: actor.role,
               }
-            : {
-                id: ev.userId,
-                displayName: "Scout",
-                avatarUrl: null,
-                role: "SCOUT",
-              },
+            : { id: ev.userId, displayName: "Scout", avatarUrl: null, role: "SCOUT" },
         };
       });
 
-    // Combine and sort by createdAt ASC
     const combinedEvents = [...formattedTimelineEvents, ...legacyEvidenceEvents].sort(
       (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );

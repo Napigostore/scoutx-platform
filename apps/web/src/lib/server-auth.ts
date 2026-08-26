@@ -284,6 +284,11 @@ export async function getMissionParticipantContext(request: Request, missionId: 
       status: true,
       requesterId: true,
       assignedScoutId: true,
+      recipients: {
+        where: { userId }
+      },
+      submission: true,
+      visibility: true,
     },
   });
 
@@ -303,9 +308,17 @@ export async function getMissionParticipantContext(request: Request, missionId: 
 
   const isRequester = mission.requesterId === userId;
   const isAssignedScout = Boolean(scoutProfile && mission.assignedScoutId === scoutProfile.id);
+  const isRecipient = mission.recipients && mission.recipients.length > 0;
+  const isSubmitter = Boolean(mission.submission && mission.submission.userId === userId);
   const isAdmin = userRole === "ADMIN";
+  const isPublicParticipant = mission.visibility === "PUBLIC";
 
-  if (!isRequester && !isAssignedScout && !isAdmin) {
+  const hasEvidence = await prisma.evidence.findFirst({
+    where: { missionId, userId },
+    select: { id: true },
+  }).then((res) => Boolean(res));
+
+  if (!isRequester && !isAssignedScout && !isRecipient && !isSubmitter && !hasEvidence && !isPublicParticipant && !isAdmin) {
     return {
       error: "Forbidden: You are not an authorized participant for this mission",
       status: 403 as const,

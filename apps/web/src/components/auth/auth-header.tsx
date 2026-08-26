@@ -51,16 +51,33 @@ export function AuthHeaderActions() {
     const targetHref =
       dashboardHref || (session.user.role === "SCOUT" ? "/scout/missions" : "/missions");
 
+    const avatarUrl = session.user.image || null;
+    const userInitials = (session.user.name || session.user.email || "U").substring(0, 2).toUpperCase();
+
     return (
       <div className="flex items-center gap-2">
-        <span className="hidden text-sm text-[var(--scoutx-muted-foreground)] md:inline">
-          {session.user.email}
-        </span>
+        <Link
+          href="/profile"
+          className="flex items-center gap-2 rounded-full border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-2.5 py-1 text-xs font-semibold text-[var(--scoutx-foreground)] transition-colors hover:bg-[var(--scoutx-muted)]"
+          title="View Your Profile"
+        >
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="Avatar" className="h-5 w-5 rounded-full object-cover" />
+          ) : (
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[var(--scoutx-primary)] text-[10px] font-extrabold text-white">
+              {userInitials}
+            </span>
+          )}
+          <span className="hidden sm:inline font-bold">Profile</span>
+        </Link>
+
         <Button variant="ghost" size="sm" asChild>
           <Link href={targetHref} prefetch={false}>
             Dashboard
           </Link>
         </Button>
+
         <Button
           variant="outline"
           size="sm"
@@ -74,6 +91,9 @@ export function AuthHeaderActions() {
 
   return (
     <div className="flex items-center gap-2">
+      <Button variant="ghost" size="sm" asChild>
+        <Link href="/profile">👤 Profile</Link>
+      </Button>
       <Button variant="ghost" size="sm" asChild>
         <Link href="/sign-in">Sign in</Link>
       </Button>

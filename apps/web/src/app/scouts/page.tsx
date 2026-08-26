@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@scoutx/ui";
+import { formatCurrency as formatRewardCurrency } from "@scoutx/application";
 import { TopScoutersSection, type TopScout } from "@/components/landing/top-scouters-section";
 
 export default function ScoutsLeaderboardPage() {
@@ -28,7 +29,7 @@ export default function ScoutsLeaderboardPage() {
   }, []);
 
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(cents);
+    return formatRewardCurrency(cents, "USD");
   };
 
   return (

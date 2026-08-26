@@ -31,6 +31,13 @@ enum MissionStatus {
   IN_PROGRESS
   SUBMITTED
   VERIFIED
+  PENDING_REQUESTER_ACCEPTANCE
+  COMPLETED_PENDING_SETTLEMENT
+  DISPUTED
+  COMMUNITY_VOTING
+  VOTING_FINALIZED
+  SETTLEMENT_PENDING
+  REWARDED
   COMPLETED
   CANCELLED
   EXPIRED
@@ -49,6 +56,12 @@ enum ScoutAvailability {
   OFFLINE
 }
 
+enum MissionVisibility {
+  PUBLIC
+  PRIVATE
+  INDIVIDUAL
+}
+
 model User {
   id               String   @id @default(uuid()) @db.Uuid
   email            String   @unique
@@ -60,17 +73,24 @@ model User {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  scoutProfile      ScoutProfile?
-  requestedMissions Mission[]            @relation("RequestedMissions")
-  submissions       MissionSubmission[]
-  evidence          Evidence[]
-    trustScore            TrustScore?
+  userProfile           UserProfile?
+  scoutProfile          ScoutProfile?
+  requestedMissions     Mission[]            @relation("RequestedMissions")
+  submissions           MissionSubmission[]
+  evidence              Evidence[]
+  trustScore            TrustScore?
   trustActionsGiven     TrustActionRecord[] @relation("TrustActionsGiven")
   trustActionsReceived  TrustActionRecord[] @relation("TrustActionsReceived")
   coinTransactions      CoinTransaction[]
   sessions              Session[]
   withdrawalRequests    WithdrawalRequest[]
-  pendingAttachments    PendingAttachment[]
+  pendingAttachments         PendingAttachment[]
+  receivedIndividualMissions MissionRecipient[]  @relation("ReceivedIndividualMissions")
+  disputesInitiated          Dispute[]           @relation("DisputeInitiator")
+  disputeEvidences           DisputeEvidence[]
+  disputeVotes               DisputeVote[]
+  rewardRequests             RewardRequest[]
+  notifications              Notification[]
 
   @@map("users")
 }
@@ -121,39 +141,69 @@ model ScoutProfile {
 }
 
 model Mission {
-  id              String          @id @default(uuid()) @db.Uuid
-  title           String
-  description     String
-  category        MissionCategory
-  status          MissionStatus   @default(DRAFT)
-  urgency         MissionUrgency  @default(NORMAL)
-  budgetCents     Int
-  currency        String          @default("VND") @db.Char(3)
-  locationId      String          @db.Uuid
-  latitude        Float
-  longitude       Float
-  radiusMeters    Int             @default(1500)
-  requesterId     String          @db.Uuid
-  assignedScoutId String?         @db.Uuid
-  requiredTags    String[]
-  expiresAt       DateTime
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
+  id                    String            @id @default(uuid()) @db.Uuid
+  title                 String
+  description           String
+  category              MissionCategory
+  status                MissionStatus     @default(DRAFT)
+  urgency               MissionUrgency    @default(NORMAL)
+  visibility            MissionVisibility @default(PUBLIC)
+  publicLogs            Boolean           @default(true)
+  budgetCents           Int
+  currency              String            @default("VND") @db.Char(3)
+  locationId            String            @db.Uuid
+  latitude              Float
+  longitude             Float
+  radiusMeters          Int               @default(1500)
+  requesterId           String            @db.Uuid
+  assignedScoutId       String?           @db.Uuid
+  winnerId              String?           @db.Uuid
+  requiredTags          String[]
+  targetCities          String[]          @default([])
+  targetGender          String?           @default("ANY")
+  targetAgeRange        String?           @default("ANY")
+  targetExperienceLevel String?           @default("ANY")
+  targetLanguages       String[]          @default([])
+  completionRequestedAt DateTime?
+  settlementStartedAt   DateTime?
+  rewardReleasedAt      DateTime?
+  expiresAt             DateTime
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
-  location      Location           @relation(fields: [locationId], references: [id])
-  requester     User               @relation("RequestedMissions", fields: [requesterId], references: [id])
-  assignedScout ScoutProfile?      @relation("AssignedScout", fields: [assignedScoutId], references: [id])
-  submission    MissionSubmission?
-    evidence        Evidence[]
-  timelineEntries TimelineEntry[]
-  trustActions    TrustActionRecord[]
+  location         Location            @relation(fields: [locationId], references: [id])
+  requester        User                @relation("RequestedMissions", fields: [requesterId], references: [id])
+  assignedScout    ScoutProfile?       @relation("AssignedScout", fields: [assignedScoutId], references: [id])
+  submission       MissionSubmission?
+  evidence         Evidence[]
+  timelineEntries  TimelineEntry[]
+  trustActions     TrustActionRecord[]
   coinTransactions CoinTransaction[]
+  recipients       MissionRecipient[]
+  dispute          Dispute?
+  rewardRequests   RewardRequest[]
+  notifications    Notification[]
 
   @@index([status, expiresAt])
   @@index([locationId])
   @@index([requesterId])
   @@index([assignedScoutId])
+  @@index([visibility])
   @@map("missions")
+}
+
+model MissionRecipient {
+  id        String   @id @default(uuid()) @db.Uuid
+  missionId String   @db.Uuid
+  userId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user    User    @relation("ReceivedIndividualMissions", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([missionId, userId])
+  @@index([userId])
+  @@map("mission_recipients")
 }
 
 model MissionSubmission {
@@ -339,4 +389,142 @@ model PendingAttachment {
   @@index([userId])
   @@index([consumed, createdAt])
   @@map("pending_attachments")
+}
+
+model UserProfile {
+  id                    String   @id @default(uuid()) @db.Uuid
+  userId                String   @unique @db.Uuid
+  bio                   String?
+  expertise             String?
+  livingCity            String?  @default("Ho Chi Minh City")
+  livingCountry         String?  @default("Vietnam")
+  livingCountryCode     String?  @default("VN")
+  latitude              Float?   @default(10.7769)
+  longitude             Float?   @default(106.7009)
+  availableForMissions  Boolean  @default(true)
+  missionCities         String[] @default(["Ho Chi Minh City"])
+  skills                String[] @default([])
+  preferredMissionTypes String[] @default([])
+
+  // Private contact information (Owner + Admin ONLY)
+  legalName             String?
+  phone                 String?
+  privateNotes          String?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model Dispute {
+  id           String   @id @default(uuid()) @db.Uuid
+  missionId    String   @unique @db.Uuid
+  initiatorId  String   @db.Uuid
+  reason       String
+  fundedCoin   Int      @default(0)
+  status       String   @default("OPEN")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  mission   Mission           @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  initiator User              @relation("DisputeInitiator", fields: [initiatorId], references: [id])
+  evidences DisputeEvidence[]
+  rounds    DisputeRound[]
+  votes     DisputeVote[]
+
+  @@map("disputes")
+}
+
+model DisputeEvidence {
+  id          String   @id @default(uuid()) @db.Uuid
+  disputeId   String   @db.Uuid
+  ownerId     String   @db.Uuid
+  fileUrl     String
+  storageKey  String?
+  explanation String
+  createdAt   DateTime @default(now())
+
+  dispute Dispute @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  owner   User    @relation(fields: [ownerId], references: [id])
+
+  @@index([disputeId])
+  @@map("dispute_evidences")
+}
+
+model DisputeRound {
+  id               String    @id @default(uuid()) @db.Uuid
+  disputeId        String    @db.Uuid
+  roundNumber      Int       @default(1)
+  minVotesRequired Int       @default(50)
+  fundedCoin       Int       @default(0)
+  durationDays     Int       @default(1)
+  startsAt         DateTime  @default(now())
+  endsAt           DateTime
+  status           String    @default("ACTIVE") // ACTIVE | FINALIZED | TIE_REVIEW
+  winningSide      String?   // REQUESTER_WIN | WORKER_WIN | TIE
+  finalizedAt      DateTime?
+  createdAt        DateTime  @default(now())
+
+  dispute Dispute       @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  votes   DisputeVote[]
+
+  @@index([disputeId, roundNumber])
+  @@map("dispute_rounds")
+}
+
+model DisputeVote {
+  id           String   @id @default(uuid()) @db.Uuid
+  disputeId    String   @db.Uuid
+  roundId      String   @db.Uuid
+  voterId      String   @db.Uuid
+  selectedSide String   // REQUESTER_WIN | WORKER_WIN
+  rewardCoin   Int      @default(1)
+  votedAt      DateTime @default(now())
+
+  dispute Dispute      @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  round   DisputeRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  voter   User         @relation(fields: [voterId], references: [id])
+
+  @@unique([roundId, voterId])
+  @@index([disputeId])
+  @@map("dispute_votes")
+}
+
+model RewardRequest {
+  id         String   @id @default(uuid()) @db.Uuid
+  missionId  String   @db.Uuid
+  userId     String   @db.Uuid
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@unique([missionId, userId])
+  @@index([missionId])
+  @@index([userId])
+  @@map("reward_requests")
+}
+
+model Notification {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  type      String
+  title     String
+  body      String
+  link      String?
+  read      Boolean  @default(false)
+  missionId String?  @db.Uuid
+  createdAt DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission Mission? @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([missionId])
+  @@map("notifications")
 }

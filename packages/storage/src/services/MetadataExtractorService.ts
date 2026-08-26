@@ -1,5 +1,5 @@
 import type { FileMetadata, MetadataExtractor } from "../contracts/Metadata";
-import { createHash } from "node:crypto";
+import { createHash } from "crypto";
 
 export class MetadataExtractorService implements MetadataExtractor {
   async extract(filePath: string): Promise<FileMetadata> {

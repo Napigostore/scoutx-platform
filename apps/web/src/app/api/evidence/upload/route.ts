@@ -6,6 +6,7 @@ import { LocalStorageProvider, UploadService, createStorageProvider } from "@sco
 import { EvidenceFileValidator } from "@scoutx/application";
 import { prisma } from "@/lib/prisma";
 import path from "node:path";
+import { notifyEvidenceUploaded } from "@/lib/notification-service";
 
 function getStorageProvider() {
   if (process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET) {
@@ -42,6 +43,18 @@ export async function POST(request: Request) {
       const errorStatus =
         (participantCtx && "status" in participantCtx && participantCtx.status) || 401;
       return apiError(errorMsg, errorStatus);
+    }
+
+    // Locked if mission is already approved/completed by requester
+    const lockedStatuses = [
+      "COMPLETED",
+      "REWARDED",
+      "COMPLETED_PENDING_SETTLEMENT",
+      "SETTLEMENT_PENDING",
+      "VOTING_FINALIZED",
+    ];
+    if (lockedStatuses.includes(participantCtx.mission.status)) {
+      return apiError("Mission is already completed/approved. New evidence is locked.", 409);
     }
 
     // 2. File sanitization & path traversal prevention
@@ -102,6 +115,8 @@ export async function POST(request: Request) {
             mediaUrl: finalUrl,
           },
         });
+        // Notify requester about new evidence
+        await notifyEvidenceUploaded(missionId, participantCtx.userId).catch(() => {});
       }
 
       await prisma.timelineEntry.create({

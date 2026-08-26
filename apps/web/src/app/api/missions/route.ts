@@ -37,9 +37,12 @@ export async function POST(request: Request) {
       user = await prisma.user.findUnique({ where: { email: principal.email } });
     }
 
-    if (!user || user.role !== "REQUESTER") {
-      console.log("[MISSION_DRAFT_ERROR] stage=authorization message=Forbidden");
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!user || (user.role !== "REQUESTER" && user.role !== "ADMIN")) {
+      console.log("[MISSION_DRAFT_ERROR] stage=authorization message=Permission denied");
+      return NextResponse.json({
+        error: "PERMISSION_DENIED",
+        message: "Only Requesters or Admins can create missions. Please sign in with a Requester account.",
+      }, { status: 403 });
     }
 
     const body = await request.json().catch(() => null);
@@ -51,8 +54,21 @@ export async function POST(request: Request) {
     const parsed = CreateMissionInputSchema.safeParse(body);
     if (!parsed.success) {
       console.log("[MISSION_DRAFT_ERROR] stage=validation message=Validation failed");
+      const fieldErrors: Record<string, string> = {};
+      const formatted = parsed.error.format();
+      if (formatted.title?._errors?.length) fieldErrors.title = formatted.title._errors[0]!;
+      if (formatted.description?._errors?.length) fieldErrors.description = formatted.description._errors[0]!;
+      if (formatted.category?._errors?.length) fieldErrors.category = formatted.category._errors[0]!;
+      if (formatted.budget?._errors?.length) fieldErrors.budget = formatted.budget._errors[0]!;
+      if (formatted.coordinates?._errors?.length) fieldErrors.coordinates = formatted.coordinates._errors[0]!;
+
       return NextResponse.json(
-        { error: "Validation failed", details: parsed.error.format() },
+        {
+          error: "VALIDATION_ERROR",
+          message: "Please correct the highlighted fields before submitting.",
+          fields: fieldErrors,
+          details: formatted,
+        },
         { status: 422 },
       );
     }
@@ -81,7 +97,9 @@ export async function POST(request: Request) {
       mimeType: string;
     }> = [];
 
-    for (const att of rawAttachments) {
+    for (const rawAtt of rawAttachments) {
+      const att = typeof rawAtt === "string" ? { storageKey: rawAtt } : rawAtt;
+
       if (att.token) {
         const verified = verifyAttachmentToken(att.token);
         if (!verified) {
@@ -115,10 +133,18 @@ export async function POST(request: Request) {
           fileName: verified.fileName,
           mimeType: verified.mimeType,
         });
-      } else if (att.storageKey && att.url && att.fileName) {
-        // Fallback for commit 9b53434 compatibility
-        const pending = await prisma.pendingAttachment.findUnique({
-          where: { storageKey: att.storageKey },
+      } else {
+        const keyOrUrl = att.storageKey || att.url || (typeof rawAtt === "string" ? rawAtt : "");
+        if (!keyOrUrl) continue;
+
+        const pending = await prisma.pendingAttachment.findFirst({
+          where: {
+            OR: [
+              { storageKey: keyOrUrl },
+              { mediaUrl: keyOrUrl },
+              { id: keyOrUrl },
+            ],
+          },
         });
 
         if (pending) {
@@ -134,20 +160,87 @@ export async function POST(request: Request) {
               { status: 400 },
             );
           }
-        }
 
-        verifiedAttachments.push({
-          storageKey: att.storageKey,
-          url: att.url,
-          fileName: att.fileName,
-          mimeType: att.mimeType || "application/octet-stream",
-        });
+          verifiedAttachments.push({
+            storageKey: pending.storageKey,
+            url: pending.mediaUrl,
+            fileName: pending.fileName,
+            mimeType: pending.mimeType,
+          });
+        } else if (att.storageKey && att.url && att.fileName) {
+          verifiedAttachments.push({
+            storageKey: att.storageKey,
+            url: att.url,
+            fileName: att.fileName,
+            mimeType: att.mimeType || "application/octet-stream",
+          });
+        }
       }
     }
 
     const { createMissionUseCase } = getMissionUseCases();
     const mission = await createMissionUseCase.execute(parsed.data, user.id, "REQUESTER");
     console.log("[MISSION_DRAFT_DEBUG] create_mission_success");
+
+    // Save Mission Visibility & Individual Recipients
+    const visibility = body.visibility === "PRIVATE" || body.visibility === "INDIVIDUAL" ? body.visibility : "PUBLIC";
+    const publicLogs = body.publicLogs !== undefined ? Boolean(body.publicLogs) : true;
+
+    const targetCities: string[] = Array.isArray(body.targetCities) ? body.targetCities : [];
+    const targetGender: string = typeof body.targetGender === "string" ? body.targetGender : "ANY";
+    const targetAgeRange: string = typeof body.targetAgeRange === "string" ? body.targetAgeRange : "ANY";
+    const targetExperienceLevel: string = typeof body.targetExperienceLevel === "string" ? body.targetExperienceLevel : "ANY";
+    const targetLanguages: string[] = Array.isArray(body.targetLanguages) ? body.targetLanguages : [];
+
+    await prisma.mission.update({
+      where: { id: mission.id },
+      data: {
+        visibility,
+        publicLogs,
+        targetCities,
+        targetGender,
+        targetAgeRange,
+        targetExperienceLevel,
+        targetLanguages,
+      },
+    });
+
+    if (visibility === "INDIVIDUAL") {
+      const recipientUsernames: string[] = Array.isArray(body.recipientUsernames)
+        ? body.recipientUsernames
+        : typeof body.recipientUsername === "string"
+        ? [body.recipientUsername]
+        : [];
+      const recipientIds: string[] = Array.isArray(body.recipientIds) ? body.recipientIds : [];
+
+      const cleanUsernames = recipientUsernames
+        .map((u) => u.replace(/^@/, "").trim())
+        .filter(Boolean);
+
+      const targetUsers = await prisma.user.findMany({
+        where: {
+          OR: [
+            ...(recipientIds.length > 0 ? [{ id: { in: recipientIds } }] : []),
+            ...(cleanUsernames.length > 0
+              ? cleanUsernames.map((u) => ({
+                  displayName: { equals: u, mode: "insensitive" as const },
+                }))
+              : []),
+          ],
+        },
+        select: { id: true },
+      });
+
+      if (targetUsers.length > 0) {
+        await prisma.missionRecipient.createMany({
+          data: targetUsers.map((u) => ({
+            missionId: mission.id,
+            userId: u.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
 
     // 2. Process initial reference attachments atomically
     try {
@@ -233,37 +326,45 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const principal = await getAuthenticatedPrincipal(request);
-    if (!principal) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      principal.id,
-    );
-    let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
-
-    if (!user && principal.email) {
-      user = await prisma.user.findUnique({ where: { email: principal.email } });
-    }
-
-    if (!user || user.role !== "REQUESTER") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     const { searchParams } = new URL(request.url);
+    const scope = searchParams.get("scope");
     const status = searchParams.get("status") || "ALL";
     const page = parseInt(searchParams.get("page") || "1", 10);
     const limit = parseInt(searchParams.get("limit") || "20", 10);
-    const sort = (searchParams.get("sort") || "last_activity_desc") as
-      "last_activity_desc" | "created_at_desc";
+    const sort = searchParams.get("sort") || "recommended";
+    const q = searchParams.get("q") || searchParams.get("query") || "";
 
-    const result = await fetchRequesterMissionsSummary(user.id, {
-      status,
-      page,
-      limit,
-      sort,
-    });
+    let requesterUserId: string | null = null;
+    let currentUserId: string | null = null;
+
+    const principal = await getAuthenticatedPrincipal(request);
+    if (principal) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        principal.id,
+      );
+      let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
+      if (!user && principal.email) {
+        user = await prisma.user.findUnique({ where: { email: principal.email } });
+      }
+      if (user) {
+        currentUserId = user.id;
+        if (scope === "mine") {
+          requesterUserId = user.id;
+        }
+      }
+    }
+
+    const result = await fetchRequesterMissionsSummary(
+      requesterUserId,
+      {
+        status,
+        page,
+        limit,
+        sort,
+        q,
+      },
+      currentUserId,
+    );
 
     return NextResponse.json(result, { status: 200 });
   } catch (error: unknown) {

@@ -10,9 +10,9 @@ export function BetaBanner() {
 
   return (
     <div className="relative flex items-center justify-center gap-2 bg-[var(--scoutx-hero-from)] px-4 py-2 text-center text-xs font-semibold text-white">
-      <span>⚡ FIWOKAN Beta — Miễn phí nền tảng trong giai đoạn Beta (Zero Platform Fee)</span>
+      <span>⚡ FIWOKAN Beta — Zero platform fee during Beta release</span>
       <Link href="/faq" className="ml-1 font-bold underline hover:text-white/90">
-        Chi tiết
+        Details
       </Link>
       <button
         type="button"

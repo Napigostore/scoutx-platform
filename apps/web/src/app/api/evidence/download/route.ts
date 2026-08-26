@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { authenticate } from "@/lib/auth-helpers";
 import { apiError } from "@/lib/error-mapper";
 import { LocalStorageProvider, createStorageProvider } from "@scoutx/storage";
 import { readFile } from "node:fs/promises";
-import { join } from "node:path";
+import { join, extname, normalize } from "node:path";
 
 function getStorageProvider() {
   if (process.env.R2_ACCESS_KEY_ID && process.env.R2_SECRET_ACCESS_KEY && process.env.R2_BUCKET) {
@@ -20,30 +19,67 @@ function getStorageProvider() {
 
 const storageProvider = getStorageProvider();
 
-export async function GET(request: Request) {
-  const principal = await authenticate(request);
-  if (!principal) {
-    return apiError("Unauthorized", 401);
+function getMimeType(key: string): string {
+  const ext = extname(key).toLowerCase();
+  switch (ext) {
+    case ".png":
+      return "image/png";
+    case ".jpg":
+    case ".jpeg":
+      return "image/jpeg";
+    case ".webp":
+      return "image/webp";
+    case ".gif":
+      return "image/gif";
+    case ".svg":
+      return "image/svg+xml";
+    case ".mp4":
+      return "video/mp4";
+    case ".webm":
+      return "video/webm";
+    case ".mov":
+      return "video/quicktime";
+    case ".ogg":
+      return "video/ogg";
+    default:
+      return "application/octet-stream";
   }
+}
 
+export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const storageKey = searchParams.get("key");
+  const rawKey = searchParams.get("key");
 
-  if (!storageKey) {
+  if (!rawKey) {
     return apiError("key query parameter required", 422);
   }
 
+  // Prevent path traversal
+  const cleanKey = normalize(rawKey.replace(/\\/g, "/"));
+  if (cleanKey.includes("..") || cleanKey.startsWith("/") || cleanKey.startsWith("\\")) {
+    return apiError("Invalid storage key", 400);
+  }
+
+  const isDownload =
+    searchParams.get("download") === "true" || searchParams.get("disposition") === "attachment";
+  const dispositionType = isDownload ? "attachment" : "inline";
+
   try {
-    const downloadUrl = await storageProvider.getDownloadUrl(storageKey);
+    const downloadUrl = await storageProvider.getDownloadUrl(cleanKey);
     if (downloadUrl.startsWith("http://") || downloadUrl.startsWith("https://")) {
       return NextResponse.redirect(downloadUrl);
     }
 
-    const buffer = await readFile(join("./data/evidence", storageKey));
+    const filePath = join("./data/evidence", cleanKey);
+    const buffer = await readFile(filePath);
+    const customMime = searchParams.get("mimeType");
+    const mimeType = customMime || getMimeType(cleanKey);
+
     return new NextResponse(buffer, {
       headers: {
-        "Content-Type": "application/octet-stream",
-        "Content-Disposition": `attachment; filename="${encodeURIComponent(storageKey)}"`,
+        "Content-Type": mimeType,
+        "Content-Disposition": `${dispositionType}; filename="${encodeURIComponent(cleanKey)}"`,
+        "Cache-Control": "public, max-age=3600",
       },
     });
   } catch {

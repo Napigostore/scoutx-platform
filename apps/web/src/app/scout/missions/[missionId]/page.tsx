@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@scoutx/ui";
+import { formatCurrency } from "@scoutx/application";
 
 interface Mission {
   id: string;
@@ -161,10 +162,10 @@ export default function ScoutMissionDetailsPage({
             <Button asChild>
               <Link href={`/scout/missions/${mission.id}/work`}>
                 {mission.status === "MATCHED"
-                  ? "Start Work / Làm nhiệm vụ"
+                  ? "Start Work"
                   : mission.status === "IN_PROGRESS"
-                    ? "Continue Work / Tiếp tục làm"
-                    : "View Submission / Xem báo cáo"}
+                    ? "Continue Work"
+                    : "View Submission"}
               </Link>
             </Button>
           )}
@@ -253,13 +254,7 @@ export default function ScoutMissionDetailsPage({
               Budget
             </span>
             <p className="mt-1 text-3xl font-bold text-[var(--scoutx-foreground)]">
-              {mission.budget.currency?.trim().toUpperCase() === "VND"
-                ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-                    mission.budget.amountCents,
-                  )
-                : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-                    mission.budget.amountCents / 100,
-                  )}
+              {formatCurrency(mission.budget.amountCents, mission.budget.currency)}
             </p>
           </div>
 

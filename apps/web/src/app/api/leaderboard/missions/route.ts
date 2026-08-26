@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { formatCurrency } from "@scoutx/application";
 import { prisma } from "@/lib/prisma";
 
 export const revalidate = 0;
@@ -70,8 +71,8 @@ const REQUESTERS = [
   { name: "Heritage Preservation NGO", rating: 4.75 },
 ];
 
-// Generate 50 mock missions with rewards ranging from 100,000 VND ($4) to 12,500,000,000 VND ($500,000 USD)
-const MOCK_50_MISSIONS = Array.from({ length: 50 }, (_, i) => {
+// Generate 100 mock missions with rewards ranging from 100,000 VND ($4) to 12,500,000,000 VND ($500,000 USD)
+const MOCK_100_MISSIONS = Array.from({ length: 100 }, (_, i) => {
   const num = i + 1;
   const category = CATEGORIES[i % CATEGORIES.length] || "PHOTO_VERIFICATION";
   const cityObj = CITIES[i % CITIES.length] || { name: "Ho Chi Minh City", country: "Vietnam" };
@@ -85,20 +86,21 @@ const MOCK_50_MISSIONS = Array.from({ length: 50 }, (_, i) => {
   else if (i === 1) budgetCents = 7500000000;
   else if (i === 2) budgetCents = 3750000000;
   else if (i === 3) budgetCents = 2500000000;
-  else if (i < 15) budgetCents = Math.round(1500000000 * Math.pow(0.75, i - 4));
-  else if (i < 35) budgetCents = Math.round(100000000 * Math.pow(0.85, i - 15));
-  else budgetCents = Math.max(100000, Math.round(10000000 * Math.pow(0.8, i - 35)));
+  else if (i === 4) budgetCents = 1500000000;
+  else if (i < 20) budgetCents = Math.round(500000000 * Math.pow(0.85, i - 5));
+  else if (i < 60) budgetCents = Math.round(25000000 * Math.pow(0.9, i - 20));
+  else budgetCents = Math.max(100000, Math.round(1000000 * Math.pow(0.92, i - 60)));
 
   const urgency = i % 4 === 0 ? "CRITICAL" : i % 3 === 0 ? "HIGH" : i % 2 === 0 ? "NORMAL" : "LOW";
-  const uniqueScoutsCount = Math.max(1, Math.floor(25 * Math.pow(0.93, i)));
+  const uniqueScoutsCount = Math.max(1, Math.floor(30 * Math.pow(0.94, i)));
   const estimatedTimeMins = 15 + (i % 6) * 10;
   const difficulty =
     budgetCents > 100000000 ? "Advanced" : budgetCents > 10000000 ? "Medium" : "Easy";
   const evidenceRequiredCount = 2 + (i % 4);
-  const hoursLeft = Math.max(1, 48 - i * 0.9);
+  const hoursLeft = Math.max(1, Math.ceil(48 - i * 0.45));
 
   return {
-    id: `m-${String(num).padStart(2, "0")}`,
+    id: `m-${String(num).padStart(3, "0")}`,
     title: `[Mission #${num}] Verification of ${category.replace("_", " ")} at ${cityObj.name}`,
     category,
     urgency,
@@ -111,7 +113,7 @@ const MOCK_50_MISSIONS = Array.from({ length: 50 }, (_, i) => {
     evidenceRequiredCount,
     requesterName: requester.name,
     requesterReputation: requester.rating,
-    hoursLeft: Math.ceil(hoursLeft),
+    hoursLeft,
   };
 });
 
@@ -120,22 +122,33 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const filter = searchParams.get("filter") || "trending";
     const category = searchParams.get("category");
-    const limit = parseInt(searchParams.get("limit") || "50", 10);
+    const limit = parseInt(searchParams.get("limit") || "100", 10);
 
     let missions: MissionRecord[] = [];
     try {
       const whereClause: Record<string, unknown> = {
-        status: "OPEN",
-        expiresAt: { gt: new Date() },
+        status: { in: ["OPEN", "IN_PROGRESS"] },
       };
 
       if (category && category !== "ALL") {
         whereClause.category = category;
       }
 
+      let orderByClause: Record<string, unknown> = { createdAt: "desc" };
+      if (filter === "highest_reward") {
+        orderByClause = { budgetCents: "desc" };
+      } else if (filter === "ending_soon") {
+        orderByClause = { expiresAt: "asc" };
+      } else if (filter === "most_wanted") {
+        orderByClause = { evidence: { _count: "desc" } };
+      } else {
+        orderByClause = { createdAt: "desc" };
+      }
+
       const dbMissions = await prisma.mission.findMany({
         where: whereClause,
-        take: 50,
+        take: limit,
+        orderBy: orderByClause,
         include: {
           location: { select: { name: true, city: true, country: true } },
           requester: {
@@ -204,10 +217,7 @@ export async function GET(request: Request) {
       else if (m.urgency === "CRITICAL" || hoursLeft < 12)
         trendingReason = `Due in ${Math.ceil(hoursLeft)}h`;
 
-      const budgetLabel = new Intl.NumberFormat("vi-VN", {
-        style: "currency",
-        currency: "VND",
-      }).format(rewardCents);
+      const budgetLabel = formatCurrency(rewardCents, m.currency);
 
       return {
         id: m.id,
@@ -244,20 +254,15 @@ export async function GET(request: Request) {
             : (m.radiusMeters || 1500) > 1500
               ? "Medium"
               : "Easy",
-        evidenceRequiredCount:
-          (m.requiredTags || []).length > 0 ? (m.requiredTags || []).length : 2,
+        evidenceRequiredCount: (m.requiredTags || []).length > 0 ? (m.requiredTags || []).length : 2,
       };
     });
 
     if (scoredMissions.length === 0) {
-      scoredMissions = MOCK_50_MISSIONS.map((m) => {
-        const budgetLabel = new Intl.NumberFormat("vi-VN", {
-          style: "currency",
-          currency: "VND",
-        }).format(m.budgetCents);
+      scoredMissions = MOCK_100_MISSIONS.map((m) => {
+        const budgetLabel = formatCurrency(m.budgetCents, "USD");
         const urgencyScore = m.urgency === "CRITICAL" ? 25 : m.urgency === "HIGH" ? 15 : 5;
-        const compositeScore =
-          m.uniqueScoutsCount * 30 + urgencyScore + (m.budgetCents / 1000000) * 10;
+        const compositeScore = m.uniqueScoutsCount * 30 + urgencyScore + (m.budgetCents / 1000000) * 10;
         const demandText = `${m.uniqueScoutsCount} scouts active`;
 
         let trendingReason = demandText;
@@ -326,6 +331,9 @@ export async function GET(request: Request) {
   } catch (error: unknown) {
     const err = error as { message?: string };
     console.error("[LEADERBOARD_MISSIONS_ERROR]", err?.message);
-    return NextResponse.json({ error: "Failed to fetch top missions ranking" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch top missions ranking" },
+      { status: 500 },
+    );
   }
 }

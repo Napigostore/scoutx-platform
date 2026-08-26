@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@scoutx/ui";
+import { formatCurrency } from "@scoutx/application";
 
 interface Mission {
   id: string;
@@ -113,7 +114,7 @@ export default function ScoutMissionsPage() {
                 : "border-transparent text-[var(--scoutx-muted-foreground)] hover:border-gray-300 hover:text-[var(--scoutx-foreground)]"
             }`}
           >
-            Nhiệm vụ đã nhận ({assignedMissions.length})
+            Assigned Missions ({assignedMissions.length})
           </button>
 
           <button
@@ -124,7 +125,7 @@ export default function ScoutMissionsPage() {
                 : "border-transparent text-[var(--scoutx-muted-foreground)] hover:border-gray-300 hover:text-[var(--scoutx-foreground)]"
             }`}
           >
-            Khám phá nhiệm vụ ({availableMissions.length})
+            Discover Missions ({availableMissions.length})
           </button>
         </nav>
       </div>
@@ -144,16 +145,16 @@ export default function ScoutMissionsPage() {
       {!isLoading && !error && displayedMissions.length === 0 && (
         <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--scoutx-border)] p-8 text-center">
           <h3 className="font-display text-lg font-semibold text-[var(--scoutx-foreground)]">
-            {activeTab === "assigned" ? "Chưa có nhiệm vụ đã nhận" : "Chưa có nhiệm vụ mới"}
+            {activeTab === "assigned" ? "No assigned missions yet" : "No available missions"}
           </h3>
           <p className="mt-2 text-sm text-[var(--scoutx-muted-foreground)]">
             {activeTab === "assigned"
-              ? "Chuyển sang tab Khám phá nhiệm vụ để nhận nhiệm vụ mới."
-              : "Quay lại sau để cập nhật nhiệm vụ mới."}
+              ? "Switch to the Discover Missions tab to find new tasks."
+              : "Check back later for new mission updates."}
           </p>
           {activeTab === "assigned" && (
             <Button className="mt-4" onClick={() => setActiveTab("available")}>
-              Khám phá nhiệm vụ ngay
+              Discover Missions Now
             </Button>
           )}
         </div>
@@ -179,15 +180,7 @@ export default function ScoutMissionsPage() {
                     {mission.status}
                   </span>
                   <span className="text-sm font-semibold text-[var(--scoutx-primary)]">
-                    {mission.budget.currency?.trim().toUpperCase() === "VND"
-                      ? new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                        }).format(mission.budget.amountCents)
-                      : new Intl.NumberFormat("en-US", {
-                          style: "currency",
-                          currency: "USD",
-                        }).format(mission.budget.amountCents / 100)}
+                    {formatCurrency(mission.budget.amountCents, mission.budget.currency)}
                   </span>
                 </div>
                 <h3 className="font-display mt-4 text-lg font-bold text-[var(--scoutx-foreground)] group-hover:text-[var(--scoutx-primary)]">
@@ -210,7 +203,7 @@ export default function ScoutMissionsPage() {
                         router.push(`/scout/missions/${mission.id}/work`);
                       }}
                     >
-                      Làm nhiệm vụ &rarr;
+                      Execute Mission &rarr;
                     </Button>
                   ) : (
                     <Button
@@ -220,7 +213,7 @@ export default function ScoutMissionsPage() {
                         router.push(`/scout/missions/${mission.id}`);
                       }}
                     >
-                      Xem chi tiết
+                      View Details
                     </Button>
                   )}
                 </div>

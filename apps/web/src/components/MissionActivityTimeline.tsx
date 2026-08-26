@@ -278,7 +278,7 @@ export function MissionActivityTimeline({
                     </div>
 
                     <span className="text-[11px] text-[var(--scoutx-muted-foreground)]">
-                      {new Date(ev.createdAt).toLocaleString("vi-VN", {
+                      {new Date(ev.createdAt).toLocaleString("en-US", {
                         hour: "2-digit",
                         minute: "2-digit",
                         day: "2-digit",

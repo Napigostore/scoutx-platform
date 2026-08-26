@@ -1,5 +1,5 @@
 import type { AuthenticatedPrincipal } from "../contracts/index.js";
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 
 export interface TokenVerifier {
   sign(principal: AuthenticatedPrincipal, expiresInSeconds: number): Promise<string>;

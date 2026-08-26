@@ -1,4 +1,4 @@
-import createHmac from "node:crypto";
+import { createHmac } from "crypto";
 import type {
   PaymentProvider,
   PaymentTransaction,
@@ -42,7 +42,7 @@ export class MoMoPaymentProvider implements PaymentProvider {
 
     const rawSignature = `accessKey=${accessKey}&amount=${input.amount}&extraData=${input.extraData}&ipnUrl=${input.ipnUrl}&orderId=${input.orderId}&orderInfo=${input.orderInfo}&partnerCode=${partnerCode}&redirectUrl=${input.redirectUrl}&requestId=${input.requestId}&requestType=${requestType}`;
 
-    return createHmac.createHmac("sha256", secretKey).update(rawSignature).digest("hex");
+    return createHmac("sha256", secretKey).update(rawSignature).digest("hex");
   }
 
   /**
@@ -69,8 +69,7 @@ export class MoMoPaymentProvider implements PaymentProvider {
 
     const rawSignature = `accessKey=${accessKeyVal}&amount=${amountVal}&extraData=${extraDataVal}&message=${messageVal}&orderId=${orderIdVal}&orderInfo=${orderInfoVal}&orderType=${orderTypeVal}&partnerCode=${partnerCodeVal}&payType=${payTypeVal}&requestId=${requestIdVal}&responseTime=${responseTimeVal}&resultCode=${resultCodeVal}&transId=${transIdVal}`;
 
-    const expectedSignature = createHmac
-      .createHmac("sha256", secretKey)
+    const expectedSignature = createHmac("sha256", secretKey)
       .update(rawSignature)
       .digest("hex");
 

@@ -1,0 +1,64 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build & Turbo
+dist
+.next
+.turbo
+out
+build
+*.tsbuildinfo
+
+# Environment & Secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# IDE & OS
+.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs & Diagnostics
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing & Coverage
+coverage
+.nyc_output
+
+# Prisma
+prisma/*.db
+prisma/*.db-journal
+
+# Temporary agent scripts & helper files
+*.pem
+.cache
+tmp
+temp
+*.lnk
+*.bak
+write-*.js
+check-*.js
+fix-*.cjs
+tmp_*
+append.js
+temp_script.*
+test_write.*
+gen-*.js
+update_*.js
+sx*_update.*
+sx028*.js
+b64_encoded.txt
+tailhex.txt
+test-concurrency-e2e.js

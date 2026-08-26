@@ -4,6 +4,7 @@ import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Input, Label } from "@scoutx/ui";
+import { formatCurrency } from "@scoutx/application";
 import { ScoutLivestreamBroadcaster } from "@/components/ScoutLivestreamBroadcaster";
 import { MissionActivityTimeline } from "@/components/MissionActivityTimeline";
 
@@ -571,13 +572,7 @@ export default function ScoutMissionWorkPage({
               Budget
             </span>
             <p className="mt-1 text-3xl font-bold text-[var(--scoutx-foreground)]">
-              {mission.budget.currency?.trim().toUpperCase() === "VND"
-                ? new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-                    mission.budget.amountCents,
-                  )
-                : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(
-                    mission.budget.amountCents / 100,
-                  )}
+              {formatCurrency(mission.budget.amountCents, mission.budget.currency)}
             </p>
           </div>
 

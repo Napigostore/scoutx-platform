@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "crypto";
 import { writeFile, unlink, access, mkdir } from "node:fs/promises";
 import { join, dirname, extname } from "node:path";
 import type {

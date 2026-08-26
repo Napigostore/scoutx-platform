@@ -1,0 +1,38 @@
+import { NextResponse } from "next/server";
+import { PrismaIdentityRepository } from "@scoutx/infrastructure";
+import { SimplePasswordHasher, SimpleTokenVerifier, requireEnv } from "@scoutx/auth";
+import { SignInUseCase } from "@scoutx/application";
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { email, password } = body;
+
+    if (!email || !password) {
+      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+    }
+
+    const identityRepo = new PrismaIdentityRepository();
+    const passwordHasher = new SimplePasswordHasher();
+    const tokenVerifier = new SimpleTokenVerifier(requireEnv("JWT_SECRET"));
+    const signInUseCase = new SignInUseCase(identityRepo, passwordHasher, tokenVerifier);
+
+    const result = await signInUseCase.execute(email, password);
+
+    const response = NextResponse.json({
+      accessToken: result.accessToken,
+    });
+
+    response.cookies.set("refreshToken", result.refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 3600,
+    });
+
+    return response;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Authentication failed";
+    return NextResponse.json({ error: message }, { status: 401 });
+  }
+}

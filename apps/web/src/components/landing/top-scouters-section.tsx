@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@scoutx/ui";
+import { formatCurrency as formatRewardCurrency } from "@scoutx/application";
 
 export interface TopScout {
   rank: number;
@@ -49,7 +50,7 @@ export function TopScoutersSection() {
   const remaining = scouts.filter((s) => s.rank > 3);
 
   const formatCurrency = (cents: number) => {
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(cents);
+    return formatRewardCurrency(cents, "USD");
   };
 
   return (
@@ -312,7 +313,7 @@ export function TopScoutersSection() {
             className="rounded-full px-8 text-sm font-semibold"
             asChild
           >
-            <Link href="/scouts">Xem Bảng Xếp Hạng Chi Tiết (50 Scouts) →</Link>
+            <Link href="/scouts">View Full Leaderboard (50 Scouts) →</Link>
           </Button>
         </div>
       </div>

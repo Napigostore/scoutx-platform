@@ -29,7 +29,7 @@ export async function POST(
     user = await prisma.user.findUnique({ where: { email: principal.email } });
   }
 
-  if (!user || user.role !== "REQUESTER") {
+  if (!user || (user.role !== "REQUESTER" && user.role !== "ADMIN")) {
     return NextResponse.json(
       { error: "Forbidden: only requesters can approve submissions" },
       { status: 403 },
@@ -37,6 +37,17 @@ export async function POST(
   }
 
   const { missionId } = await params;
+  const missionRecord = await prisma.mission.findUnique({ where: { id: missionId } });
+  if (!missionRecord) {
+    return NextResponse.json({ error: "Mission not found" }, { status: 404 });
+  }
+
+  if (missionRecord.requesterId !== user.id && user.role !== "ADMIN") {
+    return NextResponse.json(
+      { error: "Forbidden: only the requester who created this mission can approve submissions" },
+      { status: 403 },
+    );
+  }
 
   try {
     const approveMissionSubmissionUseCase = getApproveMissionSubmissionUseCase();

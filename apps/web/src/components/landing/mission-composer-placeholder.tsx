@@ -58,8 +58,8 @@ export function MissionComposerPlaceholder() {
       category: values.category,
       urgency: "NORMAL",
       budget: {
-        amountCents: 100000,
-        currency: "VND",
+        amountCents: 1000,
+        currency: "USD",
       },
       locationId: "00000000-0000-0000-0000-000000000001",
       coordinates: {

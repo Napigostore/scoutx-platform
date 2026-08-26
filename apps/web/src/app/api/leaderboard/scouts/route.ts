@@ -173,12 +173,19 @@ const MOCK_50_SCOUTS = Array.from({ length: 50 }, (_, i) => {
   };
 });
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const limit = parseInt(searchParams.get("limit") || "100", 10);
+
     let scoutProfiles: ScoutProfileRecord[] = [];
     try {
       const dbScouts = await prisma.scoutProfile.findMany({
-        take: 50,
+        take: limit,
+        orderBy: [
+          { completedMissions: "desc" },
+          { reliabilityScore: "desc" },
+        ],
         include: {
           user: {
             select: {

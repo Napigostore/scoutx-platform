@@ -17,21 +17,54 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ missionId: string }> },
 ) {
-  const principal = await getAuthenticatedPrincipal(request);
-  if (!principal) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const user = await prisma.user.findUnique({ where: { id: principal.id } });
-  if (!user || user.role !== "REQUESTER") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   const { missionId } = await params;
 
   try {
-    const { getMissionDetailsUseCase } = getMissionUseCases();
-    const mission = await getMissionDetailsUseCase.execute(missionId, principal.id, "REQUESTER");
+    const mission = await prisma.mission.findUnique({
+      where: { id: missionId },
+      include: {
+        location: true,
+        recipients: { select: { userId: true } },
+        assignedScout: { select: { userId: true } },
+      },
+    });
+
+    if (!mission) {
+      return NextResponse.json({ error: "Mission not found" }, { status: 404 });
+    }
+
+    // Server-Side Authorization for PRIVATE & INDIVIDUAL missions
+    if (mission.visibility !== "PUBLIC") {
+      const principal = await getAuthenticatedPrincipal(request);
+      let isAuthorized = false;
+
+      if (principal) {
+        let currentUserId: string | null = null;
+        let userRole: string | null = null;
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(principal.id);
+        let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
+        if (!user && principal.email) {
+          user = await prisma.user.findUnique({ where: { email: principal.email } });
+        }
+        if (user) {
+          currentUserId = user.id;
+          userRole = user.role;
+        }
+
+        if (
+          userRole === "ADMIN" ||
+          mission.requesterId === currentUserId ||
+          mission.assignedScout?.userId === currentUserId ||
+          mission.recipients.some((r) => r.userId === currentUserId)
+        ) {
+          isAuthorized = true;
+        }
+      }
+
+      if (!isAuthorized) {
+        return NextResponse.json({ error: "Forbidden: You do not have permission to view this mission" }, { status: 403 });
+      }
+    }
 
     // Fetch submission if status is SUBMITTED or later
     let submission = null;
@@ -58,21 +91,122 @@ export async function GET(
       )
       .map((tl) => {
         const meta = (tl.metadata as Record<string, unknown> | null) || {};
+        const rawUrl = (meta.url as string) || "";
+        const storageKey = (meta.storageKey as string) || "";
+
+        let freshUrl = rawUrl;
+        if (storageKey && storageKey.trim()) {
+          freshUrl = `/api/evidence/download?key=${encodeURIComponent(storageKey.trim())}`;
+        } else if (rawUrl.includes("pre-creation-reference/") || rawUrl.includes("evidence/")) {
+          const r2Match = rawUrl.match(/(pre-creation-reference\/[^?#]+|evidence\/[^?#]+)/);
+          if (r2Match?.[1]) {
+            freshUrl = `/api/evidence/download?key=${encodeURIComponent(r2Match[1])}`;
+          }
+        }
+
         return {
-          url: meta.url as string,
-          fileName: tl.summary.replace(/^Reference (video|photo): /, ""),
+          url: freshUrl,
+          fileName:
+            (meta.fileName as string) ||
+            (tl.summary ? tl.summary.replace(/^Reference (video|photo): /, "") : "attachment"),
           mimeType: (meta.mimeType as string) || "application/octet-stream",
           createdAt: tl.createdAt.toISOString(),
         };
       });
 
-    return NextResponse.json({ ...mission, submission, referenceAttachments }, { status: 200 });
+    const principal = await getAuthenticatedPrincipal(request);
+    let isRequester = false;
+    let isAssignedOrRecipient = false;
+    let hasSubmittedReport = false;
+
+    if (principal) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        principal.id,
+      );
+      let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
+      if (!user && principal.email) {
+        user = await prisma.user.findUnique({ where: { email: principal.email } });
+      }
+      if (user) {
+        isRequester = mission.requesterId === user.id || user.role === "ADMIN";
+        isAssignedOrRecipient =
+          mission.assignedScout?.userId === user.id ||
+          mission.recipients.some((r) => r.userId === user.id);
+
+        const userEvidenceCount = await prisma.evidence.count({
+          where: { missionId, userId: user.id },
+        });
+        const userSubmissionCount = await prisma.missionSubmission.count({
+          where: { missionId, userId: user.id },
+        });
+        hasSubmittedReport = userEvidenceCount > 0 || userSubmissionCount > 0;
+      }
+    }
+
+    const userContext = {
+      isRequester,
+      isAssignedOrRecipient,
+      hasSubmittedReport,
+      canCompleteMission: isRequester || (isAssignedOrRecipient && hasSubmittedReport),
+      canRequestReward: isAssignedOrRecipient && hasSubmittedReport,
+      canDispute: isRequester || isAssignedOrRecipient,
+    };
+
+    const uniqueParticipants = new Set<string>();
+    if (mission.recipients) {
+      for (const r of mission.recipients) {
+        if (r.userId) uniqueParticipants.add(r.userId);
+      }
+    }
+    if (mission.assignedScout?.userId) {
+      uniqueParticipants.add(mission.assignedScout.userId);
+    }
+    if (submission?.userId) {
+      uniqueParticipants.add(submission.userId);
+    }
+    const allEvidenceUsers = await prisma.evidence.findMany({
+      where: { missionId },
+      select: { userId: true },
+    });
+    for (const ev of allEvidenceUsers) {
+      if (ev.userId) uniqueParticipants.add(ev.userId);
+    }
+    const participantCount = uniqueParticipants.size;
+
+    const responsePayload = {
+      id: mission.id,
+      title: mission.title,
+      description: mission.description,
+      category: mission.category,
+      status: mission.status,
+      urgency: mission.urgency,
+      visibility: mission.visibility,
+      publicLogs: mission.publicLogs,
+      budget: {
+        amountCents: mission.budgetCents,
+        currency: mission.currency,
+      },
+      coordinates: {
+        latitude: mission.latitude,
+        longitude: mission.longitude,
+      },
+      radiusMeters: mission.radiusMeters,
+      requesterId: mission.requesterId,
+      assignedScoutId: mission.assignedScoutId,
+      requiredTags: mission.requiredTags,
+      expiresAt: mission.expiresAt.toISOString(),
+      createdAt: mission.createdAt.toISOString(),
+      updatedAt: mission.updatedAt.toISOString(),
+      participantCount,
+      submission,
+      referenceAttachments,
+      userContext,
+    };
+
+    return NextResponse.json(responsePayload, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to get mission details";
-    if (message === "Mission not found") {
-      return NextResponse.json({ error: message }, { status: 404 });
-    }
-    return NextResponse.json({ error: message }, { status: 403 });
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 
@@ -86,15 +220,36 @@ export async function PATCH(
   }
 
   const user = await prisma.user.findUnique({ where: { id: principal.id } });
-  if (!user || user.role !== "REQUESTER") {
+  if (!user || (user.role !== "REQUESTER" && user.role !== "ADMIN")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { missionId } = await params;
+  const existingMission = await prisma.mission.findUnique({ where: { id: missionId } });
+  if (!existingMission) {
+    return NextResponse.json({ error: "Mission not found" }, { status: 404 });
+  }
+
+  if (existingMission.requesterId !== user.id && user.role !== "ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
 
   const body = await request.json().catch(() => null);
   if (!body) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  // Handle visibility update (e.g. PUBLIC -> PRIVATE at any time by owner or admin)
+  if (body.visibility !== undefined || body.publicLogs !== undefined) {
+    const updated = await prisma.mission.update({
+      where: { id: missionId },
+      data: {
+        ...(body.visibility ? { visibility: body.visibility } : {}),
+        ...(body.publicLogs !== undefined ? { publicLogs: Boolean(body.publicLogs) } : {}),
+      },
+    });
+
+    return NextResponse.json(updated, { status: 200 });
   }
 
   const parsed = CreateMissionInputSchema.partial().safeParse(body);
@@ -111,14 +266,11 @@ export async function PATCH(
       missionId,
       parsed.data,
       principal.id,
-      "REQUESTER",
+      user.role,
     );
     return NextResponse.json(mission, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update mission";
-    if (message === "Mission not found") {
-      return NextResponse.json({ error: message }, { status: 404 });
-    }
     return NextResponse.json({ error: message }, { status: 400 });
   }
 }

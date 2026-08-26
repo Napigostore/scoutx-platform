@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@scoutx/ui";
+import { formatCurrency } from "@scoutx/application";
 import { MissionStatusBadge } from "@/components/MissionStatusBadge";
 
 interface MissionSummary {
@@ -22,6 +23,7 @@ interface MissionSummary {
   lastActivityAt: string;
   lastActivitySummary: string;
   evidenceCount: number;
+  participantCount?: number;
   latestMediaUrl?: string | null;
   assignedScout?: {
     id: string;
@@ -37,7 +39,7 @@ interface Pagination {
 }
 
 const STATUS_FILTERS = [
-  { id: "ALL", label: "Tất cả" },
+  { id: "ALL", label: "All" },
   { id: "OPEN_MATCHED", label: "Open / Matched" },
   { id: "IN_PROGRESS", label: "In Progress" },
   { id: "SUBMITTED", label: "Submitted" },
@@ -46,8 +48,11 @@ const STATUS_FILTERS = [
   { id: "REJECTED", label: "Rejected" },
 ];
 
-export default function MissionsPage() {
+function MissionsMarketplaceContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams ? searchParams.get("q") || "" : "";
+
   const [missions, setMissions] = useState<MissionSummary[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     total: 0,
@@ -56,14 +61,14 @@ export default function MissionsPage() {
     totalPages: 1,
   });
   const [activeFilter, setActiveFilter] = useState("ALL");
-  const [sortOrder, setSortOrder] = useState<"last_activity_desc" | "created_at_desc">(
-    "last_activity_desc",
-  );
+  const [sortOrder, setSortOrder] = useState<string>("recommended");
   const [currentPage, setCurrentPage] = useState(1);
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
+  const [appliedQuery, setAppliedQuery] = useState(initialQuery);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchMissions = async (filter: string, page: number, sort: string) => {
+  const fetchMissions = async (filter: string, page: number, sort: string, qStr: string) => {
     setIsLoading(true);
     setError("");
 
@@ -74,7 +79,11 @@ export default function MissionsPage() {
     }
 
     try {
-      const url = `/api/missions?status=${encodeURIComponent(filter)}&page=${page}&limit=20&sort=${encodeURIComponent(sort)}`;
+      let url = `/api/missions?status=${encodeURIComponent(filter)}&page=${page}&limit=20&sort=${encodeURIComponent(sort)}`;
+      if (qStr && qStr.trim().length > 0) {
+        url += `&q=${encodeURIComponent(qStr.trim())}`;
+      }
+
       const res = await fetch(url, { headers, cache: "no-store" });
       const data = await res.json();
 
@@ -98,13 +107,36 @@ export default function MissionsPage() {
   };
 
   useEffect(() => {
-    fetchMissions(activeFilter, currentPage, sortOrder);
+    fetchMissions(activeFilter, currentPage, sortOrder, appliedQuery);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeFilter, currentPage, sortOrder]);
+  }, [activeFilter, currentPage, sortOrder, appliedQuery]);
 
   const handleFilterChange = (filterId: string) => {
     setActiveFilter(filterId);
     setCurrentPage(1);
+  };
+
+  const handleSearchSubmit = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const trimmed = searchQuery.trim();
+    setAppliedQuery(trimmed);
+    setCurrentPage(1);
+
+    if (typeof window !== "undefined") {
+      const newUrl = trimmed
+        ? `/missions?q=${encodeURIComponent(trimmed)}&status=${activeFilter}&sort=${sortOrder}`
+        : `/missions?status=${activeFilter}&sort=${sortOrder}`;
+      window.history.replaceState(null, "", newUrl);
+    }
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setAppliedQuery("");
+    setCurrentPage(1);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `/missions?status=${activeFilter}&sort=${sortOrder}`);
+    }
   };
 
   const handleSignOut = async () => {
@@ -149,15 +181,58 @@ export default function MissionsPage() {
 
       {/* Search & Discovery Filter Bar */}
       <div className="mt-6 space-y-4">
-        {/* Search Bar Input */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search missions, locations, keywords ('What do you want to scout?')..."
-            className="w-full rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-5 py-3.5 pl-12 text-sm text-[var(--scoutx-foreground)] placeholder-[var(--scoutx-muted-foreground)] shadow-sm focus:border-[var(--scoutx-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)]"
-          />
-          <span className="absolute left-4 top-3.5 text-lg">🔍</span>
-        </div>
+        {/* Search Bar Input & Action Button */}
+        <form onSubmit={handleSearchSubmit} className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearchSubmit(e);
+                }
+              }}
+              placeholder="Search missions by title, description, category, tags..."
+              className="w-full rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-5 py-3 pl-12 pr-10 text-sm text-[var(--scoutx-foreground)] placeholder-[var(--scoutx-muted-foreground)] shadow-sm focus:border-[var(--scoutx-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--scoutx-primary)]"
+            />
+            <span className="absolute left-4 top-3 text-lg">🔍</span>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="absolute right-3 top-3.5 text-xs font-bold text-[var(--scoutx-muted-foreground)] hover:text-[var(--scoutx-foreground)]"
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+          <Button
+            type="submit"
+            disabled={isLoading}
+            className="rounded-2xl px-6 py-3 font-bold shadow-md min-w-[100px]"
+          >
+            {isLoading ? "Searching..." : "Search"}
+          </Button>
+        </form>
+
+        {/* Applied Search Badge Indicator */}
+        {appliedQuery && (
+          <div className="flex items-center gap-2 text-xs font-semibold text-[var(--scoutx-muted-foreground)]">
+            <span>Filtering results for:</span>
+            <span className="rounded-full bg-[var(--scoutx-primary)]/10 px-3 py-1 font-bold text-[var(--scoutx-primary)]">
+              &quot;{appliedQuery}&quot;
+            </span>
+            <button
+              type="button"
+              onClick={handleClearSearch}
+              className="text-xs font-bold text-red-500 hover:underline"
+            >
+              Clear filter
+            </button>
+          </div>
+        )}
 
         {/* Filter Tabs & Sort Control */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -184,13 +259,16 @@ export default function MissionsPage() {
             </span>
             <select
               value={sortOrder}
-              onChange={(e) =>
-                setSortOrder(e.target.value as "last_activity_desc" | "created_at_desc")
-              }
+              onChange={(e) => {
+                setSortOrder(e.target.value);
+                setCurrentPage(1);
+              }}
               className="rounded-xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-3 py-1.5 text-xs font-bold text-[var(--scoutx-foreground)] focus:outline-none"
             >
-              <option value="last_activity_desc">Recommended / Popular</option>
-              <option value="created_at_desc">Highest Bounty / Newest</option>
+              <option value="recommended">Recommended</option>
+              <option value="popular">Popular</option>
+              <option value="newest">Newest</option>
+              <option value="highest_bounty">Highest Bounty</option>
             </select>
           </div>
         </div>
@@ -199,8 +277,8 @@ export default function MissionsPage() {
       {/* Loading State */}
       {isLoading && (
         <div className="flex h-64 items-center justify-center">
-          <p className="text-sm text-[var(--scoutx-muted-foreground)]">
-            Đang tải danh sách nhiệm vụ...
+          <p className="text-sm font-semibold text-[var(--scoutx-muted-foreground)] animate-pulse">
+            Searching & loading missions...
           </p>
         </div>
       )}
@@ -214,132 +292,130 @@ export default function MissionsPage() {
 
       {/* Empty State */}
       {!isLoading && !error && missions.length === 0 && (
-        <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-8 text-center">
+        <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-8 text-center mt-6">
           <h3 className="font-display text-lg font-semibold text-[var(--scoutx-foreground)]">
-            {activeFilter === "ALL" ? "Bạn chưa tạo nhiệm vụ nào." : "Không có nhiệm vụ phù hợp."}
+            {appliedQuery ? `No missions match "${appliedQuery}"` : "No missions found"}
           </h3>
-          <p className="mt-2 text-sm text-[var(--scoutx-muted-foreground)]">
-            {activeFilter === "ALL"
-              ? "Bắt đầu ngay bằng cách gửi nhiệm vụ khám phá thực địa đầu tiên."
-              : "Thử thay đổi bộ lọc trạng thái để tìm nhiệm vụ khác."}
+          <p className="mt-1 text-xs text-[var(--scoutx-muted-foreground)] max-w-sm">
+            {appliedQuery
+              ? "Try adjusting your search query or clear filters to view all available field missions."
+              : "No missions matching the selected status filter."}
           </p>
-          {activeFilter === "ALL" && (
-            <Button className="mt-4" asChild>
-              <Link href="/missions/new">➕ Tạo Nhiệm Vụ Mới</Link>
+          {appliedQuery && (
+            <Button variant="outline" size="sm" onClick={handleClearSearch} className="mt-4">
+              Clear Search Query
             </Button>
           )}
         </div>
       )}
 
-      {/* Mission Cards Grid */}
+      {/* Missions Grid */}
       {!isLoading && !error && missions.length > 0 && (
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {missions.map((mission) => (
-            <div
+            <Link
               key={mission.id}
-              className="group flex flex-col justify-between overflow-hidden rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6 shadow-sm transition-all hover:border-[var(--scoutx-primary)] hover:shadow-md"
+              href={`/missions/${mission.id}`}
+              className="group flex flex-col justify-between rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-5 shadow-sm transition-all hover:-translate-y-1 hover:border-[var(--scoutx-primary)] hover:shadow-md"
             >
               <div>
-                {/* Header: Status & Price */}
-                <div className="flex items-center justify-between gap-2">
-                  <MissionStatusBadge status={mission.status} />
-                  <span className="text-sm font-bold text-[var(--scoutx-primary)]">
-                    {mission.budget.currency.toUpperCase() === "VND"
-                      ? new Intl.NumberFormat("vi-VN", {
-                          style: "currency",
-                          currency: "VND",
-                        }).format(mission.budget.amountCents)
-                      : new Intl.NumberFormat("en-US", {
-                          style: "currency",
-                          currency: "USD",
-                        }).format(mission.budget.amountCents / 100)}
-                  </span>
-                </div>
-
-                {/* Title & Description */}
-                <h3 className="font-display mt-4 text-lg font-bold text-[var(--scoutx-foreground)] group-hover:text-[var(--scoutx-primary)]">
-                  {mission.title}
-                </h3>
-                <p className="mt-2 line-clamp-2 text-xs text-[var(--scoutx-muted-foreground)] sm:text-sm">
-                  {mission.description}
-                </p>
-
-                {/* Assigned Scout Badge */}
-                <div className="bg-[var(--scoutx-muted)]/60 mt-4 flex items-center justify-between rounded-xl px-3 py-2 text-xs">
-                  <span className="text-[var(--scoutx-muted-foreground)]">Scout:</span>
-                  <span className="font-semibold text-[var(--scoutx-foreground)]">
-                    {mission.assignedScout
-                      ? `👤 ${mission.assignedScout.displayName}`
-                      : "🔍 Đang tìm Scout..."}
-                  </span>
-                </div>
-
-                {/* Latest Media Thumbnail (if present) */}
+                {/* Image thumbnail if available */}
                 {mission.latestMediaUrl && (
-                  <div className="mt-3 overflow-hidden rounded-xl border border-[var(--scoutx-border)] bg-black/5 dark:bg-black/40">
-                    {mission.latestMediaUrl.match(/\.(mp4|webm|ogg|mov)$/i) ? (
-                      <video src={mission.latestMediaUrl} className="h-28 w-full object-cover" />
-                    ) : (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img
-                        src={mission.latestMediaUrl}
-                        alt="Latest media"
-                        className="h-28 w-full object-cover"
-                      />
-                    )}
+                  <div className="mb-3 h-36 w-full overflow-hidden rounded-xl bg-zinc-900">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={mission.latestMediaUrl}
+                      alt={mission.title}
+                      className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                    />
                   </div>
                 )}
 
-                {/* Latest Activity Summary Banner */}
-                <div className="mt-3 rounded-xl border border-blue-200 bg-blue-50/70 p-2.5 text-[11px] text-blue-900 dark:border-blue-800/60 dark:bg-blue-950/40 dark:text-blue-200">
-                  <span className="font-semibold">Hoạt động gần nhất:</span>{" "}
-                  <span className="line-clamp-1">{mission.lastActivitySummary}</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="rounded-full bg-[var(--scoutx-muted)] px-2.5 py-0.5 text-[10px] font-bold text-[var(--scoutx-muted-foreground)] uppercase">
+                    {mission.category.replace(/_/g, " ")}
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    {mission.participantCount !== undefined && mission.participantCount > 0 && (
+                      <span className="rounded-full bg-blue-500/10 px-2 py-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                        👥 {mission.participantCount} người đang tham gia
+                      </span>
+                    )}
+                    <MissionStatusBadge status={mission.status} />
+                  </div>
                 </div>
+
+                <h3 className="font-display mt-3 text-lg font-bold text-[var(--scoutx-foreground)] group-hover:text-[var(--scoutx-primary)] line-clamp-2">
+                  {mission.title}
+                </h3>
+
+                <p className="mt-2 text-xs text-[var(--scoutx-muted-foreground)] line-clamp-3">
+                  {mission.description}
+                </p>
               </div>
 
-              {/* Card Footer */}
-              <div className="mt-6 flex items-center justify-between border-t border-[var(--scoutx-border)] pt-4">
-                <div className="flex items-center gap-3 text-xs text-[var(--scoutx-muted-foreground)]">
-                  <span>📷 {mission.evidenceCount} file</span>
-                  <span>•</span>
-                  <span>{new Date(mission.lastActivityAt).toLocaleDateString("vi-VN")}</span>
+              <div className="mt-5 border-t border-[var(--scoutx-border)] pt-4 flex items-center justify-between">
+                <div>
+                  <span className="text-[10px] font-semibold text-[var(--scoutx-muted-foreground)] block">
+                    Bounty Reward
+                  </span>
+                  <span className="text-base font-black text-emerald-600 dark:text-emerald-400">
+                    {formatCurrency(mission.budget.amountCents, mission.budget.currency)}
+                  </span>
                 </div>
-                <Link
-                  href={`/missions/${mission.id}`}
-                  className="text-xs font-bold text-[var(--scoutx-primary)] hover:underline"
-                >
-                  Xem chi tiết &rarr;
-                </Link>
+                <span className="text-xs font-bold text-[var(--scoutx-primary)] group-hover:underline">
+                  View Details →
+                </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       )}
 
-      {/* Pagination Controls */}
+      {/* Pagination Footer */}
       {!isLoading && !error && pagination.totalPages > 1 && (
         <div className="mt-8 flex items-center justify-between border-t border-[var(--scoutx-border)] pt-6">
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage <= 1}
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-          >
-            &larr; Trang trước
-          </Button>
-          <span className="text-xs text-[var(--scoutx-muted-foreground)]">
-            Trang {pagination.page} / {pagination.totalPages} (Tổng {pagination.total} nhiệm vụ)
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={currentPage >= pagination.totalPages}
-            onClick={() => setCurrentPage((prev) => Math.min(pagination.totalPages, prev + 1))}
-          >
-            Trang sau &rarr;
-          </Button>
+          <p className="text-xs text-[var(--scoutx-muted-foreground)]">
+            Showing page <span className="font-bold">{pagination.page}</span> of{" "}
+            <span className="font-bold">{pagination.totalPages}</span> ({pagination.total} total missions)
+          </p>
+
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage <= 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={currentPage >= pagination.totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
     </div>
+  );
+}
+
+export default function MissionsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-96 items-center justify-center">
+          <p className="text-sm font-semibold text-[var(--scoutx-muted-foreground)]">
+            Loading Missions Marketplace...
+          </p>
+        </div>
+      }
+    >
+      <MissionsMarketplaceContent />
+    </Suspense>
   );
 }

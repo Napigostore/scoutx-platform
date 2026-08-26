@@ -244,20 +244,19 @@ export function ScoutLivestreamBroadcaster({
           {permissionDenied && (
             <div className="mt-3 rounded-md border border-red-300 bg-white p-3 text-gray-800">
               <p className="mb-1 font-bold text-red-600">
-                🔒 Hướng dẫn mở lại Camera & Microphone:
+                🔒 Camera & Microphone permission instructions:
               </p>
               <ol className="list-decimal space-y-1 pl-4 text-xs">
                 <li>
-                  Bấm vào biểu tượng <strong>Ổ khóa (Lock) 🔒</strong> hoặc{" "}
-                  <strong>Cài đặt trang web</strong> bên trái thanh địa chỉ URL.
+                  Click the <strong>Lock 🔒</strong> or <strong>Site settings</strong> icon on the left side of the address bar.
                 </li>
                 <li>
-                  Tìm mục <strong>Camera</strong> và <strong>Microphone</strong>.
+                  Find <strong>Camera</strong> and <strong>Microphone</strong> settings.
                 </li>
                 <li>
-                  Đổi trạng thái từ <em>Chặn (Block)</em> sang <strong>Cho phép (Allow)</strong>.
+                  Change status from <em>Block</em> to <strong>Allow</strong>.
                 </li>
-                <li>Tải lại trang (F5 / Refresh) và bấm nút &quot;Bắt đầu Livestream&quot; lại.</li>
+                <li>Reload page (F5 / Refresh) and click &quot;Start Livestream&quot; again.</li>
               </ol>
             </div>
           )}

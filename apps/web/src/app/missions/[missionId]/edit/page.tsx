@@ -47,7 +47,11 @@ export default function EditMissionPage({ params }: { params: Promise<{ missionI
         setDescription(data.description);
         setCategory(data.category);
         setUrgency(data.urgency);
-        setBudgetAmount((data.budget.amountCents / 100).toFixed(2));
+        setBudgetAmount(
+          data.budget.currency?.trim().toUpperCase() === "USD"
+            ? (data.budget.amountCents / 100).toFixed(2)
+            : data.budget.amountCents.toString(),
+        );
         setLocationId(data.locationId);
         setLatitude(data.coordinates.latitude.toString());
         setLongitude(data.coordinates.longitude.toString());
@@ -74,7 +78,7 @@ export default function EditMissionPage({ params }: { params: Promise<{ missionI
       return;
     }
 
-    const amountCents = Math.round(parseFloat(budgetAmount) * 100);
+    const amountCents = Math.round(parseFloat(budgetAmount));
     if (isNaN(amountCents) || amountCents <= 0) {
       setError("Budget must be a positive number");
       setIsSaving(false);
@@ -234,11 +238,11 @@ export default function EditMissionPage({ params }: { params: Promise<{ missionI
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="budget">Budget (USD)</Label>
+              <Label htmlFor="budget">Reward / Budget ($ USD)</Label>
               <Input
                 id="budget"
                 type="number"
-                step="0.01"
+                step="100"
                 required
                 value={budgetAmount}
                 onChange={(e) => setBudgetAmount(e.target.value)}

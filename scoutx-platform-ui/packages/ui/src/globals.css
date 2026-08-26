@@ -1,0 +1,166 @@
+/* ═══════════════════════════════════════════
+   ScoutX Design System – Foundation
+   ═══════════════════════════════════════════
+   This file defines all CSS custom properties
+   for the ScoutX design language.
+   ───────────────────────────────────────────
+   Do NOT add component-specific styles here.
+   Use individual component CSS files instead.
+   ═══════════════════════════════════════════ */
+
+/* ─── Light Mode (default) ─── */
+
+:root {
+  /* ── Color System ── */
+  --scoutx-background: #f4f7f5;
+  --scoutx-foreground: #12201a;
+  --scoutx-card: #ffffff;
+  --scoutx-card-foreground: #12201a;
+  --scoutx-muted: #e4ece7;
+  --scoutx-muted-foreground: #5b6d64;
+  --scoutx-border: #cfdad3;
+  --scoutx-primary: #0f6b4c;
+  --scoutx-primary-hover: #0c563d;
+  --scoutx-primary-foreground: #f4fbf7;
+  --scoutx-secondary: #d8ebe2;
+  --scoutx-secondary-hover: #c5ddd2;
+  --scoutx-secondary-foreground: #143528;
+  --scoutx-ring: #1f8f68;
+  --scoutx-success: #1f7a4d;
+  --scoutx-success-foreground: #f3fbf6;
+  --scoutx-warning: #b7791f;
+  --scoutx-warning-foreground: #fffaf0;
+  --scoutx-destructive: #b91c1c;
+  --scoutx-destructive-foreground: #fef2f2;
+  --scoutx-accent: #1a5f8a;
+
+  /* ── Hero Gradient ── */
+  --scoutx-hero-from: #0b3d2e;
+  --scoutx-hero-via: #145c45;
+  --scoutx-hero-to: #1d7a5c;
+
+  /* ── Shadow Alpha ── */
+  --scoutx-shadow-alpha: 0.08;
+
+  /* ── Font Family ── */
+  --scoutx-font-sans: "Sora", "Segoe UI", system-ui, sans-serif;
+  --scoutx-font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --scoutx-font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+
+  /* ── Border Radius ── */
+  --scoutx-radius-none: 0px;
+  --scoutx-radius-sm: 4px;
+  --scoutx-radius-md: 6px;
+  --scoutx-radius-lg: 8px;
+  --scoutx-radius-xl: 12px;
+  --scoutx-radius-2xl: 16px;
+  --scoutx-radius-3xl: 24px;
+  --scoutx-radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --scoutx-shadow-sm: 0 1px 2px rgba(18, 32, 26, var(--scoutx-shadow-alpha));
+  --scoutx-shadow-md:
+    0 2px 8px rgba(18, 32, 26, var(--scoutx-shadow-alpha)),
+    0 1px 3px rgba(18, 32, 26, var(--scoutx-shadow-alpha));
+  --scoutx-shadow-lg:
+    0 4px 16px rgba(18, 32, 26, var(--scoutx-shadow-alpha)), 0 2px 6px rgba(18, 32, 26, 0.06);
+  --scoutx-shadow-xl:
+    0 8px 32px rgba(18, 32, 26, var(--scoutx-shadow-alpha)), 0 4px 12px rgba(18, 32, 26, 0.06);
+  --scoutx-shadow-2xl:
+    0 16px 48px rgba(18, 32, 26, var(--scoutx-shadow-alpha)), 0 8px 20px rgba(18, 32, 26, 0.08);
+  --scoutx-shadow-inner: inset 0 1px 3px rgba(18, 32, 26, 0.06);
+  --scoutx-shadow-glow: 0 0 0 2px var(--scoutx-ring), 0 0 12px var(--scoutx-ring);
+
+  /* ── Transitions ── */
+  --scoutx-transition-default: 150ms cubic-bezier(0.25, 0.1, 0.25, 1);
+  --scoutx-transition-smooth: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  --scoutx-transition-spring: 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Z-Index Scale ── */
+  --scoutx-z-base: 0;
+  --scoutx-z-dropdown: 50;
+  --scoutx-z-sticky: 100;
+  --scoutx-z-nav: 200;
+  --scoutx-z-modal: 300;
+  --scoutx-z-overlay: 400;
+  --scoutx-z-toast: 500;
+  --scoutx-z-tooltip: 600;
+}
+
+/* ─── Dark Mode (prefers-color-scheme) ─── */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --scoutx-background: #0f1a14;
+    --scoutx-foreground: #e6ede8;
+    --scoutx-card: #1a2a21;
+    --scoutx-card-foreground: #e6ede8;
+    --scoutx-muted: #1f3027;
+    --scoutx-muted-foreground: #809388;
+    --scoutx-border: #2a3f33;
+    --scoutx-primary: #31a36f;
+    --scoutx-primary-hover: #57b387;
+    --scoutx-primary-foreground: #12201a;
+    --scoutx-secondary: #1f3d30;
+    --scoutx-secondary-hover: #295240;
+    --scoutx-secondary-foreground: #d8ebe2;
+    --scoutx-ring: #57b387;
+    --scoutx-success: #2ea86a;
+    --scoutx-success-foreground: #12201a;
+    --scoutx-warning: #d4a043;
+    --scoutx-warning-foreground: #12201a;
+    --scoutx-destructive: #ef4444;
+    --scoutx-destructive-foreground: #12201a;
+    --scoutx-accent: #4a9fcf;
+
+    /* ── Hero Gradient (dark) ── */
+    --scoutx-hero-from: #31a36f;
+    --scoutx-hero-via: #57b387;
+    --scoutx-hero-to: #7ac29e;
+
+    /* ── Shadow Alpha (darker for dark bg) ── */
+    --scoutx-shadow-alpha: 0.25;
+  }
+}
+
+/* ─── Dark mode with class toggle ─── */
+
+.dark {
+  --scoutx-background: #0f1a14;
+  --scoutx-foreground: #e6ede8;
+  --scoutx-card: #1a2a21;
+  --scoutx-card-foreground: #e6ede8;
+  --scoutx-muted: #1f3027;
+  --scoutx-muted-foreground: #809388;
+  --scoutx-border: #2a3f33;
+  --scoutx-primary: #31a36f;
+  --scoutx-primary-hover: #57b387;
+  --scoutx-primary-foreground: #12201a;
+  --scoutx-secondary: #1f3d30;
+  --scoutx-secondary-hover: #295240;
+  --scoutx-secondary-foreground: #d8ebe2;
+  --scoutx-ring: #57b387;
+  --scoutx-success: #2ea86a;
+  --scoutx-success-foreground: #12201a;
+  --scoutx-warning: #d4a043;
+  --scoutx-warning-foreground: #12201a;
+  --scoutx-destructive: #ef4444;
+  --scoutx-destructive-foreground: #12201a;
+  --scoutx-accent: #4a9fcf;
+  --scoutx-hero-from: #31a36f;
+  --scoutx-hero-via: #57b387;
+  --scoutx-hero-to: #7ac29e;
+  --scoutx-shadow-alpha: 0.25;
+}
+
+/* ─── Reduced Motion ─── */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

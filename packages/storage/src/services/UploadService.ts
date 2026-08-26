@@ -1,6 +1,6 @@
 import type { StorageProvider, UploadOptions } from "../contracts/StorageProvider";
 import type { EventBus } from "@scoutx/events";
-import { randomUUID } from "node:crypto";
+import { randomUUID } from "crypto";
 
 export interface UploadServiceConfig {
   readonly storageProvider: StorageProvider;

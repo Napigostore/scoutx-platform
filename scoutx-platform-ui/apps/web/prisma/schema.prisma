@@ -1,0 +1,342 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  REQUESTER
+  SCOUT
+  ADMIN
+}
+
+enum MissionCategory {
+  STREET_CONDITIONS
+  VENUE_STATUS
+  LOCAL_EVENT
+  PRODUCT_AVAILABILITY
+  CROWD_DENSITY
+  WEATHER_ON_SITE
+  PHOTO_VERIFICATION
+  GENERAL_OBSERVATION
+}
+
+enum MissionStatus {
+  DRAFT
+  OPEN
+  MATCHED
+  IN_PROGRESS
+  SUBMITTED
+  VERIFIED
+  COMPLETED
+  CANCELLED
+  EXPIRED
+}
+
+enum MissionUrgency {
+  LOW
+  NORMAL
+  HIGH
+  CRITICAL
+}
+
+enum ScoutAvailability {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+model User {
+  id               String   @id @default(uuid()) @db.Uuid
+  email            String   @unique
+  displayName      String
+  role             UserRole
+  passwordHash     String
+  avatarUrl        String?
+  reliabilityScore Float    @default(50)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  scoutProfile      ScoutProfile?
+  requestedMissions Mission[]            @relation("RequestedMissions")
+  submissions       MissionSubmission[]
+  evidence          Evidence[]
+    trustScore            TrustScore?
+  trustActionsGiven     TrustActionRecord[] @relation("TrustActionsGiven")
+  trustActionsReceived  TrustActionRecord[] @relation("TrustActionsReceived")
+  coinTransactions      CoinTransaction[]
+  sessions              Session[]
+  withdrawalRequests    WithdrawalRequest[]
+  pendingAttachments    PendingAttachment[]
+
+  @@map("users")
+}
+
+model Location {
+  id          String  @id @default(uuid()) @db.Uuid
+  name        String
+  city        String
+  country     String
+  countryCode String  @db.Char(2)
+  latitude    Float
+  longitude   Float
+  timezone    String
+
+  missions Mission[]
+  scouts   ScoutProfile[]
+
+  @@map("locations")
+}
+
+model ScoutProfile {
+  id                 String            @id @default(uuid()) @db.Uuid
+  userId             String            @unique @db.Uuid
+  displayName        String
+  bio                String
+  availability       ScoutAvailability @default(AVAILABLE)
+  reliabilityScore   Float             @default(50)
+  completedMissions  Int               @default(0)
+  categories         MissionCategory[]
+  tags               String[]
+  homeLocationId     String            @db.Uuid
+  currentLatitude    Float?
+  currentLongitude   Float?
+  maxRadiusMeters    Int               @default(5000)
+  languages              String[]
+  stripeConnectAccountId String?
+  stripeConnectStatus    String?           @default("NOT_CONNECTED")
+  createdAt              DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  homeLocation Location @relation(fields: [homeLocationId], references: [id])
+  assignedMissions Mission[] @relation("AssignedScout")
+  submissions  MissionSubmission[]
+  evidence     Evidence[]
+
+  @@map("scout_profiles")
+}
+
+model Mission {
+  id              String          @id @default(uuid()) @db.Uuid
+  title           String
+  description     String
+  category        MissionCategory
+  status          MissionStatus   @default(DRAFT)
+  urgency         MissionUrgency  @default(NORMAL)
+  budgetCents     Int
+  currency        String          @default("VND") @db.Char(3)
+  locationId      String          @db.Uuid
+  latitude        Float
+  longitude       Float
+  radiusMeters    Int             @default(1500)
+  requesterId     String          @db.Uuid
+  assignedScoutId String?         @db.Uuid
+  requiredTags    String[]
+  expiresAt       DateTime
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  location      Location           @relation(fields: [locationId], references: [id])
+  requester     User               @relation("RequestedMissions", fields: [requesterId], references: [id])
+  assignedScout ScoutProfile?      @relation("AssignedScout", fields: [assignedScoutId], references: [id])
+  submission    MissionSubmission?
+    evidence        Evidence[]
+  timelineEntries TimelineEntry[]
+  trustActions    TrustActionRecord[]
+  coinTransactions CoinTransaction[]
+
+  @@index([status, expiresAt])
+  @@index([locationId])
+  @@index([requesterId])
+  @@index([assignedScoutId])
+  @@map("missions")
+}
+
+model MissionSubmission {
+  id              String   @id @default(uuid()) @db.Uuid
+  missionId       String   @unique @db.Uuid
+  scoutId         String   @db.Uuid
+  userId          String   @db.Uuid
+  summary         String
+  mediaUrls       String[]
+  observedAt      DateTime
+  latitude        Float
+  longitude       Float
+  verified        Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  reviewedAt      DateTime?
+  rejectionReason String?
+
+  mission Mission      @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  scout   ScoutProfile @relation(fields: [scoutId], references: [id])
+  user    User         @relation(fields: [userId], references: [id])
+
+  @@index([missionId])
+  @@index([scoutId])
+  @@index([userId])
+  @@map("mission_submissions")
+}
+
+enum EvidenceType {
+  PHOTO
+  VIDEO
+  NOTE
+}
+
+enum TrustAction {
+  VERIFIED
+  DISPUTED
+  ENDORSED
+  BADGE_EARNED
+}
+
+model Evidence {
+  id          String        @id @default(uuid()) @db.Uuid
+  missionId   String        @db.Uuid
+  scoutId     String        @db.Uuid
+  userId      String        @db.Uuid
+  caption     String
+  type        EvidenceType  @default(PHOTO)
+  mediaUrl    String?
+  latitude    Float?
+  longitude   Float?
+  location    String?
+  verified    Boolean       @default(false)
+  capturedAt  DateTime      @default(now())
+  createdAt   DateTime      @default(now())
+
+  mission Mission       @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  scout   ScoutProfile  @relation(fields: [scoutId], references: [id])
+  user    User          @relation(fields: [userId], references: [id])
+
+  @@index([missionId])
+  @@index([scoutId])
+  @@index([userId])
+  @@map("evidence")
+}
+
+model TimelineEntry {
+  id        String   @id @default(uuid()) @db.Uuid
+  missionId String   @db.Uuid
+  eventType String
+  summary   String
+  actorId   String?  @db.Uuid
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@index([missionId])
+  @@index([createdAt])
+  @@map("timeline_entries")
+}
+
+model TrustScore {
+  userId    String   @id @db.Uuid
+  score     Float    @default(50)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("trust_scores")
+}
+
+model TrustActionRecord {
+  id        String      @id @default(uuid()) @db.Uuid
+  actorId   String      @db.Uuid
+  targetId  String      @db.Uuid
+  action    TrustAction
+  missionId String?     @db.Uuid
+  createdAt DateTime    @default(now())
+
+  actor   User     @relation("TrustActionsGiven", fields: [actorId], references: [id])
+  target  User     @relation("TrustActionsReceived", fields: [targetId], references: [id])
+  mission Mission? @relation(fields: [missionId], references: [id])
+
+  @@index([actorId])
+  @@index([targetId])
+  @@index([missionId])
+  @@map("trust_actions")
+}
+
+model CoinTransaction {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @db.Uuid
+  amountCents Int
+  currency    String   @default("VND") @db.Char(4)
+  reason      String
+  description String?
+  eventType   String
+  missionId   String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission Mission? @relation(fields: [missionId], references: [id])
+
+  @@index([userId])
+  @@index([missionId])
+  @@index([createdAt])
+  @@map("coin_transactions")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @db.Uuid
+  refreshToken String   @unique
+  expiresAt    DateTime
+  revoked      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model WithdrawalRequest {
+  id                String           @id @default(uuid()) @db.Uuid
+  userId            String           @db.Uuid
+  amountCents       Int
+  currency          String           @default("VND") @db.Char(3)
+  status            WithdrawalStatus @default(PENDING)
+  idempotencyKey    String           @unique
+  providerReference String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("withdrawal_requests")
+}
+
+model PendingAttachment {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  storageKey String    @unique
+  mediaUrl   String
+  fileName   String
+  mimeType   String
+  consumed   Boolean   @default(false)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([consumed, createdAt])
+  @@map("pending_attachments")
+}

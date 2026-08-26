@@ -1,0 +1,218 @@
+import { NextResponse } from "next/server";
+import { PrismaCoinRepository, AuditLogger, SecurityService } from "@scoutx/infrastructure";
+import { prisma } from "@/lib/prisma";
+
+const coinRepo = new PrismaCoinRepository();
+const auditLogger = new AuditLogger();
+const securityService = new SecurityService();
+
+export async function POST(request: Request) {
+  try {
+    const signature = request.headers.get("stripe-signature");
+    const rawBody = await request.text();
+
+    if (!rawBody) {
+      return NextResponse.json({ error: "Empty webhook payload" }, { status: 400 });
+    }
+
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+    // Enforce strict signature verification
+    if (webhookSecret) {
+      if (!signature) {
+        return NextResponse.json({ error: "Missing stripe-signature header" }, { status: 400 });
+      }
+      const isValid = securityService.verifyWebhookSignature(rawBody, signature, webhookSecret);
+      if (!isValid) {
+        return NextResponse.json({ error: "Invalid stripe signature" }, { status: 400 });
+      }
+    } else {
+      // Production must fail closed if webhook secret is not configured
+      if (process.env.NODE_ENV !== "development") {
+        return NextResponse.json(
+          { error: "Stripe webhook secret is required in production" },
+          { status: 400 },
+        );
+      }
+    }
+
+    // Verify webhook payload & event type
+    const event = JSON.parse(rawBody) as {
+      id: string;
+      type: string;
+      data: {
+        object: {
+          id: string;
+          metadata?: { missionId?: string; requesterId?: string; scoutId?: string };
+          amount_total?: number;
+          amount?: number;
+        };
+      };
+    };
+
+    switch (event.type) {
+      case "checkout.session.completed": {
+        const session = event.data.object;
+        const missionId = session.metadata?.missionId;
+        const requesterId = session.metadata?.requesterId;
+        const amountCents = session.amount_total ?? 0;
+
+        if (missionId && requesterId) {
+          const transactionId = `tx_wh_checkout_${event.id}`;
+
+          try {
+            await coinRepo.create({
+              id: transactionId,
+              userId: requesterId,
+              missionId,
+              amountCents: -amountCents,
+              currency: "COIN",
+              reason: `Stripe Payment Completed for Mission ${missionId}`,
+              eventType: "Escrow Deposit",
+            });
+
+            auditLogger.log("coin_change", requesterId, {
+              action: "stripe_webhook_payment_success",
+              eventId: event.id,
+              missionId,
+              amountCents,
+              stripeSignature: signature ?? "none",
+            });
+          } catch (createErr) {
+            const isUniqueConstraint =
+              createErr instanceof Error &&
+              (createErr.message.includes("Unique constraint") ||
+                createErr.message.includes("P2002") ||
+                createErr.message.includes("PrimaryKey"));
+
+            if (isUniqueConstraint) {
+              auditLogger.log("coin_change", requesterId, {
+                action: "stripe_webhook_duplicate_event_ignored",
+                eventId: event.id,
+                missionId,
+                error: createErr.message,
+              });
+              return NextResponse.json({ received: true, status: "duplicate_event_ignored" });
+            }
+            throw createErr;
+          }
+        }
+        break;
+      }
+
+      case "payment_intent.payment_failed": {
+        const intent = event.data.object;
+        const requesterId = intent.metadata?.requesterId || "unknown";
+        auditLogger.log("coin_change", requesterId, {
+          action: "stripe_webhook_payment_failed",
+          eventId: event.id,
+          intentId: intent.id,
+        });
+        break;
+      }
+
+      case "charge.refunded": {
+        const charge = event.data.object;
+        const missionId = charge.metadata?.missionId;
+        const requesterId = charge.metadata?.requesterId;
+        const amountCents = charge.amount_total ?? charge.amount ?? 0;
+
+        if (missionId && requesterId) {
+          const transactionId = `tx_wh_refund_${event.id}`;
+
+          try {
+            await coinRepo.create({
+              id: transactionId,
+              userId: requesterId,
+              missionId,
+              amountCents,
+              currency: "COIN",
+              reason: `Stripe Escrow Refund for Mission ${missionId}`,
+              eventType: "Refund",
+            });
+
+            auditLogger.log("coin_change", requesterId, {
+              action: "stripe_webhook_refund_success",
+              eventId: event.id,
+              missionId,
+              amountCents,
+            });
+          } catch (createErr) {
+            const isUniqueConstraint =
+              createErr instanceof Error &&
+              (createErr.message.includes("Unique constraint") ||
+                createErr.message.includes("P2002") ||
+                createErr.message.includes("PrimaryKey"));
+
+            if (isUniqueConstraint) {
+              auditLogger.log("coin_change", requesterId, {
+                action: "stripe_webhook_duplicate_refund_ignored",
+                eventId: event.id,
+                missionId,
+                error: createErr.message,
+              });
+              return NextResponse.json({ received: true, status: "duplicate_refund_ignored" });
+            }
+            throw createErr;
+          }
+        }
+        break;
+      }
+
+      case "account.updated": {
+        const account = event.data.object as {
+          id: string;
+          charges_enabled?: boolean;
+          payouts_enabled?: boolean;
+          details_submitted?: boolean;
+          requirements?: { currently_due?: string[] };
+        };
+
+        const connectAccountId = account.id;
+        if (!connectAccountId) break;
+
+        const scoutProfile = await prisma.scoutProfile.findFirst({
+          where: { stripeConnectAccountId: connectAccountId },
+        });
+
+        if (!scoutProfile) {
+          auditLogger.log("admin_action", "system", {
+            action: "stripe_webhook_account_updated_unknown",
+            eventId: event.id,
+            connectAccountId,
+          });
+          return NextResponse.json({ received: true, status: "unknown_account_ignored" });
+        }
+
+        let newStatus = "ONBOARDING";
+        const payoutsEnabled = Boolean(account.payouts_enabled);
+        const detailsSubmitted = Boolean(account.details_submitted);
+        const currentlyDue = account.requirements?.currently_due || [];
+
+        if (payoutsEnabled && detailsSubmitted && currentlyDue.length === 0) {
+          newStatus = "ACTIVE";
+        } else if (currentlyDue.length > 0 || !payoutsEnabled) {
+          newStatus = detailsSubmitted ? "RESTRICTED" : "ONBOARDING";
+        }
+
+        await prisma.scoutProfile.update({
+          where: { id: scoutProfile.id },
+          data: { stripeConnectStatus: newStatus },
+        });
+
+        auditLogger.log("admin_action", scoutProfile.userId, {
+          action: "stripe_webhook_account_updated",
+          eventId: event.id,
+          connectAccountId,
+          status: newStatus,
+        });
+        break;
+      }
+    }
+
+    return NextResponse.json({ received: true });
+  } catch (err) {
+    const errorMsg = err instanceof Error ? err.message : "Webhook handler error";
+    return NextResponse.json({ error: errorMsg }, { status: 400 });
+  }
+}
