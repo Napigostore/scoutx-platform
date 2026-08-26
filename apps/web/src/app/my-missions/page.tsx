@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
@@ -10,7 +12,7 @@ type MissionGroup = {
   status: string;
   budgetCents: number | null;
   currency: string | null;
-  createdAt: Date;
+  updatedAt: Date;
   role: "REQUESTER" | "WORKER";
 };
 
@@ -25,9 +27,8 @@ export default async function MyMissionsPage({
   }
   const userId = session.user.id;
   const sp = await searchParams;
-  const activeTab = sp.tab || "in-progress";
+  const activeTab = sp.tab || "req-in-progress";
 
-  // Fetch created missions (Requester)
   const createdMissions = await prisma.mission.findMany({
     where: { requesterId: userId },
     select: {
@@ -36,12 +37,11 @@ export default async function MyMissionsPage({
       status: true,
       budgetCents: true,
       currency: true,
-      createdAt: true,
+      updatedAt: true,
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { updatedAt: "desc" },
   });
 
-  // Fetch participated missions (Worker)
   const participatedMissions = await prisma.mission.findMany({
     where: {
       requesterId: { not: userId },
@@ -58,9 +58,9 @@ export default async function MyMissionsPage({
       status: true,
       budgetCents: true,
       currency: true,
-      createdAt: true,
+      updatedAt: true,
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { updatedAt: "desc" },
   });
 
   const allItems: MissionGroup[] = [
@@ -68,29 +68,51 @@ export default async function MyMissionsPage({
     ...participatedMissions.map((m) => ({ ...m, role: "WORKER" as const })),
   ];
 
+  const pendingSettlementStatuses = ["COMPLETED_PENDING_SETTLEMENT", "SETTLEMENT_PENDING"];
+  const completedStatuses = ["COMPLETED", "REWARDED", "CANCELLED", "EXPIRED", "VOTING_FINALIZED"];
   const draftStatuses = ["DRAFT"];
-  const doneStatuses = [
-    "COMPLETED",
-    "REWARDED",
-    "VOTING_FINALIZED",
-    "SETTLEMENT_PENDING",
-    "COMPLETED_PENDING_SETTLEMENT",
-    "CANCELLED",
-    "EXPIRED",
+  const inProgressStatuses = [
+    "OPEN",
+    "MATCHED",
+    "IN_PROGRESS",
+    "SUBMITTED",
+    "VERIFIED",
+    "PENDING_REQUESTER_ACCEPTANCE",
+    "DISPUTED",
+    "COMMUNITY_VOTING",
   ];
 
-  const drafts = allItems.filter((m) => draftStatuses.includes(m.status));
-  const done = allItems.filter((m) => doneStatuses.includes(m.status));
-  const allInProgress = allItems.filter(
-    (m) => !draftStatuses.includes(m.status) && !doneStatuses.includes(m.status),
+  const reqDrafts = allItems.filter(
+    (m) => draftStatuses.includes(m.status) && m.role === "REQUESTER",
   );
-  const inProgress = allInProgress.filter((m) => m.role === "REQUESTER");
-  const receiving = allInProgress.filter((m) => m.role === "WORKER");
+  const reqInProgress = allItems.filter(
+    (m) => inProgressStatuses.includes(m.status) && m.role === "REQUESTER",
+  );
+  const reqSettlement = allItems.filter(
+    (m) => pendingSettlementStatuses.includes(m.status) && m.role === "REQUESTER",
+  );
+  const reqCompleted = allItems.filter(
+    (m) => completedStatuses.includes(m.status) && m.role === "REQUESTER",
+  );
 
-  let displayList = inProgress;
-  if (activeTab === "draft") displayList = drafts;
-  else if (activeTab === "done") displayList = done;
-  else if (activeTab === "receiving") displayList = receiving;
+  const workerReceiving = allItems.filter(
+    (m) => inProgressStatuses.includes(m.status) && m.role === "WORKER",
+  );
+  const workerSettlement = allItems.filter(
+    (m) => pendingSettlementStatuses.includes(m.status) && m.role === "WORKER",
+  );
+  const workerCompleted = allItems.filter(
+    (m) => completedStatuses.includes(m.status) && m.role === "WORKER",
+  );
+
+  let displayList: MissionGroup[] = [];
+  if (activeTab === "req-draft") displayList = reqDrafts;
+  else if (activeTab === "req-in-progress") displayList = reqInProgress;
+  else if (activeTab === "req-settlement") displayList = reqSettlement;
+  else if (activeTab === "req-completed") displayList = reqCompleted;
+  else if (activeTab === "worker-receiving") displayList = workerReceiving;
+  else if (activeTab === "worker-settlement") displayList = workerSettlement;
+  else if (activeTab === "worker-completed") displayList = workerCompleted;
 
   const TabLink = ({ id, label, count }: { id: string; label: string; count: number }) => {
     const isActive = activeTab === id;
@@ -112,11 +134,31 @@ export default async function MyMissionsPage({
     <div className="section-shell mx-auto min-h-[60vh] max-w-5xl py-8">
       <h1 className="mb-6 text-3xl font-black text-[var(--scoutx-foreground)]">My Missions</h1>
 
-      <div className="mb-6 flex overflow-x-auto border-b border-[var(--scoutx-border)]">
-        <TabLink id="draft" label="Drafts" count={drafts.length} />
-        <TabLink id="in-progress" label="In Progress" count={inProgress.length} />
-        <TabLink id="receiving" label="Receiving Mission" count={receiving.length} />
-        <TabLink id="done" label="Done" count={done.length} />
+      <div className="mb-2">
+        <h2 className="mb-1 px-4 text-sm font-black uppercase text-[var(--scoutx-muted-foreground)]">
+          Requester
+        </h2>
+        <div className="hide-scrollbar flex overflow-x-auto border-b border-[var(--scoutx-border)]">
+          <TabLink id="req-draft" label="Drafts" count={reqDrafts.length} />
+          <TabLink id="req-in-progress" label="In Progress" count={reqInProgress.length} />
+          <TabLink id="req-settlement" label="Awaiting Settlement" count={reqSettlement.length} />
+          <TabLink id="req-completed" label="Completed" count={reqCompleted.length} />
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <h2 className="mb-1 mt-4 px-4 text-sm font-black uppercase text-[var(--scoutx-muted-foreground)]">
+          Worker
+        </h2>
+        <div className="hide-scrollbar flex overflow-x-auto border-b border-[var(--scoutx-border)]">
+          <TabLink id="worker-receiving" label="Receiving Mission" count={workerReceiving.length} />
+          <TabLink
+            id="worker-settlement"
+            label="Awaiting Settlement"
+            count={workerSettlement.length}
+          />
+          <TabLink id="worker-completed" label="Completed" count={workerCompleted.length} />
+        </div>
       </div>
 
       <div className="space-y-4">
@@ -145,7 +187,8 @@ export default async function MyMissionsPage({
                   </div>
                   <h3 className="text-lg font-bold text-[var(--scoutx-foreground)]">{m.title}</h3>
                   <div className="mt-1 text-xs text-[var(--scoutx-muted-foreground)]">
-                    Created {new Date(m.createdAt).toLocaleDateString()}
+                    Last updated {new Date(m.updatedAt).toLocaleDateString()}{" "}
+                    {new Date(m.updatedAt).toLocaleTimeString()}
                   </div>
                 </div>
                 <div className="text-right">

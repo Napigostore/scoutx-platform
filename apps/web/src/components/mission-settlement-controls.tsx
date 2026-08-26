@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@scoutx/ui";
 
 interface MissionSettlementControlsProps {
@@ -32,6 +32,7 @@ export function MissionSettlementControls({
   requesterId,
   winnerId,
   budgetCents,
+  settlementStartedAt,
   userContext,
   participants = [],
   onRefresh,
@@ -43,6 +44,32 @@ export function MissionSettlementControls({
   const [voteSide, setVoteSide] = useState<"REQUESTER_WIN" | "WORKER_WIN" | "">("");
   const [isLoading, setIsLoading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  // Custom hook for countdown could be used, or just standard state for simplicity:
+  const [timeLeft, setTimeLeft] = useState<string>("");
+
+  useEffect(() => {
+    if (status !== "COMPLETED_PENDING_SETTLEMENT" || !settlementStartedAt) return;
+
+    const interval = setInterval(() => {
+      const started = new Date(settlementStartedAt).getTime();
+      const end = started + 24 * 60 * 60 * 1000;
+      const now = Date.now();
+      const diff = end - now;
+
+      if (diff <= 0) {
+        setTimeLeft("Settlement ready...");
+        clearInterval(interval);
+      } else {
+        const h = Math.floor(diff / (1000 * 60 * 60));
+        const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((diff % (1000 * 60)) / 1000);
+        setTimeLeft(`${h}h ${m}m ${s}s`);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [status, settlementStartedAt]);
 
   const budgetUSD = Math.round(budgetCents / 100);
 
@@ -297,10 +324,13 @@ export function MissionSettlementControls({
       {status === "COMPLETED_PENDING_SETTLEMENT" && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 text-xs dark:border-emerald-800 dark:bg-emerald-950/40">
           <p className="font-bold text-emerald-900 dark:text-emerald-200">
-            ✅ Mission Completed! Reward settlement countdown (+24h) active.
+            ✅ Mission Completed! Reward settlement countdown active.
           </p>
+          <div className="mt-2 font-mono text-lg font-bold text-emerald-600 dark:text-emerald-400">
+            {timeLeft || "Calculating..."}
+          </div>
           {winnerId && (
-            <p className="mt-1 text-[var(--scoutx-muted-foreground)]">
+            <p className="mt-2 text-[var(--scoutx-muted-foreground)]">
               Winner ID: <code className="rounded bg-emerald-100 px-1 py-0.5">{winnerId}</code>
             </p>
           )}
