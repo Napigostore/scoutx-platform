@@ -22,6 +22,7 @@ interface MissionSettlementControlsProps {
     canRequestReward: boolean;
     canDispute: boolean;
   } | null;
+  participants?: { id: string; displayName: string; role: string }[];
   onRefresh?: () => void;
 }
 
@@ -32,6 +33,7 @@ export function MissionSettlementControls({
   winnerId,
   budgetCents,
   userContext,
+  participants = [],
   onRefresh,
 }: MissionSettlementControlsProps) {
   const [showWinnerModal, setShowWinnerModal] = useState(false);
@@ -139,7 +141,9 @@ export function MissionSettlementControls({
       // First get dispute ID
       const topRes = await fetch(`/api/disputes/top`);
       const topData = await topRes.json();
-      const matchDispute = topData.disputes?.find((d: { missionId: string }) => d.missionId === missionId);
+      const matchDispute = topData.disputes?.find(
+        (d: { missionId: string }) => d.missionId === missionId,
+      );
 
       if (!matchDispute) {
         throw new Error("No active public dispute found to vote on");
@@ -159,7 +163,10 @@ export function MissionSettlementControls({
         throw new Error(voteData.error || "Vote failed");
       }
 
-      setMessage({ type: "success", text: voteData.message || "Vote recorded! +1 Coin reward awarded." });
+      setMessage({
+        type: "success",
+        text: voteData.message || "Vote recorded! +1 Coin reward awarded.",
+      });
       setVoteSide(side);
       if (onRefresh) onRefresh();
     } catch (err: unknown) {
@@ -172,17 +179,17 @@ export function MissionSettlementControls({
 
   return (
     <div className="space-y-4 rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6 shadow-sm">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
               Reward Pool: ${budgetUSD}
             </span>
             <span className="rounded-full bg-[var(--scoutx-muted)] px-2.5 py-0.5 text-xs font-bold uppercase text-[var(--scoutx-muted-foreground)]">
               Status: {status.replace(/_/g, " ")}
             </span>
           </div>
-          <h3 className="font-display text-lg font-bold text-[var(--scoutx-foreground)] mt-2">
+          <h3 className="font-display mt-2 text-lg font-bold text-[var(--scoutx-foreground)]">
             Mission Settlement & Governance Workflow
           </h3>
         </div>
@@ -192,34 +199,34 @@ export function MissionSettlementControls({
           {userContext?.isRequester && (
             <Button
               onClick={() => setShowWinnerModal(true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              className="bg-emerald-600 font-bold text-white hover:bg-emerald-700"
             >
               🏆 Trao thưởng / Complete Mission
             </Button>
           )}
 
           {/* 2. Nút Complete Mission của Worker - CHỈ người nhận đã nộp submission/evidence mới thấy */}
-          {userContext?.isAssignedOrRecipient && userContext?.hasSubmittedReport && (
+          {!userContext?.isRequester && userContext?.hasSubmittedReport && (
             <Button
               variant="outline"
               onClick={() => handleCompleteAction("WORKER_COMPLETE")}
               disabled={isLoading}
-              className="border-blue-500 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 font-semibold"
+              className="border-blue-500 font-semibold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
             >
               📩 Complete Mission (Báo hoàn thành)
             </Button>
           )}
 
           {/* 3. Nút Yêu cầu nhận thưởng - CHỈ người nhận thấy; sáng lên (active) khi ĐÃ nộp submission/evidence */}
-          {userContext?.isAssignedOrRecipient && (
+          {(userContext?.isAssignedOrRecipient || userContext?.hasSubmittedReport) && (
             <Button
               variant="outline"
               onClick={handleRequestReward}
               disabled={isLoading || !userContext.hasSubmittedReport}
               className={`font-semibold ${
                 userContext.hasSubmittedReport
-                  ? "border-emerald-500 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 shadow-sm"
-                  : "border-gray-300 text-gray-400 opacity-60 cursor-not-allowed"
+                  ? "border-emerald-500 text-emerald-600 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                  : "cursor-not-allowed border-gray-300 text-gray-400 opacity-60"
               }`}
               title={
                 userContext.hasSubmittedReport
@@ -232,11 +239,13 @@ export function MissionSettlementControls({
           )}
 
           {/* 4. Nút Claim phản đối (Dispute) - CHỈ người đã nhận nhiệm vụ hoặc người giao mới được claim phản đối */}
-          {(userContext?.isRequester || userContext?.isAssignedOrRecipient) && (
+          {(userContext?.isRequester ||
+            userContext?.isAssignedOrRecipient ||
+            userContext?.hasSubmittedReport) && (
             <Button
               variant="secondary"
               onClick={() => setShowDisputeModal(true)}
-              className="border border-amber-500/30 text-amber-600 dark:text-amber-400 font-semibold"
+              className="border border-amber-500/30 font-semibold text-amber-600 dark:text-amber-400"
             >
               ⚖️ Claim Outcome / Dispute
             </Button>
@@ -248,8 +257,8 @@ export function MissionSettlementControls({
         <div
           className={`rounded-xl p-3 text-xs font-semibold ${
             message.type === "success"
-              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200"
-              : "bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300 border border-red-200"
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
+              : "border border-red-200 bg-red-50 text-red-700 dark:bg-red-950/60 dark:text-red-300"
           }`}
         >
           {message.type === "success" ? "✅" : "⚠️"} {message.text}
@@ -267,7 +276,7 @@ export function MissionSettlementControls({
               size="sm"
               onClick={() => handleCompleteAction("ACCEPT")}
               disabled={isLoading}
-              className="bg-green-600 text-white hover:bg-green-700 font-bold"
+              className="bg-green-600 font-bold text-white hover:bg-green-700"
             >
               Accept Completion (+24h Release)
             </Button>
@@ -292,7 +301,7 @@ export function MissionSettlementControls({
           </p>
           {winnerId && (
             <p className="mt-1 text-[var(--scoutx-muted-foreground)]">
-              Winner ID: <code className="bg-emerald-100 px-1 py-0.5 rounded">{winnerId}</code>
+              Winner ID: <code className="rounded bg-emerald-100 px-1 py-0.5">{winnerId}</code>
             </p>
           )}
         </div>
@@ -300,9 +309,9 @@ export function MissionSettlementControls({
 
       {/* Disputed / Community Voting UI */}
       {(status === "DISPUTED" || status === "COMMUNITY_VOTING") && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50/50 p-5 text-xs dark:border-amber-700 dark:bg-amber-950/40 space-y-3">
+        <div className="space-y-3 rounded-xl border border-amber-300 bg-amber-50/50 p-5 text-xs dark:border-amber-700 dark:bg-amber-950/40">
           <div className="flex items-center justify-between">
-            <span className="font-extrabold text-amber-900 dark:text-amber-200 uppercase tracking-wide">
+            <span className="font-extrabold uppercase tracking-wide text-amber-900 dark:text-amber-200">
               ⚖️ DISPUTE ACTIVE — COMMUNITY TRIAL
             </span>
             <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-bold text-amber-800">
@@ -311,7 +320,8 @@ export function MissionSettlementControls({
           </div>
 
           <p className="text-[var(--scoutx-foreground)]">
-            Community members can review evidence, vote on the winner, and earn +1 Coin reward per vote.
+            Community members can review evidence, vote on the winner, and earn +1 Coin reward per
+            vote.
           </p>
 
           <div className="flex flex-wrap gap-3 pt-2">
@@ -319,7 +329,7 @@ export function MissionSettlementControls({
               size="sm"
               onClick={() => handleVote("REQUESTER_WIN")}
               disabled={isLoading || voteSide === "REQUESTER_WIN"}
-              className="bg-blue-600 text-white font-bold hover:bg-blue-700"
+              className="bg-blue-600 font-bold text-white hover:bg-blue-700"
             >
               Vote: Requester Win (+1 Coin)
             </Button>
@@ -328,7 +338,7 @@ export function MissionSettlementControls({
               size="sm"
               onClick={() => handleVote("WORKER_WIN")}
               disabled={isLoading || voteSide === "WORKER_WIN"}
-              className="bg-emerald-600 text-white font-bold hover:bg-emerald-700"
+              className="bg-emerald-600 font-bold text-white hover:bg-emerald-700"
             >
               Vote: Worker Win (+1 Coin)
             </Button>
@@ -339,21 +349,51 @@ export function MissionSettlementControls({
       {/* Select Winner Modal */}
       {showWinnerModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-[var(--scoutx-card)] p-6 shadow-xl border border-[var(--scoutx-border)] space-y-4">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6 shadow-xl">
             <h3 className="text-lg font-bold text-[var(--scoutx-foreground)]">
               Select Mission Winner
             </h3>
             <p className="text-xs text-[var(--scoutx-muted-foreground)]">
-              Please enter or select the winner ID from the valid mission participants.
+              Select the winner from the valid mission participants.
             </p>
 
-            <input
-              type="text"
-              placeholder="Enter Winner User ID or Scout ID"
-              value={selectedWinnerId}
-              onChange={(e) => setSelectedWinnerId(e.target.value)}
-              className="w-full rounded-md border border-[var(--scoutx-border)] bg-[var(--scoutx-background)] px-3 py-2 text-sm text-[var(--scoutx-foreground)]"
-            />
+            <div className="space-y-2">
+              <input
+                type="text"
+                placeholder="Search participant by name or ID..."
+                value={selectedWinnerId}
+                onChange={(e) => setSelectedWinnerId(e.target.value)}
+                className="w-full rounded-md border border-[var(--scoutx-border)] bg-[var(--scoutx-background)] px-3 py-2 text-sm text-[var(--scoutx-foreground)]"
+              />
+              <div className="bg-[var(--scoutx-muted)]/30 max-h-40 overflow-y-auto rounded-md border border-[var(--scoutx-border)]">
+                {participants
+                  .filter(
+                    (p) =>
+                      !selectedWinnerId ||
+                      p.displayName?.toLowerCase().includes(selectedWinnerId.toLowerCase()) ||
+                      p.id.toLowerCase().includes(selectedWinnerId.toLowerCase()),
+                  )
+                  .map((p) => (
+                    <div
+                      key={p.id}
+                      onClick={() => setSelectedWinnerId(p.id)}
+                      className="cursor-pointer border-b border-[var(--scoutx-border)] px-3 py-2 text-sm last:border-0 hover:bg-[var(--scoutx-card)]"
+                    >
+                      <div className="font-bold text-[var(--scoutx-foreground)]">
+                        {p.displayName}
+                      </div>
+                      <div className="text-xs text-[var(--scoutx-muted-foreground)]">
+                        {p.id} • {p.role}
+                      </div>
+                    </div>
+                  ))}
+                {participants.length === 0 && (
+                  <div className="px-3 py-4 text-center text-sm text-[var(--scoutx-muted-foreground)]">
+                    No active participants found.
+                  </div>
+                )}
+              </div>
+            </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <Button variant="ghost" onClick={() => setShowWinnerModal(false)}>
@@ -362,7 +402,7 @@ export function MissionSettlementControls({
               <Button
                 onClick={() => handleCompleteAction("REQUESTER_COMPLETE", selectedWinnerId)}
                 disabled={isLoading || !selectedWinnerId.trim()}
-                className="bg-emerald-600 text-white font-bold"
+                className="bg-emerald-600 font-bold text-white"
               >
                 Confirm Winner & Complete
               </Button>
@@ -374,12 +414,13 @@ export function MissionSettlementControls({
       {/* Dispute Modal */}
       {showDisputeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-[var(--scoutx-card)] p-6 shadow-xl border border-[var(--scoutx-border)] space-y-4">
+          <div className="w-full max-w-md space-y-4 rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6 shadow-xl">
             <h3 className="text-lg font-bold text-[var(--scoutx-foreground)]">
               Submit Outcome Dispute
             </h3>
             <p className="text-xs text-[var(--scoutx-muted-foreground)]">
-              Provide an explanation for disputing this mission outcome. This will freeze reward release and open a Community Trial.
+              Provide an explanation for disputing this mission outcome. This will freeze reward
+              release and open a Community Trial.
             </p>
 
             <textarea
@@ -397,7 +438,7 @@ export function MissionSettlementControls({
               <Button
                 onClick={handleCreateDispute}
                 disabled={isLoading || !disputeReason.trim()}
-                className="bg-amber-600 text-white font-bold hover:bg-amber-700"
+                className="bg-amber-600 font-bold text-white hover:bg-amber-700"
               >
                 Submit Dispute
               </Button>

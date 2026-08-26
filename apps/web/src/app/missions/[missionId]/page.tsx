@@ -46,6 +46,7 @@ interface Mission {
   createdAt: string;
   submission?: Submission | null;
   participantCount?: number;
+  participants?: { id: string; displayName: string; role: string }[];
   referenceAttachments?: Array<{
     url: string;
     fileName: string;
@@ -260,7 +261,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
               Category: {mission.category}
             </span>
             {mission.participantCount !== undefined && mission.participantCount > 0 && (
-              <span className="inline-flex items-center rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-bold text-blue-600 dark:text-blue-400 border border-blue-500/20">
+              <span className="inline-flex items-center rounded-full border border-blue-500/20 bg-blue-500/10 px-2.5 py-0.5 text-xs font-bold text-blue-600 dark:text-blue-400">
                 👥 {mission.participantCount} người đang tham gia
               </span>
             )}
@@ -358,6 +359,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
             budgetCents={mission.budgetCents || mission.budget?.amountCents || 1000}
             currency={mission.currency || mission.budget?.currency || "VND"}
             userContext={mission.userContext}
+            participants={mission.participants}
             onRefresh={fetchMission}
           />
 

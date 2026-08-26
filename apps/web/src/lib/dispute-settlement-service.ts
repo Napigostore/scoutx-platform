@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "@/lib/prisma";
 
 export const MAX_FUNDED_COIN = 100000000;
@@ -15,6 +14,7 @@ export async function requesterCompleteMission(
     include: {
       submission: true,
       recipients: true,
+      assignedScout: true,
     },
   });
 
@@ -23,22 +23,33 @@ export async function requesterCompleteMission(
     throw new Error("Only the mission requester can execute Complete Mission");
   }
 
-  // Validate winner belongs to an actual submission or recipient participant
-  const isValidWinner =
-    (mission.submission && (mission.submission.userId === winnerId || mission.submission.scoutId === winnerId)) ||
-    (mission.assignedScoutId && mission.assignedScoutId === winnerId) ||
-    mission.recipients.some((r) => r.userId === winnerId);
-
   // If winnerId is a valid user ID or scout ID, verify user exists
-  const winnerUser = await prisma.user.findFirst({
-    where: { OR: [{ id: winnerId }, { scoutProfile: { id: winnerId } }] },
-  });
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(winnerId);
+  const isEmail = winnerId.includes("@");
 
-  if (!isValidWinner && !winnerUser) {
-    throw new Error("Selected winner must be a valid worker participant in this mission");
+  let winnerUser = null;
+  if (isUuid) {
+    winnerUser = await prisma.user.findFirst({
+      where: { OR: [{ id: winnerId }, { scoutProfile: { id: winnerId } }] },
+    });
+  } else if (isEmail) {
+    winnerUser = await prisma.user.findFirst({
+      where: { email: winnerId },
+    });
   }
 
   const finalWinnerUserId = winnerUser?.id || winnerId;
+
+  // Validate winner belongs to an actual submission, recipient, or evidence upload
+  const isValidWinner =
+    (mission.submission && mission.submission.userId === finalWinnerUserId) ||
+    mission.recipients.some((r) => r.userId === finalWinnerUserId) ||
+    (await prisma.evidence.count({ where: { missionId, userId: finalWinnerUserId } })) > 0 ||
+    mission.assignedScout?.userId === finalWinnerUserId;
+
+  if (!isValidWinner) {
+    throw new Error("Selected winner must be a valid worker participant in this mission");
+  }
 
   const now = new Date();
   const updated = await prisma.mission.update({
@@ -76,7 +87,7 @@ export async function workerRequestCompletion(missionId: string, workerUserId: s
   if (!mission) throw new Error("Mission not found");
 
   const isAssignedOrRecipient =
-    (mission.assignedScout?.userId === workerUserId) ||
+    mission.assignedScout?.userId === workerUserId ||
     mission.recipients.some((r) => r.userId === workerUserId);
 
   const hasSubmitted =
@@ -84,7 +95,9 @@ export async function workerRequestCompletion(missionId: string, workerUserId: s
     mission.evidence.some((e) => e.userId === workerUserId);
 
   if (!isAssignedOrRecipient && !hasSubmitted) {
-    throw new Error("Only assigned workers or recipients who have submitted a report/evidence can request completion");
+    throw new Error(
+      "Only assigned workers or recipients who have submitted a report/evidence can request completion",
+    );
   }
 
   if (!hasSubmitted) {
@@ -152,7 +165,11 @@ export async function requesterRespondCompletion(
 
     return updated;
   } else {
-    return createDispute(missionId, requesterUserId, reason || "Requester disputed worker completion request");
+    return createDispute(
+      missionId,
+      requesterUserId,
+      reason || "Requester disputed worker completion request",
+    );
   }
 }
 
@@ -169,12 +186,14 @@ export async function createDispute(missionId: string, initiatorUserId: string, 
 
   const isRequester = mission.requesterId === initiatorUserId;
   const isAssignedOrRecipient =
-    (mission.assignedScout?.userId === initiatorUserId) ||
+    mission.assignedScout?.userId === initiatorUserId ||
     mission.recipients.some((r) => r.userId === initiatorUserId);
   const isSubmitter = mission.submission?.userId === initiatorUserId;
 
   if (!isRequester && !isAssignedOrRecipient && !isSubmitter) {
-    throw new Error("Forbidden: Only the mission requester or assigned participants can dispute this mission");
+    throw new Error(
+      "Forbidden: Only the mission requester or assigned participants can dispute this mission",
+    );
   }
 
   const dispute = await prisma.$transaction(async (tx) => {

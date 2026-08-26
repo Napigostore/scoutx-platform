@@ -62,3 +62,5 @@ sx028*.js
 b64_encoded.txt
 tailhex.txt
 test-concurrency-e2e.js
+.vercel
+.env*

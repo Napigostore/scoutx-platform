@@ -41,7 +41,9 @@ export async function GET(
       if (principal) {
         let currentUserId: string | null = null;
         let userRole: string | null = null;
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(principal.id);
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+          principal.id,
+        );
         let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
         if (!user && principal.email) {
           user = await prisma.user.findUnique({ where: { email: principal.email } });
@@ -62,7 +64,10 @@ export async function GET(
       }
 
       if (!isAuthorized) {
-        return NextResponse.json({ error: "Forbidden: You do not have permission to view this mission" }, { status: 403 });
+        return NextResponse.json(
+          { error: "Forbidden: You do not have permission to view this mission" },
+          { status: 403 },
+        );
       }
     }
 
@@ -147,9 +152,9 @@ export async function GET(
       isRequester,
       isAssignedOrRecipient,
       hasSubmittedReport,
-      canCompleteMission: isRequester || (isAssignedOrRecipient && hasSubmittedReport),
-      canRequestReward: isAssignedOrRecipient && hasSubmittedReport,
-      canDispute: isRequester || isAssignedOrRecipient,
+      canCompleteMission: isRequester || hasSubmittedReport,
+      canRequestReward: hasSubmittedReport,
+      canDispute: isRequester || isAssignedOrRecipient || hasSubmittedReport,
     };
 
     const uniqueParticipants = new Set<string>();
@@ -172,6 +177,10 @@ export async function GET(
       if (ev.userId) uniqueParticipants.add(ev.userId);
     }
     const participantCount = uniqueParticipants.size;
+    const participantsList = await prisma.user.findMany({
+      where: { id: { in: Array.from(uniqueParticipants) } },
+      select: { id: true, displayName: true, role: true },
+    });
 
     const responsePayload = {
       id: mission.id,
@@ -198,6 +207,7 @@ export async function GET(
       createdAt: mission.createdAt.toISOString(),
       updatedAt: mission.updatedAt.toISOString(),
       participantCount,
+      participants: participantsList,
       submission,
       referenceAttachments,
       userContext,
