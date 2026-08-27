@@ -131,7 +131,9 @@ export async function GET(
 
     let isRequester = false;
     let isAssignedOrRecipient = false;
+    let hasSubmittedEvidence = false;
     let hasSubmittedReport = false;
+    let canRequestReward = false;
 
     if (principal) {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -141,28 +143,35 @@ export async function GET(
       if (!user && principal.email) {
         user = await prisma.user.findUnique({ where: { email: principal.email } });
       }
-      if (user) {
-        isRequester = mission.requesterId === user.id || user.role === "ADMIN";
-        isAssignedOrRecipient =
-          mission.assignedScout?.userId === user.id ||
-          mission.recipients.some((r) => r.userId === user.id);
 
-        const userEvidenceCount = await prisma.evidence.count({
-          where: { missionId, userId: user.id },
-        });
-        const userSubmissionCount = await prisma.missionSubmission.count({
-          where: { missionId, userId: user.id },
-        });
-        hasSubmittedReport = userEvidenceCount > 0 || userSubmissionCount > 0;
-      }
+      const targetUserId = user ? user.id : principal.id;
+      const targetRole = user ? user.role : principal.role;
+
+      isRequester = mission.requesterId === targetUserId || targetRole === "ADMIN";
+      isAssignedOrRecipient =
+        mission.assignedScout?.userId === targetUserId ||
+        mission.recipients.some((r) => r.userId === targetUserId);
+
+      const userEvidenceCount = await prisma.evidence.count({
+        where: { missionId, userId: targetUserId },
+      });
+      const userSubmissionCount = await prisma.missionSubmission.count({
+        where: { missionId, userId: targetUserId },
+      });
+
+      hasSubmittedEvidence = userEvidenceCount > 0;
+      hasSubmittedReport = userSubmissionCount > 0 || userEvidenceCount > 0;
+      canRequestReward =
+        mission.requesterId !== targetUserId && (hasSubmittedEvidence || userSubmissionCount > 0);
     }
 
     const userContext = {
       isRequester,
       isAssignedOrRecipient,
+      hasSubmittedEvidence,
       hasSubmittedReport,
       canCompleteMission: isRequester || hasSubmittedReport,
-      canRequestReward: hasSubmittedReport,
+      canRequestReward,
       canDispute: isRequester || isAssignedOrRecipient || hasSubmittedReport,
     };
 

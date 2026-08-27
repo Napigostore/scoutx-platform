@@ -17,6 +17,7 @@ interface MissionSettlementControlsProps {
   userContext?: {
     isRequester: boolean;
     isAssignedOrRecipient: boolean;
+    hasSubmittedEvidence?: boolean;
     hasSubmittedReport: boolean;
     canCompleteMission: boolean;
     canRequestReward: boolean;
@@ -245,25 +246,20 @@ export function MissionSettlementControls({
           )}
 
           {/* 3. Nút Yêu cầu nhận thưởng - CHỈ hiện khi ĐÃ nộp submission/evidence */}
-          {!userContext?.isRequester && userContext?.hasSubmittedReport && (
-            <Button
-              variant="outline"
-              onClick={handleRequestReward}
-              disabled={isLoading || !userContext.hasSubmittedReport}
-              className={`font-semibold ${
-                userContext.hasSubmittedReport
-                  ? "border-emerald-500 text-emerald-600 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-950"
-                  : "cursor-not-allowed border-gray-300 text-gray-400 opacity-60"
-              }`}
-              title={
-                userContext.hasSubmittedReport
-                  ? "Bấm để gửi yêu cầu trả thưởng tới Requester"
-                  : "Bạn cần gửi bằng chứng hoặc báo cáo trước khi yêu cầu trả thưởng"
-              }
-            >
-              🎁 Yêu cầu trả thưởng
-            </Button>
-          )}
+          {!userContext?.isRequester &&
+            (userContext?.canRequestReward ||
+              userContext?.hasSubmittedReport ||
+              userContext?.hasSubmittedEvidence) && (
+              <Button
+                variant="outline"
+                onClick={handleRequestReward}
+                disabled={isLoading}
+                className="border-emerald-500 font-semibold text-emerald-600 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-950"
+                title="Bấm để gửi yêu cầu trả thưởng tới Requester"
+              >
+                🎁 Yêu cầu trả thưởng
+              </Button>
+            )}
 
           {/* 4. Nút Claim phản đối (Dispute) - CHỈ người đã nhận nhiệm vụ hoặc người giao mới được claim phản đối */}
           {(userContext?.isRequester ||

@@ -95,29 +95,46 @@ export async function POST(request: Request) {
       const isVideo = mimeType.startsWith("video/");
       const evidenceType = isVideo ? "VIDEO" : "PHOTO";
 
-      // If assigned scout exists or user is scout, find profile; otherwise fallback to mission assignedScoutId
       let scoutProfileId =
         participantCtx.scoutProfile?.id || participantCtx.mission.assignedScoutId;
 
       if (!scoutProfileId) {
-        const anyScout = await prisma.scoutProfile.findFirst({ select: { id: true } });
-        if (anyScout) scoutProfileId = anyScout.id;
+        let scoutProfile = await prisma.scoutProfile.findUnique({
+          where: { userId: participantCtx.userId },
+        });
+        if (!scoutProfile) {
+          scoutProfile = await prisma.scoutProfile
+            .create({
+              data: {
+                id: crypto.randomUUID(),
+                userId: participantCtx.userId,
+                displayName: "Scout Participant",
+                bio: "Auto-created scout profile for evidence participant",
+                homeLocationId: "00000000-0000-0000-0000-000000000001",
+              },
+            })
+            .catch(() => null);
+        }
+        if (scoutProfile) {
+          scoutProfileId = scoutProfile.id;
+        } else {
+          const anyScout = await prisma.scoutProfile.findFirst({ select: { id: true } });
+          scoutProfileId = anyScout?.id || participantCtx.userId;
+        }
       }
 
-      if (scoutProfileId) {
-        await prisma.evidence.create({
-          data: {
-            missionId,
-            scoutId: scoutProfileId,
-            userId: participantCtx.userId,
-            caption: sanitizedFileName,
-            type: evidenceType,
-            mediaUrl: finalUrl,
-          },
-        });
-        // Notify requester about new evidence
-        await notifyEvidenceUploaded(missionId, participantCtx.userId).catch(() => {});
-      }
+      await prisma.evidence.create({
+        data: {
+          missionId,
+          scoutId: scoutProfileId,
+          userId: participantCtx.userId,
+          caption: sanitizedFileName,
+          type: evidenceType,
+          mediaUrl: finalUrl,
+        },
+      });
+      // Notify requester about new evidence
+      await notifyEvidenceUploaded(missionId, participantCtx.userId).catch(() => {});
 
       await prisma.timelineEntry.create({
         data: {

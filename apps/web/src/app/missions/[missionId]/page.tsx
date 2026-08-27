@@ -76,18 +76,6 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectionReason, setRejectionReason] = useState("");
 
-  useEffect(() => {
-    fetchMission();
-
-    const handleRefresh = () => {
-      fetchMission();
-    };
-    window.addEventListener("refresh-mission", handleRefresh);
-    return () => {
-      window.removeEventListener("refresh-mission", handleRefresh);
-    };
-  }, [missionId]);
-
   const getAuthHeaders = (): Record<string, string> => {
     const headers: Record<string, string> = {};
     const token = typeof window !== "undefined" ? localStorage.getItem("accessToken") : null;
@@ -119,6 +107,18 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchMission();
+
+    const handleRefresh = () => {
+      fetchMission();
+    };
+    window.addEventListener("refresh-mission", handleRefresh);
+    return () => {
+      window.removeEventListener("refresh-mission", handleRefresh);
+    };
+  }, [missionId]);
 
   const handleCancel = async () => {
     if (!confirm("Are you sure you want to cancel this mission?")) {
@@ -164,7 +164,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
         throw new Error(data.error || "Failed to publish mission");
       }
 
-      setMission(data);
+      await fetchMission();
       alert("Mission published successfully!");
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : String(err));

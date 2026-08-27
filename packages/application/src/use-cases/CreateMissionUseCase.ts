@@ -19,7 +19,7 @@ export class CreateMissionUseCase {
       title: input.title,
       description: input.description,
       category: input.category,
-      status: "DRAFT",
+      status: "OPEN",
       urgency: input.urgency || "NORMAL",
       budget: input.budget,
       locationId: input.locationId,

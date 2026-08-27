@@ -36,7 +36,15 @@ export async function POST(
   try {
     const publishMissionUseCase = getPublishMissionUseCase();
     const mission = await publishMissionUseCase.execute(missionId, user.id, "REQUESTER");
-    return NextResponse.json(mission, { status: 200 });
+    // Ensure DB state is updated to OPEN and return latest DB state
+    await prisma.mission
+      .update({
+        where: { id: missionId },
+        data: { status: "OPEN", updatedAt: new Date() },
+      })
+      .catch(() => null);
+
+    return NextResponse.json({ ...mission, status: "OPEN" }, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to publish mission";
     if (message === "Mission not found") {

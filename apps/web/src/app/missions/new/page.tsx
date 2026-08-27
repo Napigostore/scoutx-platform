@@ -24,17 +24,17 @@ export default function NewMissionPage() {
   const [visibility, setVisibility] = useState<"PUBLIC" | "PRIVATE" | "INDIVIDUAL">("PUBLIC");
   const [publicLogs, setPublicLogs] = useState(true);
   const [recipientUsernamesInput, setRecipientUsernamesInput] = useState("");
-  const [targetCitiesInput, setTargetCitiesInput] = useState("Ho Chi Minh City, Hanoi");
+  const [targetCitiesInput, setTargetCitiesInput] = useState("");
   const [targetGender, setTargetGender] = useState("ANY");
   const [targetAgeRange, setTargetAgeRange] = useState("ANY");
   const [targetExperienceLevel, setTargetExperienceLevel] = useState("ANY");
-  const [targetLanguagesInput, setTargetLanguagesInput] = useState("English, Vietnamese");
+  const [targetLanguagesInput, setTargetLanguagesInput] = useState("");
   const [budgetAmount, setBudgetAmount] = useState("1000");
   const locationId = "00000000-0000-0000-0000-000000000001";
   const [latitude, setLatitude] = useState("35.658034");
   const [longitude, setLongitude] = useState("139.701636");
   const [radiusMeters, setRadiusMeters] = useState("1500");
-  const [requiredTags, setRequiredTags] = useState("tokyo, shibuya");
+  const [requiredTags, setRequiredTags] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
 
   const [attachments, setAttachments] = useState<AttachmentItem[]>([]);
