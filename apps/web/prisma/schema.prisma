@@ -208,6 +208,9 @@ model Mission {
   coinTransactions   CoinTransaction[]
   coinLedgers        CoinLedger[]
   surveyParticipants SurveyParticipant[]
+  surveyQuestions    SurveyQuestion[]
+  surveyResponses    SurveyResponse[]
+  surveySubmissions  SurveySubmission[]
   recipients         MissionRecipient[]
   dispute          Dispute?
   rewardRequests   RewardRequest[]
@@ -595,9 +598,74 @@ model SurveyParticipant {
 
   mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses   SurveyResponse[]
+  submissions SurveySubmission[]
 
   @@unique([missionId, userId])
   @@index([missionId, status])
   @@index([userId])
   @@map("survey_participants")
+}
+
+model SurveyQuestion {
+  id          String   @id @default(uuid()) @db.Uuid
+  missionId   String   @db.Uuid
+  order       Int      @default(0)
+  type        String   // SINGLE_CHOICE | MULTIPLE_CHOICE | YES_NO | RATING | NUMBER | TEXT | MATRIX | PHOTO | VIDEO | AUDIO
+  question    String
+  description String?
+  required    Boolean  @default(true)
+  options     Json?
+  validation  Json?
+  condition   Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  mission   Mission          @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  responses SurveyResponse[]
+
+  @@index([missionId, order])
+  @@map("survey_questions")
+}
+
+model SurveyResponse {
+  id            String   @id @default(uuid()) @db.Uuid
+  missionId     String   @db.Uuid
+  participantId String   @db.Uuid
+  questionId    String   @db.Uuid
+  value         Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  mission     Mission           @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  participant SurveyParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  question    SurveyQuestion    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([missionId, participantId, questionId])
+  @@index([missionId])
+  @@index([participantId])
+  @@map("survey_responses")
+}
+
+model SurveySubmission {
+  id              String    @id @default(uuid()) @db.Uuid
+  missionId       String    @db.Uuid
+  participantId   String    @db.Uuid
+  status          String    @default("SUBMITTED") // STARTED | SUBMITTED | COMPLETED | REJECTED
+  completionCode  String?
+  startedAt       DateTime  @default(now())
+  submittedAt     DateTime?
+  completedAt     DateTime?
+  durationSeconds Int?
+  qualityScore    Float?
+  qualityStatus   String?   // PENDING | PASSED | FAILED | SUSPICIOUS
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  mission     Mission           @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  participant SurveyParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+
+  @@unique([missionId, participantId])
+  @@index([missionId, completionCode])
+  @@map("survey_submissions")
 }
