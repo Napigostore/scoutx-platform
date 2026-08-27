@@ -40,6 +40,7 @@ enum MissionStatus {
   REWARDED
   COMPLETED
   CANCELLED
+  REFUNDED
   EXPIRED
 }
 
@@ -91,6 +92,7 @@ model User {
   trustActionsGiven     TrustActionRecord[] @relation("TrustActionsGiven")
   trustActionsReceived  TrustActionRecord[] @relation("TrustActionsReceived")
   coinTransactions      CoinTransaction[]
+  coinLedgers           CoinLedger[]
   sessions              Session[]
   withdrawalRequests    WithdrawalRequest[]
   pendingAttachments         PendingAttachment[]
@@ -188,6 +190,7 @@ model Mission {
   timelineEntries  TimelineEntry[]
   trustActions     TrustActionRecord[]
   coinTransactions CoinTransaction[]
+  coinLedgers      CoinLedger[]
   recipients       MissionRecipient[]
   dispute          Dispute?
   rewardRequests   RewardRequest[]
@@ -324,15 +327,16 @@ model TrustActionRecord {
 }
 
 model CoinTransaction {
-  id          String   @id @default(uuid()) @db.Uuid
-  userId      String   @db.Uuid
-  amountCents Int
-  currency    String   @default("VND") @db.Char(4)
-  reason      String
-  description String?
-  eventType   String
-  missionId   String?  @db.Uuid
-  createdAt   DateTime @default(now())
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  amountCents    Int
+  currency       String   @default("VND") @db.Char(4)
+  reason         String
+  description    String?
+  eventType      String
+  missionId      String?  @db.Uuid
+  idempotencyKey String?  @unique
+  createdAt      DateTime @default(now())
 
   user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   mission Mission? @relation(fields: [missionId], references: [id])
@@ -341,6 +345,26 @@ model CoinTransaction {
   @@index([missionId])
   @@index([createdAt])
   @@map("coin_transactions")
+}
+
+model CoinLedger {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  missionId      String?  @db.Uuid
+  type           String
+  amount         Int
+  currency       String   @default("VND") @db.Char(4)
+  status         String   @default("COMPLETED")
+  idempotencyKey String?  @unique
+  createdAt      DateTime @default(now())
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission Mission? @relation(fields: [missionId], references: [id])
+
+  @@index([userId])
+  @@index([missionId])
+  @@index([createdAt])
+  @@map("coin_ledgers")
 }
 
 model Session {

@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { notifyApproved, notifyNonWinners, notifyDisputeCreated } from "@/lib/notification-service";
+import { recordCoinMovement } from "@/lib/coin-ledger-service";
 
 export const MAX_FUNDED_COIN = 100000000;
 export const MIN_VOTES_REQUIRED = 50;
@@ -313,14 +314,13 @@ export async function submitDisputeVote(
 
     // Award +1 coin reward to voter with unique ledger description for idempotency
     const rewardCents = 100; // 1 Coin = $1 / 100 cents
-    await tx.coinTransaction.create({
-      data: {
-        userId: voterId,
-        amountCents: rewardCents,
-        eventType: "VOTE_REWARD",
-        reason: "DISPUTE_VOTE",
-        description: `Community Vote Reward for Dispute Round ${roundId} (Vote #${vote.id})`,
-      },
+    await recordCoinMovement(tx, {
+      userId: voterId,
+      missionId: null,
+      type: "VOTE_REWARD",
+      amountCents: rewardCents,
+      description: `Community Vote Reward for Dispute Round ${roundId} (Vote #${vote.id})`,
+      idempotencyKey: `vote-${vote.id}`,
     });
 
     return vote;
@@ -487,20 +487,18 @@ export async function checkAndSettleMissions() {
     await prisma.$transaction(async (tx) => {
       // Re-verify rewardReleasedAt is null inside transaction for strict concurrency safety
       const freshM = await tx.mission.findUnique({ where: { id: m.id } });
-      if (!freshM || freshM.rewardReleasedAt) return;
+      if (!freshM || freshM.rewardReleasedAt || freshM.status === "REWARDED") return;
 
       const payoutUserId = freshM.winnerId || freshM.assignedScoutId || freshM.requesterId;
       const rewardCents = freshM.budgetCents || 1000;
 
-      await tx.coinTransaction.create({
-        data: {
-          userId: payoutUserId,
-          missionId: freshM.id,
-          amountCents: rewardCents,
-          eventType: "SETTLEMENT_REWARD",
-          reason: "SETTLEMENT_PAYOUT",
-          description: `Settlement Reward payout for mission: ${freshM.title}`,
-        },
+      await recordCoinMovement(tx, {
+        userId: payoutUserId,
+        missionId: freshM.id,
+        type: "MISSION_REWARD_RELEASE",
+        amountCents: rewardCents,
+        description: `Settlement Reward payout for mission: ${freshM.title}`,
+        idempotencyKey: `release-${freshM.id}`,
       });
 
       await tx.mission.update({
@@ -599,4 +597,80 @@ export async function checkAndSettleMissions() {
   }
 
   return report;
+}
+
+export async function resolveDispute(
+  disputeId: string,
+  winningSide: "WORKER_WIN" | "REQUESTER_WIN",
+  resolverUserId: string,
+  claimantUserId?: string,
+) {
+  const dispute = await prisma.dispute.findUnique({
+    where: { id: disputeId },
+    include: { mission: true },
+  });
+
+  if (!dispute) throw new Error("Dispute not found");
+  const { mission } = dispute;
+
+  const result = await prisma.$transaction(async (tx) => {
+    const freshDispute = await tx.dispute.findUnique({ where: { id: disputeId } });
+    if (!freshDispute || freshDispute.status === "RESOLVED") {
+      return freshDispute;
+    }
+
+    const rewardCents = mission.budgetCents || 1000;
+
+    if (winningSide === "WORKER_WIN") {
+      const recipientId =
+        claimantUserId || mission.winnerId || mission.assignedScoutId || dispute.initiatorId;
+
+      await recordCoinMovement(tx, {
+        userId: recipientId,
+        missionId: mission.id,
+        type: "MISSION_REWARD_RELEASE",
+        amountCents: rewardCents,
+        description: `Dispute Resolution payout to worker for mission: ${mission.title}`,
+        idempotencyKey: `dispute-release-${disputeId}`,
+      });
+
+      await tx.mission.update({
+        where: { id: mission.id },
+        data: { status: "REWARDED", winnerId: recipientId, rewardReleasedAt: new Date() },
+      });
+    } else {
+      // REQUESTER_WIN -> Refund to Requester
+      await recordCoinMovement(tx, {
+        userId: mission.requesterId,
+        missionId: mission.id,
+        type: "MISSION_REFUND",
+        amountCents: rewardCents,
+        description: `Dispute Resolution refund to requester for mission: ${mission.title}`,
+        idempotencyKey: `dispute-refund-${disputeId}`,
+      });
+
+      await tx.mission.update({
+        where: { id: mission.id },
+        data: { status: "REFUNDED" },
+      });
+    }
+
+    const updatedDispute = await tx.dispute.update({
+      where: { id: disputeId },
+      data: { status: "RESOLVED" },
+    });
+
+    await tx.timelineEntry.create({
+      data: {
+        missionId: mission.id,
+        eventType: "DISPUTE_RESOLVED",
+        summary: `Dispute resolved by admin/system. Outcome: ${winningSide}.`,
+        actorId: resolverUserId,
+      },
+    });
+
+    return updatedDispute;
+  });
+
+  return result;
 }

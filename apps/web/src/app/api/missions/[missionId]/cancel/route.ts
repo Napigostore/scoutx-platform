@@ -4,6 +4,7 @@ import { CancelMissionUseCase } from "@scoutx/application";
 import { InMemoryEventBus } from "@scoutx/events";
 import { prisma } from "@/lib/prisma";
 import { getAuthenticatedPrincipal } from "@/lib/server-auth";
+import { recordCoinMovement } from "@/lib/coin-ledger-service";
 
 const missionRepo = new PrismaMissionRepository();
 const cancelMissionUseCase = new CancelMissionUseCase(missionRepo, new InMemoryEventBus());
@@ -67,20 +68,44 @@ export async function POST(
   }
 
   try {
-    const mission = await cancelMissionUseCase.execute(missionId, user.id, "REQUESTER");
+    const result = await prisma.$transaction(async (tx) => {
+      const mission = await cancelMissionUseCase.execute(missionId, user.id, user.role);
 
-    // Record TimelineEntry
-    await prisma.timelineEntry.create({
-      data: {
-        missionId,
-        eventType: "MISSION_CANCELLED",
-        summary: "Mission cancelled by Requester",
-        actorId: user.id,
-        metadata: { role: "REQUESTER" },
-      },
+      const lockTx = await tx.coinTransaction.findFirst({
+        where: { missionId, reason: "MISSION_REWARD_LOCK" },
+      });
+
+      if (lockTx) {
+        const refundAmount = Math.abs(lockTx.amountCents);
+        await recordCoinMovement(tx, {
+          userId: user.id,
+          missionId,
+          type: "MISSION_REFUND",
+          amountCents: refundAmount,
+          description: `Refund for cancelled mission: ${mission.title}`,
+          idempotencyKey: `refund-${missionId}`,
+        });
+      }
+
+      await tx.mission.update({
+        where: { id: missionId },
+        data: { status: "CANCELLED" },
+      });
+
+      await tx.timelineEntry.create({
+        data: {
+          missionId,
+          eventType: "MISSION_CANCELLED",
+          summary: "Mission cancelled by Requester",
+          actorId: user.id,
+          metadata: { role: "REQUESTER" },
+        },
+      });
+
+      return mission;
     });
 
-    return NextResponse.json(mission, { status: 200 });
+    return NextResponse.json(result, { status: 200 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to cancel mission";
     if (message === "Mission not found") {

@@ -3,8 +3,8 @@ import { PrismaMissionRepository } from "@scoutx/infrastructure";
 import { CreateMissionUseCase, ListRequesterMissionsUseCase } from "@scoutx/application";
 import { CreateMissionInputSchema } from "@scoutx/types";
 import { prisma } from "@/lib/prisma";
-
 import { getAuthenticatedPrincipal } from "@/lib/server-auth";
+import { recordCoinMovement } from "@/lib/coin-ledger-service";
 import { verifyAttachmentToken } from "@/lib/attachment-auth";
 import { fetchRequesterMissionsSummary } from "@/lib/mission-summary-service";
 
@@ -212,16 +212,15 @@ export async function POST(request: Request) {
           data: { freeMissions: { decrement: 1 } },
         });
       } else if (budget > 0) {
-        await prisma.coinTransaction.create({
-          data: {
+        await prisma.$transaction(async (tx) => {
+          await recordCoinMovement(tx, {
             userId: user.id,
-            amountCents: -budget,
-            currency: "VND",
-            reason: "MISSION_FUNDING",
-            description: `Funded mission ${mission.id}`,
-            eventType: "DEBIT",
             missionId: mission.id,
-          },
+            type: "MISSION_REWARD_LOCK",
+            amountCents: -budget,
+            description: `Funded mission ${mission.id}`,
+            idempotencyKey: `lock-${mission.id}`,
+          });
         });
       }
     }
