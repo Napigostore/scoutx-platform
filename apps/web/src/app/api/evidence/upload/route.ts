@@ -123,7 +123,7 @@ export async function POST(request: Request) {
         }
       }
 
-      await prisma.evidence.create({
+      const createdEvidence = await prisma.evidence.create({
         data: {
           missionId,
           scoutId: scoutProfileId,
@@ -133,6 +133,29 @@ export async function POST(request: Request) {
           mediaUrl: finalUrl,
         },
       });
+
+      // Trigger survey multi-winner auto-reward if mission is SURVEY
+      const surveyMission = await prisma.mission.findUnique({
+        where: { id: missionId },
+        select: { category: true, rewardPerValidSubmissionCents: true },
+      });
+
+      let surveyRewardResult: {
+        success: boolean;
+        reason?: string;
+        rewardCents?: number;
+        alreadyProcessed?: boolean;
+      } | null = null;
+      if (surveyMission?.category === "SURVEY") {
+        const { processSurveyReward } = await import("@/lib/survey-service");
+        surveyRewardResult = await processSurveyReward({
+          missionId,
+          workerUserId: participantCtx.userId,
+          evidenceId: createdEvidence.id,
+          rewardCents: surveyMission.rewardPerValidSubmissionCents || 1000,
+        });
+      }
+
       // Notify requester about new evidence
       await notifyEvidenceUploaded(missionId, participantCtx.userId).catch(() => {});
 
@@ -147,6 +170,7 @@ export async function POST(request: Request) {
             storageKey: result.storageKey,
             mimeType,
             role: participantCtx.participantRole,
+            surveyReward: surveyRewardResult,
           },
         },
       });

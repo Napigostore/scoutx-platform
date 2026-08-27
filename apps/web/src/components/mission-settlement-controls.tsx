@@ -34,6 +34,11 @@ interface MissionSettlementControlsProps {
     submissionCount?: number;
     chatCount?: number;
   }[];
+  category?: string;
+  rewardPerValidSubmissionCents?: number;
+  rewardBudgetCents?: number;
+  remainingBudgetCents?: number;
+  logVisibility?: string;
   onRefresh?: () => void;
 }
 
@@ -46,6 +51,11 @@ export function MissionSettlementControls({
   settlementStartedAt,
   userContext,
   participants = [],
+  category,
+  rewardPerValidSubmissionCents,
+  rewardBudgetCents,
+  remainingBudgetCents,
+  logVisibility = "PRIVATE",
   onRefresh,
 }: MissionSettlementControlsProps) {
   const [showWinnerModal, setShowWinnerModal] = useState(false);
@@ -220,15 +230,34 @@ export function MissionSettlementControls({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
-              Reward Pool: ${budgetUSD}
-            </span>
-            <span className="rounded-full bg-[var(--scoutx-muted)] px-2.5 py-0.5 text-xs font-bold uppercase text-[var(--scoutx-muted-foreground)]">
-              Status: {status.replace(/_/g, " ")}
-            </span>
+            {category === "SURVEY" ? (
+              <>
+                <span className="rounded-full border border-purple-500/20 bg-purple-500/10 px-2.5 py-0.5 text-xs font-bold text-purple-600 dark:text-purple-400">
+                  {Math.round((rewardPerValidSubmissionCents || 1000) / 100)} coin / evidence hợp lệ
+                </span>
+                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  Ngân sách còn lại: ${Math.round((remainingBudgetCents ?? budgetCents) / 100)} / $
+                  {Math.round((rewardBudgetCents || budgetCents) / 100)} coin
+                </span>
+                <span className="rounded-full bg-[var(--scoutx-muted)] px-2.5 py-0.5 text-xs font-bold text-[var(--scoutx-muted-foreground)]">
+                  {logVisibility === "SHARED" ? "👥 Shared logs" : "🔒 Private logs"}
+                </span>
+              </>
+            ) : (
+              <>
+                <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-0.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                  Reward Pool: ${budgetUSD}
+                </span>
+                <span className="rounded-full bg-[var(--scoutx-muted)] px-2.5 py-0.5 text-xs font-bold uppercase text-[var(--scoutx-muted-foreground)]">
+                  Status: {status.replace(/_/g, " ")}
+                </span>
+              </>
+            )}
           </div>
           <h3 className="font-display mt-2 text-lg font-bold text-[var(--scoutx-foreground)]">
-            Mission Settlement & Governance Workflow
+            {category === "SURVEY"
+              ? "Survey Multi-Winner Workflow"
+              : "Mission Settlement & Governance Workflow"}
           </h3>
         </div>
 
@@ -265,8 +294,8 @@ export function MissionSettlementControls({
               </Button>
             )}
 
-          {/* 1. Complete Mission / Trao phần thưởng - CHỈ Requester được thấy & bấm */}
-          {userContext?.isRequester && (
+          {/* 1. Complete Mission / Trao phần thưởng - CHỈ Requester được thấy & bấm cho mission thường */}
+          {userContext?.isRequester && category !== "SURVEY" && (
             <Button
               onClick={() => setShowWinnerModal(true)}
               className="bg-emerald-600 font-bold text-white hover:bg-emerald-700"
@@ -447,6 +476,28 @@ export function MissionSettlementControls({
               Vote: Worker Win (+1 Coin)
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* SURVEY Status Banners for Worker */}
+      {category === "SURVEY" && !userContext?.isRequester && (
+        <div className="mt-4 space-y-2">
+          {userContext?.hasSubmittedEvidence && (
+            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+              🏆 Bạn đã thắng nhiệm vụ này và nhận{" "}
+              {Math.round((rewardPerValidSubmissionCents || 1000) / 100)} coin.
+            </div>
+          )}
+          {remainingBudgetCents === 0 && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm font-semibold text-amber-700 dark:text-amber-300">
+              Phần thưởng của nhiệm vụ đã hết.
+            </div>
+          )}
+          {(status === "EXPIRED" || status === "REFUNDED") && (
+            <div className="rounded-xl border border-gray-500/30 bg-gray-500/10 p-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Nhiệm vụ đã hết thời hạn.
+            </div>
+          )}
         </div>
       )}
 

@@ -97,6 +97,10 @@ export class PrismaMissionRepository implements MissionRepository {
         assignedScoutId: mission.assignedScoutId,
         requiredTags: mission.requiredTags,
         expiresAt: mission.expiresAt,
+        rewardPerValidSubmissionCents: mission.rewardPerValidSubmissionCents,
+        rewardBudgetCents: mission.rewardBudgetCents,
+        remainingBudgetCents: mission.remainingBudgetCents,
+        logVisibility: mission.logVisibility || "PRIVATE",
         createdAt: mission.createdAt,
         updatedAt: mission.updatedAt,
       },
@@ -129,6 +133,11 @@ export class PrismaMissionRepository implements MissionRepository {
       assignedScoutId: row.assignedScoutId,
       requiredTags: row.requiredTags,
       expiresAt: row.expiresAt,
+      rewardPerValidSubmissionCents: row.rewardPerValidSubmissionCents ?? undefined,
+      rewardBudgetCents: row.rewardBudgetCents ?? undefined,
+      remainingBudgetCents: row.remainingBudgetCents ?? undefined,
+      logVisibility: (row.logVisibility === "SHARED" ? "SHARED" : "PRIVATE") as
+        "PRIVATE" | "SHARED",
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
@@ -160,6 +169,11 @@ export class PrismaMissionRepository implements MissionRepository {
       assignedScoutId: row.assignedScoutId,
       requiredTags: row.requiredTags,
       expiresAt: row.expiresAt,
+      rewardPerValidSubmissionCents: row.rewardPerValidSubmissionCents ?? undefined,
+      rewardBudgetCents: row.rewardBudgetCents ?? undefined,
+      remainingBudgetCents: row.remainingBudgetCents ?? undefined,
+      logVisibility: (row.logVisibility === "SHARED" ? "SHARED" : "PRIVATE") as
+        "PRIVATE" | "SHARED",
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
@@ -220,6 +234,11 @@ export class PrismaMissionRepository implements MissionRepository {
       assignedScoutId: row.assignedScoutId,
       requiredTags: row.requiredTags,
       expiresAt: row.expiresAt,
+      rewardPerValidSubmissionCents: row.rewardPerValidSubmissionCents ?? undefined,
+      rewardBudgetCents: row.rewardBudgetCents ?? undefined,
+      remainingBudgetCents: row.remainingBudgetCents ?? undefined,
+      logVisibility: (row.logVisibility === "SHARED" ? "SHARED" : "PRIVATE") as
+        "PRIVATE" | "SHARED",
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
@@ -311,6 +330,11 @@ export class PrismaMissionRepository implements MissionRepository {
       assignedScoutId: row.assignedScoutId,
       requiredTags: row.requiredTags,
       expiresAt: row.expiresAt,
+      rewardPerValidSubmissionCents: row.rewardPerValidSubmissionCents ?? undefined,
+      rewardBudgetCents: row.rewardBudgetCents ?? undefined,
+      remainingBudgetCents: row.remainingBudgetCents ?? undefined,
+      logVisibility: (row.logVisibility === "SHARED" ? "SHARED" : "PRIVATE") as
+        "PRIVATE" | "SHARED",
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));

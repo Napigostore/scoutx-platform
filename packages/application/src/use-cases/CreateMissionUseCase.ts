@@ -29,6 +29,10 @@ export class CreateMissionUseCase {
       assignedScoutId: null,
       requiredTags: input.requiredTags || [],
       expiresAt: input.expiresAt,
+      rewardPerValidSubmissionCents: input.rewardPerValidSubmissionCents,
+      rewardBudgetCents: input.rewardBudgetCents || input.budget?.amountCents,
+      remainingBudgetCents: input.rewardBudgetCents || input.budget?.amountCents,
+      logVisibility: input.logVisibility || "PRIVATE",
       createdAt: new Date(),
       updatedAt: new Date(),
     };

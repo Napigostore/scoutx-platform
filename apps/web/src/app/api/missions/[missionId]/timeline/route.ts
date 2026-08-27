@@ -20,9 +20,32 @@ export async function GET(
     participantCtx.participantRole === "REQUESTER" || participantCtx.participantRole === "ADMIN";
   const currentUserId = participantCtx.userId;
 
+  const { searchParams } = new URL(request.url);
+  const targetWorkerId = searchParams.get("workerId");
+
   try {
-    // Requesters see all entries; recipients see only their own + system entries
-    const timelineWhere = isRequester
+    const mission = await prisma.mission.findUnique({
+      where: { id: missionId },
+      select: { logVisibility: true },
+    });
+
+    const isShared = mission?.logVisibility === "SHARED";
+
+    // If targetWorkerId is explicitly requested by a worker on a PRIVATE mission:
+    if (!isRequester && targetWorkerId && targetWorkerId !== currentUserId && !isShared) {
+      return NextResponse.json(
+        { error: "Forbidden: Cannot access other worker's logs on a PRIVATE mission" },
+        { status: 403 },
+      );
+    }
+
+    // Determine query filter:
+    // Requesters & admins -> see all
+    // Workers on SHARED mission -> see all entries for this mission
+    // Workers on PRIVATE mission -> see only their own entries + system entries
+    const canSeeAllLogs = isRequester || isShared;
+
+    const timelineWhere = canSeeAllLogs
       ? { missionId }
       : { missionId, OR: [{ actorId: currentUserId }, { actorId: null }] };
 
@@ -31,8 +54,8 @@ export async function GET(
       orderBy: { createdAt: "asc" },
     });
 
-    // Evidence: requester sees all; recipient sees only their own
-    const evidenceWhere = isRequester ? { missionId } : { missionId, userId: currentUserId };
+    const evidenceWhere = canSeeAllLogs ? { missionId } : { missionId, userId: currentUserId };
+
     const evidenceRecords = await prisma.evidence.findMany({
       where: evidenceWhere,
       orderBy: { createdAt: "asc" },

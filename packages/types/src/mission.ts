@@ -11,6 +11,7 @@ export const MissionCategorySchema = z.enum([
   "WEATHER_ON_SITE",
   "PHOTO_VERIFICATION",
   "GENERAL_OBSERVATION",
+  "SURVEY",
 ]);
 export type MissionCategory = z.infer<typeof MissionCategorySchema>;
 
@@ -24,6 +25,10 @@ export const MissionStatusSchema = z.enum([
   "COMPLETED",
   "CANCELLED",
   "EXPIRED",
+  "COMPLETED_PENDING_SETTLEMENT",
+  "DISPUTED",
+  "REWARDED",
+  "REFUNDED",
 ]);
 export type MissionStatus = z.infer<typeof MissionStatusSchema>;
 
@@ -53,6 +58,10 @@ export const MissionSchema = z.object({
   expiresAt: z.coerce.date(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
+  rewardPerValidSubmissionCents: z.number().int().positive().optional().nullable(),
+  rewardBudgetCents: z.number().int().positive().optional().nullable(),
+  remainingBudgetCents: z.number().int().positive().optional().nullable(),
+  logVisibility: z.enum(["PRIVATE", "SHARED"]).default("PRIVATE"),
 });
 export type Mission = z.infer<typeof MissionSchema>;
 
@@ -67,5 +76,8 @@ export const CreateMissionInputSchema = z.object({
   radiusMeters: z.number().positive().max(50_000).default(1500),
   requiredTags: z.array(z.string().min(1).max(40)).max(12).default([]),
   expiresAt: z.coerce.date(),
+  rewardPerValidSubmissionCents: z.number().int().positive().optional(),
+  rewardBudgetCents: z.number().int().positive().optional(),
+  logVisibility: z.enum(["PRIVATE", "SHARED"]).default("PRIVATE"),
 });
 export type CreateMissionInput = z.infer<typeof CreateMissionInputSchema>;
