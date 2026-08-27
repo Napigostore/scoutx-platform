@@ -158,11 +158,15 @@ export async function GET(
       const userSubmissionCount = await prisma.missionSubmission.count({
         where: { missionId, userId: targetUserId },
       });
+      const userTimelineCount = await prisma.timelineEntry.count({
+        where: { missionId, actorId: targetUserId },
+      });
 
       hasSubmittedEvidence = userEvidenceCount > 0;
       hasSubmittedReport = userSubmissionCount > 0 || userEvidenceCount > 0;
       canRequestReward =
-        mission.requesterId !== targetUserId && (hasSubmittedEvidence || userSubmissionCount > 0);
+        mission.requesterId !== targetUserId &&
+        (hasSubmittedEvidence || userSubmissionCount > 0 || userTimelineCount > 0);
     }
 
     const userContext = {

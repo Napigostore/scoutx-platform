@@ -22,9 +22,13 @@ export async function POST(
   const hasSubmission = await prisma.missionSubmission.findFirst({
     where: { missionId, userId: ctx.userId },
   });
-  if (!hasEvidence && !hasSubmission) {
+  const hasTimelineMsg = await prisma.timelineEntry.findFirst({
+    where: { missionId, actorId: ctx.userId },
+  });
+
+  if (!hasEvidence && !hasSubmission && !hasTimelineMsg) {
     return NextResponse.json(
-      { error: "Submit evidence or report first before requesting reward" },
+      { error: "Submit evidence, report, or chat interaction first before requesting reward" },
       { status: 403 },
     );
   }
