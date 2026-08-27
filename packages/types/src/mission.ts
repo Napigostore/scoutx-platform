@@ -62,6 +62,9 @@ export const MissionSchema = z.object({
   rewardBudgetCents: z.number().int().positive().optional().nullable(),
   remainingBudgetCents: z.number().int().positive().optional().nullable(),
   logVisibility: z.enum(["PRIVATE", "SHARED"]).default("PRIVATE"),
+  selectionMode: z.enum(["AUTO", "REQUESTER_SELECT"]).default("AUTO"),
+  disputeMode: z.enum(["ENABLED", "DISABLED"]).default("DISABLED"),
+  maxParticipants: z.number().int().positive().optional().nullable(),
 });
 export type Mission = z.infer<typeof MissionSchema>;
 
@@ -79,5 +82,8 @@ export const CreateMissionInputSchema = z.object({
   rewardPerValidSubmissionCents: z.number().int().positive().optional(),
   rewardBudgetCents: z.number().int().positive().optional(),
   logVisibility: z.enum(["PRIVATE", "SHARED"]).default("PRIVATE"),
+  selectionMode: z.enum(["AUTO", "REQUESTER_SELECT"]).default("AUTO"),
+  disputeMode: z.enum(["ENABLED", "DISABLED"]).default("DISABLED"),
+  maxParticipants: z.number().int().positive().optional(),
 });
 export type CreateMissionInput = z.infer<typeof CreateMissionInputSchema>;

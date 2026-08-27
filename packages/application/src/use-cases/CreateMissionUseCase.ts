@@ -33,6 +33,9 @@ export class CreateMissionUseCase {
       rewardBudgetCents: input.rewardBudgetCents || input.budget?.amountCents,
       remainingBudgetCents: input.rewardBudgetCents || input.budget?.amountCents,
       logVisibility: input.logVisibility || "PRIVATE",
+      selectionMode: input.selectionMode || "AUTO",
+      disputeMode: input.disputeMode || "DISABLED",
+      maxParticipants: input.maxParticipants,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

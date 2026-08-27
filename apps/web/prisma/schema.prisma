@@ -94,6 +94,7 @@ model User {
   trustActionsReceived  TrustActionRecord[] @relation("TrustActionsReceived")
   coinTransactions      CoinTransaction[]
   coinLedgers           CoinLedger[]
+  surveyParticipants    SurveyParticipant[]
   sessions              Session[]
   withdrawalRequests    WithdrawalRequest[]
   pendingAttachments         PendingAttachment[]
@@ -183,20 +184,24 @@ model Mission {
   rewardBudgetCents             Int?
   remainingBudgetCents          Int?
   logVisibility                 String            @default("PRIVATE")
-  expiresAt             DateTime
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  selectionMode                 String            @default("AUTO")
+  disputeMode                   String            @default("DISABLED")
+  maxParticipants               Int?
+  expiresAt                     DateTime
+  createdAt                     DateTime          @default(now())
+  updatedAt                     DateTime          @updatedAt
 
-  location         Location            @relation(fields: [locationId], references: [id])
-  requester        User                @relation("RequestedMissions", fields: [requesterId], references: [id])
-  assignedScout    ScoutProfile?       @relation("AssignedScout", fields: [assignedScoutId], references: [id])
-  submission       MissionSubmission?
-  evidence         Evidence[]
-  timelineEntries  TimelineEntry[]
-  trustActions     TrustActionRecord[]
-  coinTransactions CoinTransaction[]
-  coinLedgers      CoinLedger[]
-  recipients       MissionRecipient[]
+  location           Location            @relation(fields: [locationId], references: [id])
+  requester          User                @relation("RequestedMissions", fields: [requesterId], references: [id])
+  assignedScout      ScoutProfile?       @relation("AssignedScout", fields: [assignedScoutId], references: [id])
+  submission         MissionSubmission?
+  evidence           Evidence[]
+  timelineEntries    TimelineEntry[]
+  trustActions       TrustActionRecord[]
+  coinTransactions   CoinTransaction[]
+  coinLedgers        CoinLedger[]
+  surveyParticipants SurveyParticipant[]
+  recipients         MissionRecipient[]
   dispute          Dispute?
   rewardRequests   RewardRequest[]
   notifications    Notification[]
@@ -565,4 +570,24 @@ model Notification {
   @@index([userId, read])
   @@index([missionId])
   @@map("notifications")
+}
+
+model SurveyParticipant {
+  id          String    @id @default(uuid()) @db.Uuid
+  missionId   String    @db.Uuid
+  userId      String    @db.Uuid
+  evidenceId  String?   @db.Uuid
+  status      String    @default("SUBMITTED") // APPLIED | SUBMITTED | UNDER_REVIEW | SELECTED | REJECTED | REWARDED
+  selectedAt  DateTime?
+  rewardedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([missionId, userId])
+  @@index([missionId, status])
+  @@index([userId])
+  @@map("survey_participants")
 }

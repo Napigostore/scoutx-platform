@@ -101,6 +101,9 @@ export class PrismaMissionRepository implements MissionRepository {
         rewardBudgetCents: mission.rewardBudgetCents,
         remainingBudgetCents: mission.remainingBudgetCents,
         logVisibility: mission.logVisibility || "PRIVATE",
+        selectionMode: mission.selectionMode || "AUTO",
+        disputeMode: mission.disputeMode || "DISABLED",
+        maxParticipants: mission.maxParticipants,
         createdAt: mission.createdAt,
         updatedAt: mission.updatedAt,
       },
@@ -138,6 +141,11 @@ export class PrismaMissionRepository implements MissionRepository {
       remainingBudgetCents: row.remainingBudgetCents ?? undefined,
       logVisibility: (row.logVisibility === "SHARED" ? "SHARED" : "PRIVATE") as
         "PRIVATE" | "SHARED",
+      selectionMode: (row.selectionMode === "REQUESTER_SELECT" ? "REQUESTER_SELECT" : "AUTO") as
+        "AUTO" | "REQUESTER_SELECT",
+      disputeMode: (row.disputeMode === "ENABLED" ? "ENABLED" : "DISABLED") as
+        "ENABLED" | "DISABLED",
+      maxParticipants: row.maxParticipants ?? undefined,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
@@ -174,6 +182,11 @@ export class PrismaMissionRepository implements MissionRepository {
       remainingBudgetCents: row.remainingBudgetCents ?? undefined,
       logVisibility: (row.logVisibility === "SHARED" ? "SHARED" : "PRIVATE") as
         "PRIVATE" | "SHARED",
+      selectionMode: (row.selectionMode === "REQUESTER_SELECT" ? "REQUESTER_SELECT" : "AUTO") as
+        "AUTO" | "REQUESTER_SELECT",
+      disputeMode: (row.disputeMode === "ENABLED" ? "ENABLED" : "DISABLED") as
+        "ENABLED" | "DISABLED",
+      maxParticipants: row.maxParticipants ?? undefined,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
@@ -239,6 +252,11 @@ export class PrismaMissionRepository implements MissionRepository {
       remainingBudgetCents: row.remainingBudgetCents ?? undefined,
       logVisibility: (row.logVisibility === "SHARED" ? "SHARED" : "PRIVATE") as
         "PRIVATE" | "SHARED",
+      selectionMode: (row.selectionMode === "REQUESTER_SELECT" ? "REQUESTER_SELECT" : "AUTO") as
+        "AUTO" | "REQUESTER_SELECT",
+      disputeMode: (row.disputeMode === "ENABLED" ? "ENABLED" : "DISABLED") as
+        "ENABLED" | "DISABLED",
+      maxParticipants: row.maxParticipants ?? undefined,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
@@ -335,6 +353,11 @@ export class PrismaMissionRepository implements MissionRepository {
       remainingBudgetCents: row.remainingBudgetCents ?? undefined,
       logVisibility: (row.logVisibility === "SHARED" ? "SHARED" : "PRIVATE") as
         "PRIVATE" | "SHARED",
+      selectionMode: (row.selectionMode === "REQUESTER_SELECT" ? "REQUESTER_SELECT" : "AUTO") as
+        "AUTO" | "REQUESTER_SELECT",
+      disputeMode: (row.disputeMode === "ENABLED" ? "ENABLED" : "DISABLED") as
+        "ENABLED" | "DISABLED",
+      maxParticipants: row.maxParticipants ?? undefined,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
