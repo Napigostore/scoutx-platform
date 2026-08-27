@@ -135,6 +135,7 @@ export async function GET(
     let hasSubmittedReport = false;
     let canRequestReward = false;
     let hasRequestedReward = false;
+    let canDispute = false;
 
     if (principal) {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -175,6 +176,15 @@ export async function GET(
         mission.status !== "REWARDED" &&
         !existingRewardRequest &&
         (hasSubmittedEvidence || userSubmissionCount > 0 || userTimelineCount > 0);
+
+      const isWinner = Boolean(mission.winnerId && mission.winnerId === targetUserId);
+      const isParticipant =
+        isAssignedOrRecipient ||
+        hasSubmittedReport ||
+        hasSubmittedEvidence ||
+        userTimelineCount > 0;
+
+      canDispute = (isRequester || isParticipant) && !isWinner;
     }
 
     const userContext = {
@@ -185,7 +195,12 @@ export async function GET(
       canCompleteMission: isRequester || hasSubmittedReport,
       canRequestReward,
       hasRequestedReward,
-      canDispute: isRequester || isAssignedOrRecipient || hasSubmittedReport,
+      isWinner: Boolean(
+        mission.winnerId &&
+        principal &&
+        (principal.id === mission.winnerId || currentUserId === mission.winnerId),
+      ),
+      canDispute,
     };
 
     const uniqueParticipants = new Set<string>();
@@ -207,11 +222,38 @@ export async function GET(
     for (const ev of allEvidenceUsers) {
       if (ev.userId) uniqueParticipants.add(ev.userId);
     }
-    const participantCount = uniqueParticipants.size;
-    const participantsList = await prisma.user.findMany({
-      where: { id: { in: Array.from(uniqueParticipants) } },
-      select: { id: true, displayName: true, role: true },
-    });
+
+    const activeParticipantsList = [];
+    for (const uId of uniqueParticipants) {
+      if (uId === mission.requesterId) continue;
+
+      const evidenceCount = await prisma.evidence.count({ where: { missionId, userId: uId } });
+      const submissionCount = await prisma.missionSubmission.count({
+        where: { missionId, userId: uId },
+      });
+      const chatCount = await prisma.timelineEntry.count({
+        where: { missionId, actorId: uId },
+      });
+
+      if (evidenceCount === 0 && submissionCount === 0 && chatCount === 0) continue;
+
+      const pUser = await prisma.user.findUnique({
+        where: { id: uId },
+        select: { id: true, displayName: true, email: true, role: true, avatarUrl: true },
+      });
+
+      if (pUser) {
+        activeParticipantsList.push({
+          id: pUser.id,
+          displayName: pUser.displayName || pUser.email.split("@")[0] || "Worker",
+          role: pUser.role,
+          avatarUrl: pUser.avatarUrl,
+          evidenceCount,
+          submissionCount,
+          chatCount,
+        });
+      }
+    }
 
     const responsePayload = {
       id: mission.id,
@@ -237,8 +279,8 @@ export async function GET(
       expiresAt: mission.expiresAt.toISOString(),
       createdAt: mission.createdAt.toISOString(),
       updatedAt: mission.updatedAt.toISOString(),
-      participantCount,
-      participants: participantsList,
+      participantCount: uniqueParticipants.size,
+      participants: activeParticipantsList,
       submission,
       referenceAttachments,
       userContext,

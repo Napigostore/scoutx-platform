@@ -22,9 +22,18 @@ interface MissionSettlementControlsProps {
     canCompleteMission: boolean;
     canRequestReward: boolean;
     hasRequestedReward?: boolean;
+    isWinner?: boolean;
     canDispute: boolean;
   } | null;
-  participants?: { id: string; displayName: string; role: string }[];
+  participants?: {
+    id: string;
+    displayName: string;
+    role: string;
+    avatarUrl?: string | null;
+    evidenceCount?: number;
+    submissionCount?: number;
+    chatCount?: number;
+  }[];
   onRefresh?: () => void;
 }
 
@@ -298,11 +307,8 @@ export function MissionSettlementControls({
             </span>
           )}
 
-          {/* 4. Nút Claim phản đối (Dispute) - CHỈ người đã nhận nhiệm vụ, nộp evidence/report hoặc người giao mới được claim phản đối */}
-          {(userContext?.isRequester ||
-            userContext?.isAssignedOrRecipient ||
-            userContext?.hasSubmittedReport ||
-            userContext?.hasSubmittedEvidence) && (
+          {/* 4. Nút Claim phản đối (Dispute) - CHỈ participant KHÔNG PHẢI WINNER mới được claim */}
+          {userContext?.canDispute && !userContext?.isWinner && (
             <Button
               variant="secondary"
               onClick={() => setShowDisputeModal(true)}
@@ -418,7 +424,7 @@ export function MissionSettlementControls({
               Select Mission Winner
             </h3>
             <p className="text-xs text-[var(--scoutx-muted-foreground)]">
-              Select the winner from the valid mission participants.
+              Select the winner from worker participants with evidence, report, or chat logs.
             </p>
 
             <div className="space-y-2">
@@ -429,7 +435,7 @@ export function MissionSettlementControls({
                 onChange={(e) => setSelectedWinnerId(e.target.value)}
                 className="w-full rounded-md border border-[var(--scoutx-border)] bg-[var(--scoutx-background)] px-3 py-2 text-sm text-[var(--scoutx-foreground)]"
               />
-              <div className="bg-[var(--scoutx-muted)]/30 max-h-40 overflow-y-auto rounded-md border border-[var(--scoutx-border)]">
+              <div className="bg-[var(--scoutx-muted)]/30 max-h-60 overflow-y-auto rounded-md border border-[var(--scoutx-border)] p-1">
                 {participants
                   .filter(
                     (p) =>
@@ -437,23 +443,52 @@ export function MissionSettlementControls({
                       p.displayName?.toLowerCase().includes(selectedWinnerId.toLowerCase()) ||
                       p.id.toLowerCase().includes(selectedWinnerId.toLowerCase()),
                   )
-                  .map((p) => (
-                    <div
-                      key={p.id}
-                      onClick={() => setSelectedWinnerId(p.id)}
-                      className="cursor-pointer border-b border-[var(--scoutx-border)] px-3 py-2 text-sm last:border-0 hover:bg-[var(--scoutx-card)]"
-                    >
-                      <div className="font-bold text-[var(--scoutx-foreground)]">
-                        {p.displayName}
+                  .map((p) => {
+                    const isSelected = selectedWinnerId === p.id;
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => setSelectedWinnerId(p.id)}
+                        className={`cursor-pointer rounded-lg border p-3 transition-colors ${
+                          isSelected
+                            ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40"
+                            : "border-transparent hover:bg-[var(--scoutx-card)]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-bold text-[var(--scoutx-foreground)]">
+                            {p.displayName}
+                          </div>
+                          {isSelected && (
+                            <span className="text-xs font-bold text-emerald-600">✓ Selected</span>
+                          )}
+                        </div>
+                        <div className="mt-1 flex flex-wrap gap-2 text-xs text-[var(--scoutx-muted-foreground)]">
+                          {p.evidenceCount ? (
+                            <span className="rounded bg-blue-100 px-1.5 py-0.5 font-semibold text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">
+                              📷 {p.evidenceCount} evidence
+                            </span>
+                          ) : null}
+                          {p.submissionCount ? (
+                            <span className="rounded bg-green-100 px-1.5 py-0.5 font-semibold text-green-700 dark:bg-green-900/40 dark:text-green-300">
+                              📩 {p.submissionCount} report
+                            </span>
+                          ) : null}
+                          {p.chatCount ? (
+                            <span className="rounded bg-purple-100 px-1.5 py-0.5 font-semibold text-purple-700 dark:bg-purple-900/40 dark:text-purple-300">
+                              💬 {p.chatCount} msgs
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-1 font-mono text-[10px] text-[var(--scoutx-muted-foreground)]">
+                          ID: {p.id}
+                        </div>
                       </div>
-                      <div className="text-xs text-[var(--scoutx-muted-foreground)]">
-                        {p.id} • {p.role}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 {participants.length === 0 && (
-                  <div className="px-3 py-4 text-center text-sm text-[var(--scoutx-muted-foreground)]">
-                    No active participants found.
+                  <div className="px-3 py-6 text-center text-xs text-[var(--scoutx-muted-foreground)]">
+                    No active worker participants with submitted evidence/logs found.
                   </div>
                 )}
               </div>

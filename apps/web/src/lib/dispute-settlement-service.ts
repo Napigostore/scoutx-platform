@@ -41,15 +41,20 @@ export async function requesterCompleteMission(
 
   const finalWinnerUserId = winnerUser?.id || winnerId;
 
-  // Validate winner belongs to an actual submission, recipient, or evidence upload
-  const isValidWinner =
-    (mission.submission && mission.submission.userId === finalWinnerUserId) ||
-    mission.recipients.some((r) => r.userId === finalWinnerUserId) ||
-    (await prisma.evidence.count({ where: { missionId, userId: finalWinnerUserId } })) > 0 ||
-    mission.assignedScout?.userId === finalWinnerUserId;
+  // Validate winner belongs to an active worker participant with activity logs
+  const evCount = await prisma.evidence.count({ where: { missionId, userId: finalWinnerUserId } });
+  const subCount = await prisma.missionSubmission.count({
+    where: { missionId, userId: finalWinnerUserId },
+  });
+  const chatCount = await prisma.timelineEntry.count({
+    where: { missionId, actorId: finalWinnerUserId },
+  });
 
-  if (!isValidWinner) {
-    throw new Error("Selected winner must be a valid worker participant in this mission");
+  const hasActivity = evCount > 0 || subCount > 0 || chatCount > 0;
+  if (finalWinnerUserId === requesterUserId || !hasActivity) {
+    throw new Error(
+      "Selected winner must be an active worker participant with submitted evidence, report, or activity log",
+    );
   }
 
   const now = new Date();
@@ -189,15 +194,25 @@ export async function createDispute(missionId: string, initiatorUserId: string, 
   if (!mission) throw new Error("Mission not found");
 
   const isRequester = mission.requesterId === initiatorUserId;
+  const isWinner = mission.winnerId === initiatorUserId;
+
+  if (isWinner) {
+    throw new Error("Forbidden: The mission winner cannot file a dispute");
+  }
+
   const isAssignedOrRecipient =
     mission.assignedScout?.userId === initiatorUserId ||
     mission.recipients.some((r) => r.userId === initiatorUserId);
   const isSubmitter = mission.submission?.userId === initiatorUserId;
+  const hasEvidence =
+    (await prisma.evidence.count({ where: { missionId, userId: initiatorUserId } })) > 0;
+  const hasTimeline =
+    (await prisma.timelineEntry.count({ where: { missionId, actorId: initiatorUserId } })) > 0;
 
-  if (!isRequester && !isAssignedOrRecipient && !isSubmitter) {
-    throw new Error(
-      "Forbidden: Only the mission requester or assigned participants can dispute this mission",
-    );
+  const isParticipant = isAssignedOrRecipient || isSubmitter || hasEvidence || hasTimeline;
+
+  if (!isRequester && !isParticipant) {
+    throw new Error("Forbidden: Only active mission worker participants can file a dispute");
   }
 
   const dispute = await prisma.$transaction(async (tx) => {
