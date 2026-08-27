@@ -100,6 +100,10 @@ model User {
   coinLedgers           CoinLedger[]
   surveyParticipants    SurveyParticipant[]
   workerTrustProfile         WorkerTrustProfile?
+  audienceProfile            AudienceProfile?
+  savedAudiences             SavedAudience[]
+  audienceMembers            AudienceMember[]
+  researchParticipantHistories ResearchParticipantHistory[] @relation("WorkerHistory")
   sessions                   Session[]
   withdrawalRequests    WithdrawalRequest[]
   pendingAttachments         PendingAttachment[]
@@ -220,6 +224,7 @@ model Mission {
   dispute          Dispute?
   rewardRequests   RewardRequest[]
   notifications    Notification[]
+  researchParticipantHistories ResearchParticipantHistory[]
 
   @@index([status, expiresAt])
   @@index([locationId])
@@ -705,4 +710,96 @@ model WorkerTrustProfile {
   @@index([fraudRiskScore])
   @@index([lastCalculatedAt])
   @@map("worker_trust_profiles")
+}
+
+model AudienceProfile {
+  id                      String    @id @default(uuid()) @db.Uuid
+  userId                  String    @unique @db.Uuid
+  country                 String
+  region                  String?
+  city                    String?
+  languages               Json?
+  employmentStatus        String?
+  industry                String?
+  jobTitle                String?
+  education               String?
+  incomeRange             String?
+  deviceType              String?
+  os                      String?
+  skills                  Json?
+  interests               Json?
+  productUsage            Json?
+  purchaseBehavior        Json?
+  consentVersion          String?
+  consentAt               DateTime?
+  profileCompletedPercent Int       @default(0)
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([country])
+  @@index([industry])
+  @@index([jobTitle])
+  @@map("audience_profiles")
+}
+
+model SavedAudience {
+  id                     String           @id @default(uuid()) @db.Uuid
+  requesterId            String           @db.Uuid
+  name                   String
+  description            String?
+  criteria               Json
+  estimatedEligibleCount Int              @default(0)
+  createdAt              DateTime         @default(now())
+  updatedAt              DateTime         @updatedAt
+
+  requester User             @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  members   AudienceMember[]
+
+  @@index([requesterId])
+  @@map("saved_audiences")
+}
+
+model AudienceMember {
+  id              String    @id @default(uuid()) @db.Uuid
+  audienceId      String    @db.Uuid
+  workerId        String    @db.Uuid
+  status          String    @default("ACTIVE") // ACTIVE | EXCLUDED | INACTIVE
+  addedAt         DateTime  @default(now())
+  lastQualifiedAt DateTime  @default(now())
+  excludedAt      DateTime?
+
+  audience SavedAudience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
+  worker   User          @relation(fields: [workerId], references: [id], onDelete: Cascade)
+
+  @@unique([audienceId, workerId])
+  @@index([audienceId])
+  @@index([workerId])
+  @@index([status])
+  @@map("audience_members")
+}
+
+model ResearchParticipantHistory {
+  id            String    @id @default(uuid()) @db.Uuid
+  workerId      String    @db.Uuid
+  missionId     String    @db.Uuid
+  requesterId   String    @db.Uuid
+  status        String    @default("COMPLETED")
+  completedAt   DateTime?
+  qualityScore  Float?
+  rewardAmount  Float?
+  createdAt     DateTime  @default(now())
+
+  worker    User    @relation("WorkerHistory", fields: [workerId], references: [id], onDelete: Cascade)
+  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@unique([workerId, missionId])
+  @@index([workerId])
+  @@index([requesterId])
+  @@index([missionId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("research_participant_histories")
 }
