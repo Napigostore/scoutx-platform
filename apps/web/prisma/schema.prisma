@@ -104,6 +104,7 @@ model User {
   savedAudiences             SavedAudience[]
   audienceMembers            AudienceMember[]
   researchParticipantHistories ResearchParticipantHistory[] @relation("WorkerHistory")
+  researchBriefs               ResearchBrief[]
   sessions                   Session[]
   withdrawalRequests    WithdrawalRequest[]
   pendingAttachments         PendingAttachment[]
@@ -802,4 +803,52 @@ model ResearchParticipantHistory {
   @@index([status])
   @@index([createdAt])
   @@map("research_participant_histories")
+}
+
+model ResearchBrief {
+  id                       String   @id @default(uuid()) @db.Uuid
+  requesterId              String   @db.Uuid
+  title                    String
+  objective                String
+  market                   String?
+  methodology              String?
+  targetSampleSize         Int?
+  estimatedDurationMinutes Int?
+  budget                   Float?
+  currency                 String?  @default("USD")
+  rawBrief                 String
+  status                   String   @default("DRAFT")
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  requester User          @relation(fields: [requesterId], references: [id], onDelete: Cascade)
+  plan      ResearchPlan?
+
+  @@index([requesterId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("research_briefs")
+}
+
+model ResearchPlan {
+  id                     String   @id @default(uuid()) @db.Uuid
+  briefId                String   @unique @db.Uuid
+  audienceCriteria       Json
+  screening              Json
+  quota                  Json
+  survey                 Json
+  qualityPolicy          Json
+  rewardPolicy           Json
+  estimatedEligibleCount Int?
+  estimatedCost          Float?
+  warnings               Json?
+  aiModel                String?
+  aiVersion              String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  brief ResearchBrief @relation(fields: [briefId], references: [id], onDelete: Cascade)
+
+  @@index([briefId])
+  @@map("research_plans")
 }
