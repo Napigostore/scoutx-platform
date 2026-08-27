@@ -118,7 +118,7 @@ export function MissionSettlementControls({
       if (!res.ok || data.error) {
         throw new Error(data.error || "Failed to request reward");
       }
-      setMessage({ type: "success", text: "Yêu cầu nhận thưởng đã được gửi tới Requester!" });
+      setMessage({ type: "success", text: "Yêu cầu trả thưởng đã được gửi tới Requester!" });
       if (onRefresh) onRefresh();
     } catch (err: unknown) {
       const errText = err instanceof Error ? err.message : "Failed to request reward";
@@ -257,11 +257,11 @@ export function MissionSettlementControls({
               }`}
               title={
                 userContext.hasSubmittedReport
-                  ? "Bấm để gửi yêu cầu nhận thưởng tới Requester"
-                  : "Bạn cần gửi bằng chứng hoặc báo cáo trước khi yêu cầu nhận thưởng"
+                  ? "Bấm để gửi yêu cầu trả thưởng tới Requester"
+                  : "Bạn cần gửi bằng chứng hoặc báo cáo trước khi yêu cầu trả thưởng"
               }
             >
-              🎁 Yêu cầu nhận thưởng
+              🎁 Yêu cầu trả thưởng
             </Button>
           )}
 

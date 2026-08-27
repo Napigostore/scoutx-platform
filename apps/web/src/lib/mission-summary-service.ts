@@ -133,7 +133,9 @@ export async function fetchRequesterMissionsSummary(
         ...(whereClause.AND ? (whereClause.AND as unknown[]) : []),
         {
           OR: [
-            { visibility: "PUBLIC" },
+            {
+              AND: [{ visibility: "PUBLIC" }, { status: { not: "DRAFT" } }],
+            },
             { requesterId: currentUserId },
             { assignedScout: { userId: currentUserId } },
             { recipients: { some: { userId: currentUserId } } },
@@ -142,7 +144,16 @@ export async function fetchRequesterMissionsSummary(
       ];
     } else {
       whereClause.visibility = "PUBLIC";
+      whereClause.status =
+        params.status && params.status !== "ALL" ? whereClause.status : { not: "DRAFT" };
     }
+  } else if (requesterUserId !== currentUserId) {
+    // If a specific requester is being queried, but we aren't that requester,
+    // don't let us see their DRAFTs either.
+    whereClause.AND = [
+      ...(whereClause.AND ? (whereClause.AND as unknown[]) : []),
+      { status: { not: "DRAFT" } },
+    ];
   }
 
   const queryStr = (params.q || params.query || "").trim();
@@ -240,7 +251,7 @@ export async function fetchRequesterMissionsSummary(
   } else {
     // "recommended" (deterministic weighted scoring using profile targeting attributes)
     const activeUserId = currentUserId || requesterUserId;
-    let userProfile: (Record<string, any> | null) = null;
+    let userProfile: Record<string, any> | null = null;
     let userPastHistory: { category: string; urgency: string; requiredTags: string[] }[] = [];
 
     if (activeUserId) {
@@ -252,7 +263,7 @@ export async function fetchRequesterMissionsSummary(
         }),
       ]);
 
-      userProfile = uProfile as (Record<string, any> | null);
+      userProfile = uProfile as Record<string, any> | null;
 
       userPastHistory = await prisma.mission.findMany({
         where: {
@@ -291,7 +302,10 @@ export async function fetchRequesterMissionsSummary(
 
       // 1. City / Target Cities Match (25 pts)
       if (userProfile?.livingCity) {
-        if (m.targetCities?.includes(userProfile.livingCity) || userProfile.missionCities?.includes(userProfile.livingCity)) {
+        if (
+          m.targetCities?.includes(userProfile.livingCity) ||
+          userProfile.missionCities?.includes(userProfile.livingCity)
+        ) {
           score += 25;
         }
       }
@@ -318,9 +332,7 @@ export async function fetchRequesterMissionsSummary(
 
       // 5. Language Match (10 pts)
       if (m.targetLanguages?.length && userProfile?.languages?.length) {
-        const langMatch = m.targetLanguages.some((l: string) =>
-          userProfile!.languages.includes(l),
-        );
+        const langMatch = m.targetLanguages.some((l: string) => userProfile!.languages.includes(l));
         if (langMatch) score += 10;
       }
 
@@ -432,7 +444,7 @@ export async function fetchRequesterMissionsSummary(
       participantCount,
       latestMediaUrl:
         latestEv?.mediaUrl ||
-        (latestTimeline?.metadata as Record<string, unknown> | null)?.url as string ||
+        ((latestTimeline?.metadata as Record<string, unknown> | null)?.url as string) ||
         null,
       assignedScout: m.assignedScout
         ? {

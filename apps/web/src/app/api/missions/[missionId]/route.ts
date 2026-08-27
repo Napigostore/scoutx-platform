@@ -33,34 +33,44 @@ export async function GET(
       return NextResponse.json({ error: "Mission not found" }, { status: 404 });
     }
 
+    const principal = await getAuthenticatedPrincipal(request);
+    let currentUserId: string | null = null;
+    let userRole: string | null = null;
+
+    if (principal) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        principal.id,
+      );
+      let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
+      if (!user && principal.email) {
+        user = await prisma.user.findUnique({ where: { email: principal.email } });
+      }
+      if (user) {
+        currentUserId = user.id;
+        userRole = user.role;
+      }
+    }
+
+    if (mission.status === "DRAFT") {
+      if (mission.requesterId !== currentUserId && userRole !== "ADMIN") {
+        return NextResponse.json(
+          { error: "Forbidden: You do not have permission to view this draft" },
+          { status: 403 },
+        );
+      }
+    }
+
     // Server-Side Authorization for PRIVATE & INDIVIDUAL missions
     if (mission.visibility !== "PUBLIC") {
-      const principal = await getAuthenticatedPrincipal(request);
       let isAuthorized = false;
 
-      if (principal) {
-        let currentUserId: string | null = null;
-        let userRole: string | null = null;
-        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-          principal.id,
-        );
-        let user = isUuid ? await prisma.user.findUnique({ where: { id: principal.id } }) : null;
-        if (!user && principal.email) {
-          user = await prisma.user.findUnique({ where: { email: principal.email } });
-        }
-        if (user) {
-          currentUserId = user.id;
-          userRole = user.role;
-        }
-
-        if (
-          userRole === "ADMIN" ||
-          mission.requesterId === currentUserId ||
-          mission.assignedScout?.userId === currentUserId ||
-          mission.recipients.some((r) => r.userId === currentUserId)
-        ) {
-          isAuthorized = true;
-        }
+      if (
+        userRole === "ADMIN" ||
+        mission.requesterId === currentUserId ||
+        mission.assignedScout?.userId === currentUserId ||
+        mission.recipients.some((r) => r.userId === currentUserId)
+      ) {
+        isAuthorized = true;
       }
 
       if (!isAuthorized) {
@@ -119,7 +129,6 @@ export async function GET(
         };
       });
 
-    const principal = await getAuthenticatedPrincipal(request);
     let isRequester = false;
     let isAssignedOrRecipient = false;
     let hasSubmittedReport = false;
