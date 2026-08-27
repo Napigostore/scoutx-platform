@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { recordCoinMovement } from "@/lib/coin-ledger-service";
 import { createNotification } from "@/lib/notification-service";
+import { getWorkerTrustProfile, recalculateWorkerTrust } from "@/lib/worker-trust-service";
 
 export interface ProcessSurveyRewardParams {
   missionId: string;
@@ -145,6 +146,10 @@ export async function processSurveyScreening(
       screeningEnabled: true,
       screeningQuestions: true,
       quotas: true,
+      minimumTrustScore: true,
+      minimumQualityScore: true,
+      minimumCompletedMissions: true,
+      verifiedOnly: true,
       expiresAt: true,
     },
   });
@@ -163,6 +168,42 @@ export async function processSurveyScreening(
   });
 
   if (!user) throw new Error("Worker profile not found");
+
+  // Trust & Quality Targeting Checks
+  const trustProfile = await getWorkerTrustProfile(workerUserId);
+  if (trustProfile) {
+    if (mission.minimumTrustScore && trustProfile.trustScore < mission.minimumTrustScore) {
+      return {
+        eligible: false,
+        targetingNotMet: true,
+        error: `TARGETING_NOT_MET: Minimum Trust Score requirement not met (${trustProfile.trustScore}/${mission.minimumTrustScore})`,
+      };
+    }
+    if (mission.minimumQualityScore && trustProfile.qualityScore < mission.minimumQualityScore) {
+      return {
+        eligible: false,
+        targetingNotMet: true,
+        error: `TARGETING_NOT_MET: Minimum Quality Score requirement not met (${trustProfile.qualityScore}/${mission.minimumQualityScore})`,
+      };
+    }
+    if (
+      mission.minimumCompletedMissions &&
+      trustProfile.completedMissions < mission.minimumCompletedMissions
+    ) {
+      return {
+        eligible: false,
+        targetingNotMet: true,
+        error: `TARGETING_NOT_MET: Minimum Completed Missions requirement not met (${trustProfile.completedMissions}/${mission.minimumCompletedMissions})`,
+      };
+    }
+    if (mission.verifiedOnly && !trustProfile.profileVerified) {
+      return {
+        eligible: false,
+        targetingNotMet: true,
+        error: "TARGETING_NOT_MET: Verified workers only requirement not met",
+      };
+    }
+  }
 
   const ageRange = computeAgeRange(user.birthDate);
   const profileSnapshot = {

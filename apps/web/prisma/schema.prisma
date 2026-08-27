@@ -99,7 +99,8 @@ model User {
   coinTransactions      CoinTransaction[]
   coinLedgers           CoinLedger[]
   surveyParticipants    SurveyParticipant[]
-  sessions              Session[]
+  workerTrustProfile         WorkerTrustProfile?
+  sessions                   Session[]
   withdrawalRequests    WithdrawalRequest[]
   pendingAttachments         PendingAttachment[]
   receivedIndividualMissions MissionRecipient[]  @relation("ReceivedIndividualMissions")
@@ -194,6 +195,10 @@ model Mission {
   screeningEnabled              Boolean           @default(false)
   screeningQuestions            Json?
   quotas                        Json?
+  minimumTrustScore             Int?
+  minimumQualityScore           Int?
+  minimumCompletedMissions      Int?
+  verifiedOnly                  Boolean           @default(false)
   expiresAt                     DateTime
   createdAt                     DateTime          @default(now())
   updatedAt                     DateTime          @updatedAt
@@ -668,4 +673,36 @@ model SurveySubmission {
   @@unique([missionId, participantId])
   @@index([missionId, completionCode])
   @@map("survey_submissions")
+}
+
+model WorkerTrustProfile {
+  id                      String   @id @default(uuid()) @db.Uuid
+  userId                  String   @unique @db.Uuid
+  trustScore              Float    @default(50)
+  qualityScore            Float    @default(50)
+  fraudRiskScore          Float    @default(0)
+  completedMissions       Int      @default(0)
+  approvedMissions        Int      @default(0)
+  rejectedMissions        Int      @default(0)
+  disputedMissions        Int      @default(0)
+  wonMissions             Int      @default(0)
+  surveyCompleted         Int      @default(0)
+  surveyRejected          Int      @default(0)
+  suspiciousCount         Int      @default(0)
+  evidenceApproved        Int      @default(0)
+  evidenceRejected        Int      @default(0)
+  accountAgeDays          Int      @default(0)
+  profileVerified         Boolean  @default(false)
+  lastCalculatedAt        DateTime @default(now())
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([trustScore])
+  @@index([qualityScore])
+  @@index([fraudRiskScore])
+  @@index([lastCalculatedAt])
+  @@map("worker_trust_profiles")
 }

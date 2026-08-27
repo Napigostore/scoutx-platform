@@ -39,6 +39,10 @@ export class CreateMissionUseCase {
       screeningEnabled: input.screeningEnabled || false,
       screeningQuestions: input.screeningQuestions,
       quotas: input.quotas,
+      minimumTrustScore: input.minimumTrustScore,
+      minimumQualityScore: input.minimumQualityScore,
+      minimumCompletedMissions: input.minimumCompletedMissions,
+      verifiedOnly: input.verifiedOnly || false,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

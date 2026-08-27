@@ -68,6 +68,10 @@ export const MissionSchema = z.object({
   screeningEnabled: z.boolean().default(false),
   screeningQuestions: z.any().optional().nullable(),
   quotas: z.any().optional().nullable(),
+  minimumTrustScore: z.number().int().min(0).max(100).optional().nullable(),
+  minimumQualityScore: z.number().int().min(0).max(100).optional().nullable(),
+  minimumCompletedMissions: z.number().int().min(0).optional().nullable(),
+  verifiedOnly: z.boolean().default(false),
 });
 export type Mission = z.infer<typeof MissionSchema>;
 
@@ -91,5 +95,9 @@ export const CreateMissionInputSchema = z.object({
   screeningEnabled: z.boolean().default(false),
   screeningQuestions: z.any().optional(),
   quotas: z.any().optional(),
+  minimumTrustScore: z.number().int().min(0).max(100).optional(),
+  minimumQualityScore: z.number().int().min(0).max(100).optional(),
+  minimumCompletedMissions: z.number().int().min(0).optional(),
+  verifiedOnly: z.boolean().default(false),
 });
 export type CreateMissionInput = z.infer<typeof CreateMissionInputSchema>;
