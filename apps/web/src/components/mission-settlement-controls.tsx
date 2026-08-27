@@ -300,35 +300,44 @@ export function MissionSettlementControls({
             </Button>
           )}
 
-          {/* Nếu đã gửi yêu cầu trả thưởng (khi chưa trao thưởng) */}
+          {/* 1. Trước chọn Winner: nếu worker đã gửi yêu cầu trả thưởng */}
           {!userContext?.isRequester &&
             !userContext?.isWinner &&
             userContext?.hasRequestedReward &&
             status !== "COMPLETED_PENDING_SETTLEMENT" &&
             status !== "SETTLEMENT_PENDING" &&
+            status !== "COMPLETED" &&
             status !== "REWARDED" && (
               <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300">
                 ⏳ Đã yêu cầu trả thưởng — Chờ người giao trả lời hoặc chờ nhiệm vụ hết thời gian.
               </span>
             )}
 
-          {/* Winner UI Status */}
-          {userContext?.isWinner && (
+          {/* 2. Trong 24h Settlement: Worker ĐƯỢC CHỌN Winner */}
+          {userContext?.isWinner &&
+            (status === "COMPLETED_PENDING_SETTLEMENT" || status === "SETTLEMENT_PENDING") && (
+              <div className="w-full rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs font-bold text-emerald-700 dark:text-emerald-300">
+                Bạn sẽ trở thành người chiến thắng trong vòng 24h không có khiếu nại
+              </div>
+            )}
+
+          {/* 3. Sau khi hết 24h / Settlement Hoàn tất: Final Winner */}
+          {userContext?.isWinner && (status === "COMPLETED" || status === "REWARDED") && (
             <div className="w-full rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs font-bold text-emerald-700 dark:text-emerald-300">
-              🏆 Bạn đã chiến thắng nhiệm vụ. Vui lòng chờ 24h để được nhận thưởng nếu không có
-              tranh chấp.
+              🏆 You win!
             </div>
           )}
 
-          {/* Non-Winner Participant UI Status */}
+          {/* 4. Trong 24h Settlement: Worker KHÔNG được chọn */}
           {!userContext?.isRequester &&
             !userContext?.isWinner &&
             (userContext?.isAssignedOrRecipient ||
               userContext?.hasSubmittedReport ||
-              userContext?.hasSubmittedEvidence) &&
+              userContext?.hasSubmittedEvidence ||
+              userContext?.hasRequestedReward) &&
             (status === "COMPLETED_PENDING_SETTLEMENT" || status === "SETTLEMENT_PENDING") && (
               <div className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-bold text-amber-700 dark:text-amber-300">
-                Bạn không được chọn. Phần thưởng đang được trao cho người khác.
+                Người giao đã chọn người chiến thắng khác bạn có thể khiếu nại trong vòng 24h
               </div>
             )}
 
