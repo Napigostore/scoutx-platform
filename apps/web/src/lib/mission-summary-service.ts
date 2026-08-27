@@ -253,6 +253,7 @@ export async function fetchRequesterMissionsSummary(
     const activeUserId = currentUserId || requesterUserId;
     let userProfile: Record<string, any> | null = null;
     let userPastHistory: { category: string; urgency: string; requiredTags: string[] }[] = [];
+    const pastPartnerRequesterIds = new Set<string>();
 
     if (activeUserId) {
       const [uProfile, scoutProfile] = await Promise.all([
@@ -265,21 +266,43 @@ export async function fetchRequesterMissionsSummary(
 
       userProfile = uProfile as Record<string, any> | null;
 
-      userPastHistory = await prisma.mission.findMany({
-        where: {
-          OR: [
-            { requesterId: activeUserId },
-            ...(scoutProfile ? [{ assignedScoutId: scoutProfile.id }] : []),
-            { evidence: { some: { userId: activeUserId } } },
-            { timelineEntries: { some: { actorId: activeUserId } } },
-          ],
-        },
-        select: {
-          category: true,
-          urgency: true,
-          requiredTags: true,
-        },
-        take: 50,
+      const [pastHistory, pastPartnerMissions] = await Promise.all([
+        prisma.mission.findMany({
+          where: {
+            OR: [
+              { requesterId: activeUserId },
+              ...(scoutProfile ? [{ assignedScoutId: scoutProfile.id }] : []),
+              { evidence: { some: { userId: activeUserId } } },
+              { timelineEntries: { some: { actorId: activeUserId } } },
+            ],
+          },
+          select: {
+            category: true,
+            urgency: true,
+            requiredTags: true,
+          },
+          take: 50,
+        }),
+        prisma.mission.findMany({
+          where: {
+            OR: [
+              ...(scoutProfile ? [{ assignedScoutId: scoutProfile.id }] : []),
+              { recipients: { some: { userId: activeUserId } } },
+              { submission: { userId: activeUserId } },
+              { evidence: { some: { userId: activeUserId } } },
+              { timelineEntries: { some: { actorId: activeUserId } } },
+            ],
+          },
+          select: { requesterId: true },
+          take: 100,
+        }),
+      ]);
+
+      userPastHistory = pastHistory;
+      pastPartnerMissions.forEach((m) => {
+        if (m.requesterId && m.requesterId !== activeUserId) {
+          pastPartnerRequesterIds.add(m.requesterId);
+        }
       });
     }
 
@@ -299,6 +322,11 @@ export async function fetchRequesterMissionsSummary(
 
     const scoredCandidates = allCandidates.map((m) => {
       let score = 0;
+
+      // 0. Past Partner Match (+100 pts)
+      if (pastPartnerRequesterIds.has(m.requesterId)) {
+        score += 100;
+      }
 
       // 1. City / Target Cities Match (25 pts)
       if (userProfile?.livingCity) {
@@ -348,6 +376,15 @@ export async function fetchRequesterMissionsSummary(
     });
 
     scoredCandidates.sort((a, b) => {
+      const aIsPartner = pastPartnerRequesterIds.has(a.mission.requesterId);
+      const bIsPartner = pastPartnerRequesterIds.has(b.mission.requesterId);
+
+      if (aIsPartner && bIsPartner) {
+        return b.createdAtTime - a.createdAtTime;
+      }
+      if (aIsPartner) return -1;
+      if (bIsPartner) return 1;
+
       if (b.score !== a.score) {
         return b.score - a.score;
       }
