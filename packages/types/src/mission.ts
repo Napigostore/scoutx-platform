@@ -65,6 +65,9 @@ export const MissionSchema = z.object({
   selectionMode: z.enum(["AUTO", "REQUESTER_SELECT"]).default("AUTO"),
   disputeMode: z.enum(["ENABLED", "DISABLED"]).default("DISABLED"),
   maxParticipants: z.number().int().positive().optional().nullable(),
+  screeningEnabled: z.boolean().default(false),
+  screeningQuestions: z.any().optional().nullable(),
+  quotas: z.any().optional().nullable(),
 });
 export type Mission = z.infer<typeof MissionSchema>;
 
@@ -85,5 +88,8 @@ export const CreateMissionInputSchema = z.object({
   selectionMode: z.enum(["AUTO", "REQUESTER_SELECT"]).default("AUTO"),
   disputeMode: z.enum(["ENABLED", "DISABLED"]).default("DISABLED"),
   maxParticipants: z.number().int().positive().optional(),
+  screeningEnabled: z.boolean().default(false),
+  screeningQuestions: z.any().optional(),
+  quotas: z.any().optional(),
 });
 export type CreateMissionInput = z.infer<typeof CreateMissionInputSchema>;

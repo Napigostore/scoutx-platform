@@ -104,6 +104,11 @@ export class PrismaMissionRepository implements MissionRepository {
         selectionMode: mission.selectionMode || "AUTO",
         disputeMode: mission.disputeMode || "DISABLED",
         maxParticipants: mission.maxParticipants,
+        screeningEnabled: mission.screeningEnabled || false,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        screeningQuestions: (mission.screeningQuestions as any) ?? undefined,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        quotas: (mission.quotas as any) ?? undefined,
         createdAt: mission.createdAt,
         updatedAt: mission.updatedAt,
       },
@@ -146,6 +151,9 @@ export class PrismaMissionRepository implements MissionRepository {
       disputeMode: (row.disputeMode === "ENABLED" ? "ENABLED" : "DISABLED") as
         "ENABLED" | "DISABLED",
       maxParticipants: row.maxParticipants ?? undefined,
+      screeningEnabled: row.screeningEnabled,
+      screeningQuestions: row.screeningQuestions,
+      quotas: row.quotas,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
@@ -187,6 +195,9 @@ export class PrismaMissionRepository implements MissionRepository {
       disputeMode: (row.disputeMode === "ENABLED" ? "ENABLED" : "DISABLED") as
         "ENABLED" | "DISABLED",
       maxParticipants: row.maxParticipants ?? undefined,
+      screeningEnabled: row.screeningEnabled,
+      screeningQuestions: row.screeningQuestions,
+      quotas: row.quotas,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
@@ -257,6 +268,9 @@ export class PrismaMissionRepository implements MissionRepository {
       disputeMode: (row.disputeMode === "ENABLED" ? "ENABLED" : "DISABLED") as
         "ENABLED" | "DISABLED",
       maxParticipants: row.maxParticipants ?? undefined,
+      screeningEnabled: row.screeningEnabled,
+      screeningQuestions: row.screeningQuestions,
+      quotas: row.quotas,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));
@@ -358,6 +372,9 @@ export class PrismaMissionRepository implements MissionRepository {
       disputeMode: (row.disputeMode === "ENABLED" ? "ENABLED" : "DISABLED") as
         "ENABLED" | "DISABLED",
       maxParticipants: row.maxParticipants ?? undefined,
+      screeningEnabled: row.screeningEnabled,
+      screeningQuestions: row.screeningQuestions,
+      quotas: row.quotas,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     }));

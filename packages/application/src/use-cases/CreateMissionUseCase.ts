@@ -36,6 +36,9 @@ export class CreateMissionUseCase {
       selectionMode: input.selectionMode || "AUTO",
       disputeMode: input.disputeMode || "DISABLED",
       maxParticipants: input.maxParticipants,
+      screeningEnabled: input.screeningEnabled || false,
+      screeningQuestions: input.screeningQuestions,
+      quotas: input.quotas,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
