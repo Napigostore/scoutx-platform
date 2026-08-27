@@ -175,3 +175,103 @@ export async function notifyRewardPaid(missionId: string, workerId: string) {
     missionId,
   });
 }
+
+export async function notifyMissionJoined(missionId: string, workerUserId: string) {
+  const mission = await prisma.mission.findUnique({
+    where: { id: missionId },
+    select: { title: true, requesterId: true },
+  });
+  if (!mission) return;
+
+  // 1. Notify worker
+  await createNotification({
+    userId: workerUserId,
+    type: "MISSION_ASSIGNED",
+    title: "Đã tham gia nhiệm vụ",
+    body: `Bạn đã tham gia nhiệm vụ "${mission.title}".`,
+    link: `/missions/${missionId}`,
+    missionId,
+  });
+
+  // 2. Notify requester
+  if (mission.requesterId !== workerUserId) {
+    await createNotification({
+      userId: mission.requesterId,
+      type: "MISSION_ASSIGNED",
+      title: "Có người tham gia nhiệm vụ",
+      body: `Một người dùng đã tham gia nhiệm vụ "${mission.title}".`,
+      link: `/missions/${missionId}`,
+      missionId,
+    });
+  }
+}
+
+export async function notifyNonWinners(missionId: string, winnerId: string) {
+  const mission = await prisma.mission.findUnique({
+    where: { id: missionId },
+    select: {
+      title: true,
+      requesterId: true,
+      recipients: { select: { userId: true } },
+      evidence: { select: { userId: true } },
+      submission: { select: { userId: true } },
+      timelineEntries: { select: { actorId: true } },
+    },
+  });
+  if (!mission) return;
+
+  const participantUserIds = new Set<string>();
+  mission.recipients.forEach((r) => participantUserIds.add(r.userId));
+  mission.evidence.forEach((e) => participantUserIds.add(e.userId));
+  if (mission.submission?.userId) participantUserIds.add(mission.submission.userId);
+  mission.timelineEntries.forEach((t) => {
+    if (t.actorId) participantUserIds.add(t.actorId);
+  });
+
+  participantUserIds.delete(winnerId);
+  participantUserIds.delete(mission.requesterId);
+
+  for (const userId of participantUserIds) {
+    await createNotification({
+      userId,
+      type: "COMPLETED",
+      title: "Kết quả nhiệm vụ đã được chọn",
+      body: `Requester đã chọn người nhận thưởng cho nhiệm vụ "${mission.title}". Bạn có 24h để xem kết quả hoặc gửi khiếu nại (Claim/Dispute).`,
+      link: `/missions/${missionId}`,
+      missionId,
+    });
+  }
+}
+
+export async function notifyDisputeCreated(missionId: string, initiatorId: string) {
+  const mission = await prisma.mission.findUnique({
+    where: { id: missionId },
+    select: {
+      title: true,
+      requesterId: true,
+      recipients: { select: { userId: true } },
+      evidence: { select: { userId: true } },
+      submission: { select: { userId: true } },
+    },
+  });
+  if (!mission) return;
+
+  const userIdsToNotify = new Set<string>();
+  userIdsToNotify.add(mission.requesterId);
+  mission.recipients.forEach((r) => userIdsToNotify.add(r.userId));
+  mission.evidence.forEach((e) => userIdsToNotify.add(e.userId));
+  if (mission.submission?.userId) userIdsToNotify.add(mission.submission.userId);
+
+  userIdsToNotify.delete(initiatorId);
+
+  for (const userId of userIdsToNotify) {
+    await createNotification({
+      userId,
+      type: "DISPUTE",
+      title: "Tranh chấp nhiệm vụ mới",
+      body: `Một tranh chấp mới đã được mở cho nhiệm vụ "${mission.title}".`,
+      link: `/missions/${missionId}`,
+      missionId,
+    });
+  }
+}

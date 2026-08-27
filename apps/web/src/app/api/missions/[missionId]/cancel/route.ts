@@ -32,6 +32,40 @@ export async function POST(
 
   const { missionId } = await params;
 
+  // Check if mission has participants
+  const targetMission = await prisma.mission.findUnique({
+    where: { id: missionId },
+    select: {
+      id: true,
+      assignedScoutId: true,
+      recipients: { select: { id: true } },
+      evidence: { select: { id: true } },
+      submission: { select: { id: true } },
+      timelineEntries: {
+        where: { actorId: { not: user.id } },
+        select: { id: true },
+      },
+    },
+  });
+
+  if (!targetMission) {
+    return NextResponse.json({ error: "Mission not found" }, { status: 404 });
+  }
+
+  const hasParticipants =
+    Boolean(targetMission.assignedScoutId) ||
+    targetMission.recipients.length > 0 ||
+    targetMission.evidence.length > 0 ||
+    Boolean(targetMission.submission) ||
+    targetMission.timelineEntries.length > 0;
+
+  if (hasParticipants) {
+    return NextResponse.json(
+      { error: "Cannot cancel mission once participants have joined or submitted evidence" },
+      { status: 403 },
+    );
+  }
+
   try {
     const mission = await cancelMissionUseCase.execute(missionId, user.id, "REQUESTER");
 

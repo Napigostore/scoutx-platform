@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { notifyApproved, notifyNonWinners, notifyDisputeCreated } from "@/lib/notification-service";
 
 export const MAX_FUNDED_COIN = 100000000;
 export const MIN_VOTES_REQUIRED = 50;
@@ -70,6 +71,9 @@ export async function requesterCompleteMission(
       metadata: { winnerId: finalWinnerUserId, settlementStartedAt: now.toISOString() },
     },
   });
+
+  await notifyApproved(missionId, finalWinnerUserId).catch(() => {});
+  await notifyNonWinners(missionId, finalWinnerUserId).catch(() => {});
 
   return updated;
 }
@@ -250,6 +254,8 @@ export async function createDispute(missionId: string, initiatorUserId: string, 
 
     return d;
   });
+
+  await notifyDisputeCreated(missionId, initiatorUserId).catch(() => {});
 
   return dispute;
 }

@@ -50,6 +50,7 @@ export default async function MyMissionsPage({
         { assignedScout: { userId } },
         { submission: { userId } },
         { evidence: { some: { userId } } },
+        { timelineEntries: { some: { actorId: userId } } },
       ],
     },
     select: {
@@ -95,6 +96,7 @@ export default async function MyMissionsPage({
     (m) => completedStatuses.includes(m.status) && m.role === "REQUESTER",
   );
 
+  const workerParticipating = allItems.filter((m) => m.role === "WORKER");
   const workerReceiving = allItems.filter(
     (m) => inProgressStatuses.includes(m.status) && m.role === "WORKER",
   );
@@ -106,13 +108,22 @@ export default async function MyMissionsPage({
   );
 
   let displayList: MissionGroup[] = [];
-  if (activeTab === "req-draft") displayList = reqDrafts;
-  else if (activeTab === "req-in-progress") displayList = reqInProgress;
+  if (activeTab === "req-draft" || activeTab === "draft") displayList = reqDrafts;
+  else if (
+    activeTab === "req-in-progress" ||
+    activeTab === "created" ||
+    activeTab === "in-progress"
+  )
+    displayList = reqInProgress;
   else if (activeTab === "req-settlement") displayList = reqSettlement;
-  else if (activeTab === "req-completed") displayList = reqCompleted;
+  else if (activeTab === "req-completed" || activeTab === "completed" || activeTab === "done")
+    displayList = reqCompleted;
+  else if (activeTab === "worker-participating" || activeTab === "participating")
+    displayList = workerParticipating;
   else if (activeTab === "worker-receiving") displayList = workerReceiving;
   else if (activeTab === "worker-settlement") displayList = workerSettlement;
   else if (activeTab === "worker-completed") displayList = workerCompleted;
+  else displayList = reqInProgress;
 
   const TabLink = ({ id, label, count }: { id: string; label: string; count: number }) => {
     const isActive = activeTab === id;
@@ -151,6 +162,11 @@ export default async function MyMissionsPage({
           Worker
         </h2>
         <div className="hide-scrollbar flex overflow-x-auto border-b border-[var(--scoutx-border)]">
+          <TabLink
+            id="worker-participating"
+            label="Participating"
+            count={workerParticipating.length}
+          />
           <TabLink id="worker-receiving" label="Receiving Mission" count={workerReceiving.length} />
           <TabLink
             id="worker-settlement"

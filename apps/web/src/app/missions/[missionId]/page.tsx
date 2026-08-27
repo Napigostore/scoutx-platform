@@ -243,7 +243,8 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
   const isEditable = mission.status === "DRAFT" && mission.userContext?.isRequester;
   const isCancellable =
     (mission.status === "DRAFT" || mission.status === "OPEN" || mission.status === "PUBLISHED") &&
-    mission.userContext?.isRequester;
+    mission.userContext?.isRequester &&
+    (!mission.participantCount || mission.participantCount === 0);
   const isSubmitted = mission.status === "SUBMITTED";
   const isReviewed = mission.status === "VERIFIED" || mission.status === "COMPLETED";
 

@@ -224,6 +224,38 @@ export function MissionSettlementControls({
         </div>
 
         <div className="flex flex-wrap gap-2">
+          {/* 0. Nút Join / Nhận nhiệm vụ - CHỈ Worker chưa join và mission OPEN */}
+          {!userContext?.isRequester &&
+            !userContext?.isAssignedOrRecipient &&
+            !userContext?.hasSubmittedEvidence &&
+            (status === "OPEN" || status === "PUBLISHED") && (
+              <Button
+                onClick={async () => {
+                  setIsLoading(true);
+                  try {
+                    const res = await fetch(`/api/missions/${missionId}/join`, {
+                      method: "POST",
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || "Join failed");
+                    setMessage({ type: "success", text: "Đã tham gia nhiệm vụ thành công!" });
+                    if (onRefresh) onRefresh();
+                  } catch (err: unknown) {
+                    setMessage({
+                      type: "error",
+                      text: err instanceof Error ? err.message : "Failed to join mission",
+                    });
+                  } finally {
+                    setIsLoading(false);
+                  }
+                }}
+                disabled={isLoading}
+                className="bg-blue-600 font-bold text-white hover:bg-blue-700"
+              >
+                🚀 Join / Nhận nhiệm vụ
+              </Button>
+            )}
+
           {/* 1. Complete Mission / Trao phần thưởng - CHỈ Requester được thấy & bấm */}
           {userContext?.isRequester && (
             <Button
@@ -261,21 +293,22 @@ export function MissionSettlementControls({
 
           {/* Nếu đã gửi yêu cầu trả thưởng */}
           {!userContext?.isRequester && userContext?.hasRequestedReward && (
-            <span className="inline-flex items-center rounded-md border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-              ✅ Đã gửi yêu cầu trả thưởng
+            <span className="inline-flex items-center rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700 dark:text-amber-300">
+              ⏳ Đã yêu cầu trả thưởng — Chờ người giao trả lời hoặc chờ nhiệm vụ hết thời gian.
             </span>
           )}
 
-          {/* 4. Nút Claim phản đối (Dispute) - CHỈ người đã nhận nhiệm vụ hoặc người giao mới được claim phản đối */}
+          {/* 4. Nút Claim phản đối (Dispute) - CHỈ người đã nhận nhiệm vụ, nộp evidence/report hoặc người giao mới được claim phản đối */}
           {(userContext?.isRequester ||
             userContext?.isAssignedOrRecipient ||
-            userContext?.hasSubmittedReport) && (
+            userContext?.hasSubmittedReport ||
+            userContext?.hasSubmittedEvidence) && (
             <Button
               variant="secondary"
               onClick={() => setShowDisputeModal(true)}
               className="border border-amber-500/30 font-semibold text-amber-600 dark:text-amber-400"
             >
-              ⚖️ Claim Outcome / Dispute
+              ⚖️ Claim / Tranh chấp kết quả
             </Button>
           )}
         </div>
