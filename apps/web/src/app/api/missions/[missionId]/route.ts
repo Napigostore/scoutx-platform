@@ -134,6 +134,7 @@ export async function GET(
     let hasSubmittedEvidence = false;
     let hasSubmittedReport = false;
     let canRequestReward = false;
+    let hasRequestedReward = false;
 
     if (principal) {
       const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -162,10 +163,17 @@ export async function GET(
         where: { missionId, actorId: targetUserId },
       });
 
+      const existingRewardRequest = await prisma.rewardRequest.findFirst({
+        where: { missionId, userId: targetUserId },
+      });
+      hasRequestedReward = !!existingRewardRequest;
+
       hasSubmittedEvidence = userEvidenceCount > 0;
-      hasSubmittedReport = userSubmissionCount > 0 || userEvidenceCount > 0;
+      hasSubmittedReport = userSubmissionCount > 0;
       canRequestReward =
         mission.requesterId !== targetUserId &&
+        mission.status !== "REWARDED" &&
+        !existingRewardRequest &&
         (hasSubmittedEvidence || userSubmissionCount > 0 || userTimelineCount > 0);
     }
 
@@ -176,6 +184,7 @@ export async function GET(
       hasSubmittedReport,
       canCompleteMission: isRequester || hasSubmittedReport,
       canRequestReward,
+      hasRequestedReward,
       canDispute: isRequester || isAssignedOrRecipient || hasSubmittedReport,
     };
 

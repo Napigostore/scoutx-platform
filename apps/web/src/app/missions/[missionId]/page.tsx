@@ -87,7 +87,7 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
 
   const fetchMission = async () => {
     try {
-      const res = await fetch(`/api/missions/${missionId}`, {
+      const res = await fetch(`/api/missions/${missionId}?t=${Date.now()}`, {
         headers: getAuthHeaders(),
         cache: "no-store",
       });

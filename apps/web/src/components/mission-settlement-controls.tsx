@@ -21,6 +21,7 @@ interface MissionSettlementControlsProps {
     hasSubmittedReport: boolean;
     canCompleteMission: boolean;
     canRequestReward: boolean;
+    hasRequestedReward?: boolean;
     canDispute: boolean;
   } | null;
   participants?: { id: string; displayName: string; role: string }[];
@@ -246,20 +247,24 @@ export function MissionSettlementControls({
           )}
 
           {/* 3. Nút Yêu cầu nhận thưởng - CHỈ hiện khi ĐÃ nộp submission/evidence */}
-          {!userContext?.isRequester &&
-            (userContext?.canRequestReward ||
-              userContext?.hasSubmittedReport ||
-              userContext?.hasSubmittedEvidence) && (
-              <Button
-                variant="outline"
-                onClick={handleRequestReward}
-                disabled={isLoading}
-                className="border-emerald-500 font-semibold text-emerald-600 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-950"
-                title="Bấm để gửi yêu cầu trả thưởng tới Requester"
-              >
-                🎁 Yêu cầu trả thưởng
-              </Button>
-            )}
+          {!userContext?.isRequester && userContext?.canRequestReward && (
+            <Button
+              variant="outline"
+              onClick={handleRequestReward}
+              disabled={isLoading}
+              className="border-emerald-500 font-semibold text-emerald-600 shadow-sm hover:bg-emerald-50 dark:hover:bg-emerald-950"
+              title="Bấm để gửi yêu cầu trả thưởng tới Requester"
+            >
+              🎁 Yêu cầu trả thưởng
+            </Button>
+          )}
+
+          {/* Nếu đã gửi yêu cầu trả thưởng */}
+          {!userContext?.isRequester && userContext?.hasRequestedReward && (
+            <span className="inline-flex items-center rounded-md border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+              ✅ Đã gửi yêu cầu trả thưởng
+            </span>
+          )}
 
           {/* 4. Nút Claim phản đối (Dispute) - CHỈ người đã nhận nhiệm vụ hoặc người giao mới được claim phản đối */}
           {(userContext?.isRequester ||
