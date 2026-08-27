@@ -86,9 +86,10 @@ export async function POST(request: Request) {
     const { PrismaCoinRepository } = await import("@scoutx/infrastructure");
     const coinRepo = new PrismaCoinRepository();
     const balance = await coinRepo.balanceByUserId(user.id);
-    const hasFreeQuota = (user.freeMissions || 0) > 0;
+    const isAdmin = user.role === "ADMIN";
+    const hasFreeQuota = isAdmin || (user.freeMissions || 0) > 0;
 
-    if (!hasFreeQuota && balance < budget) {
+    if (!isAdmin && !hasFreeQuota && balance < budget) {
       return NextResponse.json(
         {
           error: "INSUFFICIENT_FUNDS",
@@ -200,27 +201,29 @@ export async function POST(request: Request) {
     }
 
     const { createMissionUseCase } = getMissionUseCases();
-    const mission = await createMissionUseCase.execute(parsed.data, user.id, "REQUESTER");
+    const mission = await createMissionUseCase.execute(parsed.data, user.id, user.role);
     console.log("[MISSION_DRAFT_DEBUG] create_mission_success");
 
-    // Deduct quota or coins
-    if (hasFreeQuota) {
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { freeMissions: { decrement: 1 } },
-      });
-    } else if (budget > 0) {
-      await prisma.coinTransaction.create({
-        data: {
-          userId: user.id,
-          amountCents: -budget,
-          currency: "VND",
-          reason: "MISSION_FUNDING",
-          description: `Funded mission ${mission.id}`,
-          eventType: "DEBIT",
-          missionId: mission.id,
-        },
-      });
+    // Deduct quota or coins for non-admin users
+    if (!isAdmin) {
+      if ((user.freeMissions || 0) > 0) {
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { freeMissions: { decrement: 1 } },
+        });
+      } else if (budget > 0) {
+        await prisma.coinTransaction.create({
+          data: {
+            userId: user.id,
+            amountCents: -budget,
+            currency: "VND",
+            reason: "MISSION_FUNDING",
+            description: `Funded mission ${mission.id}`,
+            eventType: "DEBIT",
+            missionId: mission.id,
+          },
+        });
+      }
     }
 
     // Save Mission Visibility & Individual Recipients

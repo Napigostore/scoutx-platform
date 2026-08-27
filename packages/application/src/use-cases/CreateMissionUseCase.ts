@@ -10,8 +10,8 @@ export class CreateMissionUseCase {
     requesterId: string,
     userRole: string,
   ): Promise<Mission> {
-    if (userRole !== "REQUESTER") {
-      throw new AuthorizationError("Only requesters can create missions");
+    if (userRole !== "REQUESTER" && userRole !== "ADMIN") {
+      throw new AuthorizationError("Only requesters or admins can create missions");
     }
 
     const mission: Mission = {
