@@ -204,6 +204,7 @@ model Mission {
   minimumQualityScore           Int?
   minimumCompletedMissions      Int?
   verifiedOnly                  Boolean           @default(false)
+  sourceBriefId                 String?           @db.Uuid
   expiresAt                     DateTime
   createdAt                     DateTime          @default(now())
   updatedAt                     DateTime          @updatedAt
