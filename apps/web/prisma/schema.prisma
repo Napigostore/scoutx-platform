@@ -235,6 +235,7 @@ model Mission {
   researchRecommendations      ResearchRecommendation[]
   optimizationRecommendations  OptimizationRecommendation[]
   optimizationEvents           OptimizationEvent[]
+  samplingPlan                 SamplingPlan?
 
   @@index([status, expiresAt])
   @@index([locationId])
@@ -620,10 +621,12 @@ model SurveyParticipant {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  mission     Mission            @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  responses   SurveyResponse[]
-  submissions SurveySubmission[]
+  mission         Mission            @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  responses       SurveyResponse[]
+  samplingQuotaId String?            @db.Uuid
+  samplingQuota   SamplingQuota?     @relation(fields: [samplingQuotaId], references: [id], onDelete: SetNull)
+  submissions     SurveySubmission[]
 
   @@unique([missionId, userId])
   @@index([missionId, status])
@@ -994,4 +997,37 @@ model OptimizationEvent {
   @@index([recommendationId])
   @@index([missionId])
   @@map("optimization_events")
+}
+
+model SamplingPlan {
+  id        String   @id @default(uuid()) @db.Uuid
+  missionId String   @unique @db.Uuid
+  strategy  String   @default("STRICT")
+  variables Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  mission Mission         @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  quotas  SamplingQuota[]
+
+  @@map("sampling_plans")
+}
+
+model SamplingQuota {
+  id             String   @id @default(uuid()) @db.Uuid
+  planId         String   @db.Uuid
+  criteria       Json
+  targetCount    Int
+  reservedCount  Int      @default(0)
+  completedCount Int      @default(0)
+  isFull         Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  plan         SamplingPlan        @relation(fields: [planId], references: [id], onDelete: Cascade)
+  participants SurveyParticipant[]
+
+  @@index([planId])
+  @@index([isFull])
+  @@map("sampling_quotas")
 }

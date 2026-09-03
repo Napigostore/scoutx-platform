@@ -16,6 +16,12 @@ import { recordCoinMovement } from "@/lib/coin-ledger-service";
 import { getWorkerTrustProfile, recalculateWorkerTrust } from "@/lib/worker-trust-service";
 import { evaluateWorkerRisk } from "@/lib/worker-risk-service";
 import { createNotification } from "@/lib/notification-service";
+import {
+  evaluateWorkerSampling,
+  reserveSamplingSlot,
+  releaseSamplingSlot,
+  commitSamplingSlot,
+} from "./representative-sampling-service";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -165,6 +171,11 @@ export async function reserveSlot(
   const risk = await evaluateWorkerRisk(workerId).catch(() => null);
   if (risk && risk.riskLevel === "HIGH") return { success: false, reason: "HIGH_FRAUD_RISK" };
 
+  // P10 Representative Sampling
+  const samplingEval = await evaluateWorkerSampling(missionId, workerId);
+  if (!samplingEval.eligible)
+    return { success: false, reason: samplingEval.reason || "SAMPLING_REJECTED" };
+
   // 5. Duplicate participation
   const existing = await prisma.surveyParticipant.findUnique({
     where: { missionId_userId: { missionId, userId: workerId } },
@@ -200,7 +211,12 @@ export async function reserveSlot(
       const participant = existing
         ? await tx.surveyParticipant.update({
             where: { missionId_userId: { missionId, userId: workerId } },
-            data: { status: "RESERVED", slotReservedAt: new Date(), updatedAt: new Date() },
+            data: {
+              status: "RESERVED",
+              slotReservedAt: new Date(),
+              updatedAt: new Date(),
+              samplingQuotaId: samplingEval.quotaId,
+            },
           })
         : await tx.surveyParticipant.create({
             data: {
@@ -211,6 +227,7 @@ export async function reserveSlot(
             },
           });
 
+      if (samplingEval.quotaId) await reserveSamplingSlot(tx, samplingEval.quotaId);
       // Increment counters + bump version
       await tx.surveyFieldwork.update({
         where: { missionId, version: fw.version },
