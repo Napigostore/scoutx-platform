@@ -114,6 +114,7 @@ model User {
   disputeVotes               DisputeVote[]
   rewardRequests             RewardRequest[]
   notifications              Notification[]
+  researchAnomalies          ResearchAnomaly[]
 
   @@map("users")
 }
@@ -229,6 +230,8 @@ model Mission {
   researchParticipantHistories ResearchParticipantHistory[]
   fieldwork                    SurveyFieldwork?
   fieldworkEvents              FieldworkEvent[]
+  researchAnomalies            ResearchAnomaly[]
+  researchRecommendations      ResearchRecommendation[]
 
   @@index([status, expiresAt])
   @@index([locationId])
@@ -904,3 +907,43 @@ model ResearchPlan {
   @@index([briefId])
   @@map("research_plans")
 }
+
+model ResearchAnomaly {
+  id          String    @id @default(uuid()) @db.Uuid
+  missionId   String    @db.Uuid
+  workerId    String?   @db.Uuid
+  type        String    // SPEEDING | LOW_QUALITY | DUPLICATE_PATTERN | SUSPICIOUS_CLUSTER | QUOTA_ANOMALY | RECRUITMENT_DROP | HIGH_ABANDONMENT | UNUSUAL_RESPONSE_PATTERN | DEVICE_PATTERN | GEO_ANOMALY
+  severity    String    // LOW | MEDIUM | HIGH | CRITICAL
+  score       Float
+  evidence    Json
+  status      String    @default("OPEN") // OPEN | REVIEWED | RESOLVED | IGNORED
+  createdAt   DateTime  @default(now())
+  resolvedAt  DateTime?
+
+  mission     Mission   @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  worker      User?     @relation(fields: [workerId], references: [id], onDelete: SetNull)
+
+  @@index([missionId, status])
+  @@index([missionId, createdAt])
+  @@index([missionId, type])
+  @@map("research_anomalies")
+}
+
+model ResearchRecommendation {
+  id             String    @id @default(uuid()) @db.Uuid
+  missionId      String    @db.Uuid
+  type           String    // INCREASE_PRIORITY | PAUSE_SEGMENT | EXPAND_AUDIENCE | ADJUST_QUOTA | REVIEW_SCREENING | REVIEW_REWARD | RESUME_RECRUITMENT
+  payload        Json
+  rationale      String
+  status         String    @default("PENDING") // PENDING | APPROVED | REJECTED | EXPIRED
+  idempotencyKey String?   @unique
+  createdAt      DateTime  @default(now())
+  reviewedAt     DateTime?
+
+  mission        Mission   @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@index([missionId, status])
+  @@index([missionId, createdAt])
+  @@map("research_recommendations")
+}
+
