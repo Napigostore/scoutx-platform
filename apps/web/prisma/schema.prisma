@@ -73,7 +73,7 @@ model User {
   avatarUrl        String?
   reliabilityScore Float    @default(50)
   freeMissions     Int      @default(3)
-  
+
   // Notification Settings
   emailNotifyActivity Boolean @default(true)
   emailNotifyEvidence Boolean @default(true)
@@ -85,46 +85,47 @@ model User {
   gender    String?
   birthDate DateTime?
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  userProfile           UserProfile?
-  scoutProfile          ScoutProfile?
-  requestedMissions     Mission[]            @relation("RequestedMissions")
-  submissions           MissionSubmission[]
-  evidence              Evidence[]
-  trustScore            TrustScore?
-  trustActionsGiven     TrustActionRecord[] @relation("TrustActionsGiven")
-  trustActionsReceived  TrustActionRecord[] @relation("TrustActionsReceived")
-  coinTransactions      CoinTransaction[]
-  coinLedgers           CoinLedger[]
-  surveyParticipants    SurveyParticipant[]
-  workerTrustProfile         WorkerTrustProfile?
-  audienceProfile            AudienceProfile?
-  savedAudiences             SavedAudience[]
-  audienceMembers            AudienceMember[]
+  userProfile                  UserProfile?
+  scoutProfile                 ScoutProfile?
+  requestedMissions            Mission[]                    @relation("RequestedMissions")
+  submissions                  MissionSubmission[]
+  evidence                     Evidence[]
+  trustScore                   TrustScore?
+  trustActionsGiven            TrustActionRecord[]          @relation("TrustActionsGiven")
+  trustActionsReceived         TrustActionRecord[]          @relation("TrustActionsReceived")
+  coinTransactions             CoinTransaction[]
+  coinLedgers                  CoinLedger[]
+  surveyParticipants           SurveyParticipant[]
+  workerTrustProfile           WorkerTrustProfile?
+  audienceProfile              AudienceProfile?
+  savedAudiences               SavedAudience[]
+  audienceMembers              AudienceMember[]
   researchParticipantHistories ResearchParticipantHistory[] @relation("WorkerHistory")
   researchBriefs               ResearchBrief[]
-  sessions                   Session[]
-  withdrawalRequests    WithdrawalRequest[]
-  pendingAttachments         PendingAttachment[]
-  receivedIndividualMissions MissionRecipient[]  @relation("ReceivedIndividualMissions")
-  disputesInitiated          Dispute[]           @relation("DisputeInitiator")
-  disputeEvidences           DisputeEvidence[]
-  disputeVotes               DisputeVote[]
-  rewardRequests             RewardRequest[]
-  notifications              Notification[]
-  researchAnomalies          ResearchAnomaly[]
+  sessions                     Session[]
+  withdrawalRequests           WithdrawalRequest[]
+  pendingAttachments           PendingAttachment[]
+  receivedIndividualMissions   MissionRecipient[]           @relation("ReceivedIndividualMissions")
+  disputesInitiated            Dispute[]                    @relation("DisputeInitiator")
+  disputeEvidences             DisputeEvidence[]
+  disputeVotes                 DisputeVote[]
+  rewardRequests               RewardRequest[]
+  notifications                Notification[]
+  researchAnomalies            ResearchAnomaly[]
+  optimizationEvents           OptimizationEvent[]
 
   @@map("users")
 }
 
 model Location {
-  id          String  @id @default(uuid()) @db.Uuid
+  id          String @id @default(uuid()) @db.Uuid
   name        String
   city        String
   country     String
-  countryCode String  @db.Char(2)
+  countryCode String @db.Char(2)
   latitude    Float
   longitude   Float
   timezone    String
@@ -136,61 +137,61 @@ model Location {
 }
 
 model ScoutProfile {
-  id                 String            @id @default(uuid()) @db.Uuid
-  userId             String            @unique @db.Uuid
-  displayName        String
-  bio                String
-  availability       ScoutAvailability @default(AVAILABLE)
-  reliabilityScore   Float             @default(50)
-  completedMissions  Int               @default(0)
-  categories         MissionCategory[]
-  tags               String[]
-  homeLocationId     String            @db.Uuid
-  currentLatitude    Float?
-  currentLongitude   Float?
-  maxRadiusMeters    Int               @default(5000)
+  id                     String            @id @default(uuid()) @db.Uuid
+  userId                 String            @unique @db.Uuid
+  displayName            String
+  bio                    String
+  availability           ScoutAvailability @default(AVAILABLE)
+  reliabilityScore       Float             @default(50)
+  completedMissions      Int               @default(0)
+  categories             MissionCategory[]
+  tags                   String[]
+  homeLocationId         String            @db.Uuid
+  currentLatitude        Float?
+  currentLongitude       Float?
+  maxRadiusMeters        Int               @default(5000)
   languages              String[]
   stripeConnectAccountId String?
   stripeConnectStatus    String?           @default("NOT_CONNECTED")
   createdAt              DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  updatedAt              DateTime          @updatedAt
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  homeLocation Location @relation(fields: [homeLocationId], references: [id])
-  assignedMissions Mission[] @relation("AssignedScout")
-  submissions  MissionSubmission[]
-  evidence     Evidence[]
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  homeLocation     Location            @relation(fields: [homeLocationId], references: [id])
+  assignedMissions Mission[]           @relation("AssignedScout")
+  submissions      MissionSubmission[]
+  evidence         Evidence[]
 
   @@map("scout_profiles")
 }
 
 model Mission {
-  id                    String            @id @default(uuid()) @db.Uuid
-  title                 String
-  description           String
-  category              MissionCategory
-  status                MissionStatus     @default(DRAFT)
-  urgency               MissionUrgency    @default(NORMAL)
-  visibility            MissionVisibility @default(PUBLIC)
-  publicLogs            Boolean           @default(true)
-  budgetCents           Int
-  currency              String            @default("VND") @db.Char(3)
-  locationId            String            @db.Uuid
-  latitude              Float
-  longitude             Float
-  radiusMeters          Int               @default(1500)
-  requesterId           String            @db.Uuid
-  assignedScoutId       String?           @db.Uuid
-  winnerId              String?           @db.Uuid
-  requiredTags          String[]
-  targetCities          String[]          @default([])
-  targetGender          String?           @default("ANY")
-  targetAgeRange        String?           @default("ANY")
-  targetExperienceLevel String?           @default("ANY")
-  targetLanguages       String[]          @default([])
-  completionRequestedAt DateTime?
-  settlementStartedAt   DateTime?
-  rewardReleasedAt      DateTime?
+  id                            String            @id @default(uuid()) @db.Uuid
+  title                         String
+  description                   String
+  category                      MissionCategory
+  status                        MissionStatus     @default(DRAFT)
+  urgency                       MissionUrgency    @default(NORMAL)
+  visibility                    MissionVisibility @default(PUBLIC)
+  publicLogs                    Boolean           @default(true)
+  budgetCents                   Int
+  currency                      String            @default("VND") @db.Char(3)
+  locationId                    String            @db.Uuid
+  latitude                      Float
+  longitude                     Float
+  radiusMeters                  Int               @default(1500)
+  requesterId                   String            @db.Uuid
+  assignedScoutId               String?           @db.Uuid
+  winnerId                      String?           @db.Uuid
+  requiredTags                  String[]
+  targetCities                  String[]          @default([])
+  targetGender                  String?           @default("ANY")
+  targetAgeRange                String?           @default("ANY")
+  targetExperienceLevel         String?           @default("ANY")
+  targetLanguages               String[]          @default([])
+  completionRequestedAt         DateTime?
+  settlementStartedAt           DateTime?
+  rewardReleasedAt              DateTime?
   rewardPerValidSubmissionCents Int?
   rewardBudgetCents             Int?
   remainingBudgetCents          Int?
@@ -210,28 +211,30 @@ model Mission {
   createdAt                     DateTime          @default(now())
   updatedAt                     DateTime          @updatedAt
 
-  location           Location            @relation(fields: [locationId], references: [id])
-  requester          User                @relation("RequestedMissions", fields: [requesterId], references: [id])
-  assignedScout      ScoutProfile?       @relation("AssignedScout", fields: [assignedScoutId], references: [id])
-  submission         MissionSubmission?
-  evidence           Evidence[]
-  timelineEntries    TimelineEntry[]
-  trustActions       TrustActionRecord[]
-  coinTransactions   CoinTransaction[]
-  coinLedgers        CoinLedger[]
-  surveyParticipants SurveyParticipant[]
-  surveyQuestions    SurveyQuestion[]
-  surveyResponses    SurveyResponse[]
-  surveySubmissions  SurveySubmission[]
-  recipients         MissionRecipient[]
-  dispute          Dispute?
-  rewardRequests   RewardRequest[]
-  notifications    Notification[]
+  location                     Location                     @relation(fields: [locationId], references: [id])
+  requester                    User                         @relation("RequestedMissions", fields: [requesterId], references: [id])
+  assignedScout                ScoutProfile?                @relation("AssignedScout", fields: [assignedScoutId], references: [id])
+  submission                   MissionSubmission?
+  evidence                     Evidence[]
+  timelineEntries              TimelineEntry[]
+  trustActions                 TrustActionRecord[]
+  coinTransactions             CoinTransaction[]
+  coinLedgers                  CoinLedger[]
+  surveyParticipants           SurveyParticipant[]
+  surveyQuestions              SurveyQuestion[]
+  surveyResponses              SurveyResponse[]
+  surveySubmissions            SurveySubmission[]
+  recipients                   MissionRecipient[]
+  dispute                      Dispute?
+  rewardRequests               RewardRequest[]
+  notifications                Notification[]
   researchParticipantHistories ResearchParticipantHistory[]
   fieldwork                    SurveyFieldwork?
   fieldworkEvents              FieldworkEvent[]
   researchAnomalies            ResearchAnomaly[]
   researchRecommendations      ResearchRecommendation[]
+  optimizationRecommendations  OptimizationRecommendation[]
+  optimizationEvents           OptimizationEvent[]
 
   @@index([status, expiresAt])
   @@index([locationId])
@@ -256,17 +259,17 @@ model MissionRecipient {
 }
 
 model MissionSubmission {
-  id              String   @id @default(uuid()) @db.Uuid
-  missionId       String   @unique @db.Uuid
-  scoutId         String   @db.Uuid
-  userId          String   @db.Uuid
+  id              String    @id @default(uuid()) @db.Uuid
+  missionId       String    @unique @db.Uuid
+  scoutId         String    @db.Uuid
+  userId          String    @db.Uuid
   summary         String
   mediaUrls       String[]
   observedAt      DateTime
   latitude        Float
   longitude       Float
-  verified        Boolean  @default(false)
-  createdAt       DateTime @default(now())
+  verified        Boolean   @default(false)
+  createdAt       DateTime  @default(now())
   reviewedAt      DateTime?
   rejectionReason String?
 
@@ -294,23 +297,23 @@ enum TrustAction {
 }
 
 model Evidence {
-  id          String        @id @default(uuid()) @db.Uuid
-  missionId   String        @db.Uuid
-  scoutId     String        @db.Uuid
-  userId      String        @db.Uuid
-  caption     String
-  type        EvidenceType  @default(PHOTO)
-  mediaUrl    String?
-  latitude    Float?
-  longitude   Float?
-  location    String?
-  verified    Boolean       @default(false)
-  capturedAt  DateTime      @default(now())
-  createdAt   DateTime      @default(now())
+  id         String       @id @default(uuid()) @db.Uuid
+  missionId  String       @db.Uuid
+  scoutId    String       @db.Uuid
+  userId     String       @db.Uuid
+  caption    String
+  type       EvidenceType @default(PHOTO)
+  mediaUrl   String?
+  latitude   Float?
+  longitude  Float?
+  location   String?
+  verified   Boolean      @default(false)
+  capturedAt DateTime     @default(now())
+  createdAt  DateTime     @default(now())
 
-  mission Mission       @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  scout   ScoutProfile  @relation(fields: [scoutId], references: [id])
-  user    User          @relation(fields: [userId], references: [id])
+  mission Mission      @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  scout   ScoutProfile @relation(fields: [scoutId], references: [id])
+  user    User         @relation(fields: [userId], references: [id])
 
   @@index([missionId])
   @@index([scoutId])
@@ -477,12 +480,12 @@ model UserProfile {
   preferredMissionTypes String[] @default([])
 
   // Private contact information (Owner + Admin ONLY)
-  legalName             String?
-  phone                 String?
-  privateNotes          String?
+  legalName    String?
+  phone        String?
+  privateNotes String?
 
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -490,14 +493,14 @@ model UserProfile {
 }
 
 model Dispute {
-  id           String   @id @default(uuid()) @db.Uuid
-  missionId    String   @unique @db.Uuid
-  initiatorId  String   @db.Uuid
-  reason       String
-  fundedCoin   Int      @default(0)
-  status       String   @default("OPEN")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(uuid()) @db.Uuid
+  missionId   String   @unique @db.Uuid
+  initiatorId String   @db.Uuid
+  reason      String
+  fundedCoin  Int      @default(0)
+  status      String   @default("OPEN")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   mission   Mission           @relation(fields: [missionId], references: [id], onDelete: Cascade)
   initiator User              @relation("DisputeInitiator", fields: [initiatorId], references: [id])
@@ -534,7 +537,7 @@ model DisputeRound {
   startsAt         DateTime  @default(now())
   endsAt           DateTime
   status           String    @default("ACTIVE") // ACTIVE | FINALIZED | TIE_REVIEW
-  winningSide      String?   // REQUESTER_WIN | WORKER_WIN | TIE
+  winningSide      String? // REQUESTER_WIN | WORKER_WIN | TIE
   finalizedAt      DateTime?
   createdAt        DateTime  @default(now())
 
@@ -550,7 +553,7 @@ model DisputeVote {
   disputeId    String   @db.Uuid
   roundId      String   @db.Uuid
   voterId      String   @db.Uuid
-  selectedSide String   // REQUESTER_WIN | WORKER_WIN
+  selectedSide String // REQUESTER_WIN | WORKER_WIN
   rewardCoin   Int      @default(1)
   votedAt      DateTime @default(now())
 
@@ -564,12 +567,12 @@ model DisputeVote {
 }
 
 model RewardRequest {
-  id         String   @id @default(uuid()) @db.Uuid
-  missionId  String   @db.Uuid
-  userId     String   @db.Uuid
-  status     String   @default("PENDING")
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id        String   @id @default(uuid()) @db.Uuid
+  missionId String   @db.Uuid
+  userId    String   @db.Uuid
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id])
@@ -605,7 +608,7 @@ model SurveyParticipant {
   userId           String    @db.Uuid
   evidenceId       String?   @db.Uuid
   status           String    @default("RESERVED") // INVITED | ELIGIBLE | RESERVED | IN_PROGRESS | SUBMITTED | QUALITY_REVIEW | ACCEPTED | REJECTED | DISQUALIFIED | ABANDONED | EXPIRED | PAID
-  screeningStatus  String?   // ELIGIBLE | SCREENED_OUT | NOT_REQUIRED
+  screeningStatus  String? // ELIGIBLE | SCREENED_OUT | NOT_REQUIRED
   screeningAnswers Json?
   profileSnapshot  Json?
   slotReservedAt   DateTime?
@@ -617,8 +620,8 @@ model SurveyParticipant {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission     Mission            @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   responses   SurveyResponse[]
   submissions SurveySubmission[]
 
@@ -632,7 +635,7 @@ model SurveyQuestion {
   id          String   @id @default(uuid()) @db.Uuid
   missionId   String   @db.Uuid
   order       Int      @default(0)
-  type        String   // SINGLE_CHOICE | MULTIPLE_CHOICE | YES_NO | RATING | NUMBER | TEXT | MATRIX | PHOTO | VIDEO | AUDIO
+  type        String // SINGLE_CHOICE | MULTIPLE_CHOICE | YES_NO | RATING | NUMBER | TEXT | MATRIX | PHOTO | VIDEO | AUDIO
   question    String
   description String?
   required    Boolean  @default(true)
@@ -679,7 +682,7 @@ model SurveySubmission {
   completedAt     DateTime?
   durationSeconds Int?
   qualityScore    Float?
-  qualityStatus   String?   // PENDING | PASSED | FAILED | SUSPICIOUS
+  qualityStatus   String? // PENDING | PASSED | FAILED | SUSPICIOUS
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -724,7 +727,7 @@ model FieldworkEvent {
   id        String   @id @default(uuid()) @db.Uuid
   missionId String   @db.Uuid
   workerId  String?  @db.Uuid
-  type      String   // MISSION_STARTED | WORKER_JOINED | SCREENED | SCREENING_REJECTED | SURVEY_STARTED | SURVEY_SUBMITTED | QUALITY_ACCEPTED | QUALITY_REJECTED | QUOTA_FILLED | WORKER_REWARDED | WORKER_DISQUALIFIED | MISSION_PAUSED | MISSION_RESUMED | MISSION_COMPLETED | MISSION_EXPIRED
+  type      String // MISSION_STARTED | WORKER_JOINED | SCREENED | SCREENING_REJECTED | SURVEY_STARTED | SURVEY_SUBMITTED | QUALITY_ACCEPTED | QUALITY_REJECTED | QUOTA_FILLED | WORKER_REWARDED | WORKER_DISQUALIFIED | MISSION_PAUSED | MISSION_RESUMED | MISSION_COMPLETED | MISSION_EXPIRED
   metadata  Json?
   createdAt DateTime @default(now())
 
@@ -735,28 +738,27 @@ model FieldworkEvent {
   @@map("fieldwork_events")
 }
 
-
 model WorkerTrustProfile {
-  id                      String   @id @default(uuid()) @db.Uuid
-  userId                  String   @unique @db.Uuid
-  trustScore              Float    @default(50)
-  qualityScore            Float    @default(50)
-  fraudRiskScore          Float    @default(0)
-  completedMissions       Int      @default(0)
-  approvedMissions        Int      @default(0)
-  rejectedMissions        Int      @default(0)
-  disputedMissions        Int      @default(0)
-  wonMissions             Int      @default(0)
-  surveyCompleted         Int      @default(0)
-  surveyRejected          Int      @default(0)
-  suspiciousCount         Int      @default(0)
-  evidenceApproved        Int      @default(0)
-  evidenceRejected        Int      @default(0)
-  accountAgeDays          Int      @default(0)
-  profileVerified         Boolean  @default(false)
-  lastCalculatedAt        DateTime @default(now())
-  createdAt               DateTime @default(now())
-  updatedAt               DateTime @updatedAt
+  id                String   @id @default(uuid()) @db.Uuid
+  userId            String   @unique @db.Uuid
+  trustScore        Float    @default(50)
+  qualityScore      Float    @default(50)
+  fraudRiskScore    Float    @default(0)
+  completedMissions Int      @default(0)
+  approvedMissions  Int      @default(0)
+  rejectedMissions  Int      @default(0)
+  disputedMissions  Int      @default(0)
+  wonMissions       Int      @default(0)
+  surveyCompleted   Int      @default(0)
+  surveyRejected    Int      @default(0)
+  suspiciousCount   Int      @default(0)
+  evidenceApproved  Int      @default(0)
+  evidenceRejected  Int      @default(0)
+  accountAgeDays    Int      @default(0)
+  profileVerified   Boolean  @default(false)
+  lastCalculatedAt  DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -802,14 +804,14 @@ model AudienceProfile {
 }
 
 model SavedAudience {
-  id                     String           @id @default(uuid()) @db.Uuid
-  requesterId            String           @db.Uuid
+  id                     String   @id @default(uuid()) @db.Uuid
+  requesterId            String   @db.Uuid
   name                   String
   description            String?
   criteria               Json
-  estimatedEligibleCount Int              @default(0)
-  createdAt              DateTime         @default(now())
-  updatedAt              DateTime         @updatedAt
+  estimatedEligibleCount Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
   requester User             @relation(fields: [requesterId], references: [id], onDelete: Cascade)
   members   AudienceMember[]
@@ -838,18 +840,18 @@ model AudienceMember {
 }
 
 model ResearchParticipantHistory {
-  id            String    @id @default(uuid()) @db.Uuid
-  workerId      String    @db.Uuid
-  missionId     String    @db.Uuid
-  requesterId   String    @db.Uuid
-  status        String    @default("COMPLETED")
-  completedAt   DateTime?
-  qualityScore  Float?
-  rewardAmount  Float?
-  createdAt     DateTime  @default(now())
+  id           String    @id @default(uuid()) @db.Uuid
+  workerId     String    @db.Uuid
+  missionId    String    @db.Uuid
+  requesterId  String    @db.Uuid
+  status       String    @default("COMPLETED")
+  completedAt  DateTime?
+  qualityScore Float?
+  rewardAmount Float?
+  createdAt    DateTime  @default(now())
 
-  worker    User    @relation("WorkerHistory", fields: [workerId], references: [id], onDelete: Cascade)
-  mission   Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  worker  User    @relation("WorkerHistory", fields: [workerId], references: [id], onDelete: Cascade)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
 
   @@unique([workerId, missionId])
   @@index([workerId])
@@ -909,19 +911,19 @@ model ResearchPlan {
 }
 
 model ResearchAnomaly {
-  id          String    @id @default(uuid()) @db.Uuid
-  missionId   String    @db.Uuid
-  workerId    String?   @db.Uuid
-  type        String    // SPEEDING | LOW_QUALITY | DUPLICATE_PATTERN | SUSPICIOUS_CLUSTER | QUOTA_ANOMALY | RECRUITMENT_DROP | HIGH_ABANDONMENT | UNUSUAL_RESPONSE_PATTERN | DEVICE_PATTERN | GEO_ANOMALY
-  severity    String    // LOW | MEDIUM | HIGH | CRITICAL
-  score       Float
-  evidence    Json
-  status      String    @default("OPEN") // OPEN | REVIEWED | RESOLVED | IGNORED
-  createdAt   DateTime  @default(now())
-  resolvedAt  DateTime?
+  id         String    @id @default(uuid()) @db.Uuid
+  missionId  String    @db.Uuid
+  workerId   String?   @db.Uuid
+  type       String // SPEEDING | LOW_QUALITY | DUPLICATE_PATTERN | SUSPICIOUS_CLUSTER | QUOTA_ANOMALY | RECRUITMENT_DROP | HIGH_ABANDONMENT | UNUSUAL_RESPONSE_PATTERN | DEVICE_PATTERN | GEO_ANOMALY
+  severity   String // LOW | MEDIUM | HIGH | CRITICAL
+  score      Float
+  evidence   Json
+  status     String    @default("OPEN") // OPEN | REVIEWED | RESOLVED | IGNORED
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
 
-  mission     Mission   @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  worker      User?     @relation(fields: [workerId], references: [id], onDelete: SetNull)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  worker  User?   @relation(fields: [workerId], references: [id], onDelete: SetNull)
 
   @@index([missionId, status])
   @@index([missionId, createdAt])
@@ -932,7 +934,7 @@ model ResearchAnomaly {
 model ResearchRecommendation {
   id             String    @id @default(uuid()) @db.Uuid
   missionId      String    @db.Uuid
-  type           String    // INCREASE_PRIORITY | PAUSE_SEGMENT | EXPAND_AUDIENCE | ADJUST_QUOTA | REVIEW_SCREENING | REVIEW_REWARD | RESUME_RECRUITMENT
+  type           String // INCREASE_PRIORITY | PAUSE_SEGMENT | EXPAND_AUDIENCE | ADJUST_QUOTA | REVIEW_SCREENING | REVIEW_REWARD | RESUME_RECRUITMENT
   payload        Json
   rationale      String
   status         String    @default("PENDING") // PENDING | APPROVED | REJECTED | EXPIRED
@@ -940,10 +942,56 @@ model ResearchRecommendation {
   createdAt      DateTime  @default(now())
   reviewedAt     DateTime?
 
-  mission        Mission   @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
 
   @@index([missionId, status])
   @@index([missionId, createdAt])
   @@map("research_recommendations")
 }
 
+model OptimizationRecommendation {
+  id                  String    @id @default(uuid()) @db.Uuid
+  missionId           String    @db.Uuid
+  title               String
+  description         String
+  category            String // QUOTA, REWARD, SCREENING, SCHEDULE, QUALITY
+  confidenceScore     Float // 0-100
+  projectedImpact     String
+  suggestedAction     Json
+  isAutoExecutable    Boolean   @default(false)
+  requiresHumanReview Boolean   @default(true)
+  status              String    @default("PENDING") // PENDING, APPROVED, REJECTED, EXECUTED, STALE, DISCARDED
+  reasoning           String
+  idempotencyKey      String?   @unique
+  version             Int       @default(1)
+  expiresAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  mission Mission             @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  events  OptimizationEvent[]
+
+  @@index([missionId])
+  @@index([status])
+  @@map("optimization_recommendations")
+}
+
+model OptimizationEvent {
+  id               String   @id @default(uuid()) @db.Uuid
+  recommendationId String   @db.Uuid
+  missionId        String   @db.Uuid
+  actionType       String
+  performedById    String?  @db.Uuid
+  oldState         Json?
+  newState         Json?
+  reason           String?
+  createdAt        DateTime @default(now())
+
+  recommendation OptimizationRecommendation @relation(fields: [recommendationId], references: [id], onDelete: Cascade)
+  mission        Mission                    @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  performedBy    User?                      @relation(fields: [performedById], references: [id], onDelete: SetNull)
+
+  @@index([recommendationId])
+  @@index([missionId])
+  @@map("optimization_events")
+}
