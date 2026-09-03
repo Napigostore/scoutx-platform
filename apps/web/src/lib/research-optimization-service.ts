@@ -154,3 +154,28 @@ export async function markStaleRecommendations(missionId: string) {
     data: { status: "STALE" },
   });
 }
+
+export async function getOptimizationMetrics(missionId: string): Promise<OptimizationMetrics> {
+  const fw = await prisma.surveyFieldwork.findUnique({ where: { missionId } });
+  if (!fw)
+    return {
+      completionRate: 0,
+      recruitmentVelocityPerHour: 0,
+      remainingBudget: 0,
+      abandonmentRate: 0,
+    };
+
+  const completionRate =
+    fw.targetCompletes > 0 ? (fw.completedCount / fw.targetCompletes) * 100 : 0;
+  const activeHours = fw.startedAt ? (Date.now() - fw.startedAt.getTime()) / (3600 * 1000) : 0;
+  const recruitmentVelocityPerHour = activeHours > 0 ? fw.completedCount / activeHours : 0;
+  const totalAttempts = fw.completedCount + fw.disqualifiedCount + fw.rejectedCount;
+  const abandonmentRate = totalAttempts > 0 ? (fw.disqualifiedCount / totalAttempts) * 100 : 0;
+
+  return {
+    completionRate,
+    recruitmentVelocityPerHour,
+    remainingBudget: Number(fw.remainingBudget),
+    abandonmentRate,
+  };
+}

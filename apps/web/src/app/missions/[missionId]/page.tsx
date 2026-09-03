@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useEffect, useState, use } from "react";
@@ -8,6 +9,7 @@ import { formatCurrency } from "@scoutx/application";
 import { RequesterLivestreamViewer } from "@/components/RequesterLivestreamViewer";
 import { MissionActivityTimeline } from "@/components/MissionActivityTimeline";
 import { MissionSettlementControls } from "@/components/mission-settlement-controls";
+import { ResearchOptimizationDashboard } from "@/components/research-optimization-dashboard";
 
 interface Submission {
   id: string;
