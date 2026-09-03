@@ -227,6 +227,8 @@ model Mission {
   rewardRequests   RewardRequest[]
   notifications    Notification[]
   researchParticipantHistories ResearchParticipantHistory[]
+  fieldwork                    SurveyFieldwork?
+  fieldworkEvents              FieldworkEvent[]
 
   @@index([status, expiresAt])
   @@index([locationId])
@@ -599,12 +601,16 @@ model SurveyParticipant {
   missionId        String    @db.Uuid
   userId           String    @db.Uuid
   evidenceId       String?   @db.Uuid
-  status           String    @default("SUBMITTED") // APPLIED | SUBMITTED | UNDER_REVIEW | SELECTED | REJECTED | REWARDED
+  status           String    @default("RESERVED") // INVITED | ELIGIBLE | RESERVED | IN_PROGRESS | SUBMITTED | QUALITY_REVIEW | ACCEPTED | REJECTED | DISQUALIFIED | ABANDONED | EXPIRED | PAID
   screeningStatus  String?   // ELIGIBLE | SCREENED_OUT | NOT_REQUIRED
   screeningAnswers Json?
   profileSnapshot  Json?
+  slotReservedAt   DateTime?
+  startedAt        DateTime?
   selectedAt       DateTime?
   rewardedAt       DateTime?
+  abandonedAt      DateTime?
+  qualityScore     Float?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
@@ -681,6 +687,51 @@ model SurveySubmission {
   @@index([missionId, completionCode])
   @@map("survey_submissions")
 }
+
+model SurveyFieldwork {
+  id                   String    @id @default(uuid()) @db.Uuid
+  missionId            String    @unique @db.Uuid
+  status               String    @default("RECRUITING") // RECRUITING | ACTIVE | PAUSED | QUOTA_FILLED | EXPIRED | COMPLETED | CANCELLED
+  startedAt            DateTime?
+  pausedAt             DateTime?
+  completedAt          DateTime?
+  expiresAt            DateTime
+  targetCompletes      Int
+  completedCount       Int       @default(0)
+  screenedCount        Int       @default(0)
+  rejectedCount        Int       @default(0)
+  qualityRejectedCount Int       @default(0)
+  disqualifiedCount    Int       @default(0)
+  reservedCount        Int       @default(0)
+  inProgressCount      Int       @default(0)
+  remainingBudget      Float
+  lastActivityAt       DateTime  @default(now())
+  version              Int       @default(0)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([expiresAt])
+  @@map("survey_fieldwork")
+}
+
+model FieldworkEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  missionId String   @db.Uuid
+  workerId  String?  @db.Uuid
+  type      String   // MISSION_STARTED | WORKER_JOINED | SCREENED | SCREENING_REJECTED | SURVEY_STARTED | SURVEY_SUBMITTED | QUALITY_ACCEPTED | QUALITY_REJECTED | QUOTA_FILLED | WORKER_REWARDED | WORKER_DISQUALIFIED | MISSION_PAUSED | MISSION_RESUMED | MISSION_COMPLETED | MISSION_EXPIRED
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@index([missionId, createdAt])
+  @@index([missionId, type])
+  @@map("fieldwork_events")
+}
+
 
 model WorkerTrustProfile {
   id                      String   @id @default(uuid()) @db.Uuid
