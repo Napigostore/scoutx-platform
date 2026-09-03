@@ -35,13 +35,13 @@ CREATE INDEX "sampling_quotas_planId_idx" ON "sampling_quotas"("planId");
 CREATE INDEX "sampling_quotas_isFull_idx" ON "sampling_quotas"("isFull");
 
 -- AlterTable
-ALTER TABLE "SurveyParticipant" ADD COLUMN "samplingQuotaId" UUID;
+ALTER TABLE "survey_participants" ADD COLUMN "samplingQuotaId" UUID;
 
 -- AddForeignKey
-ALTER TABLE "sampling_plans" ADD CONSTRAINT "sampling_plans_missionId_fkey" FOREIGN KEY ("missionId") REFERENCES "Mission"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "sampling_plans" ADD CONSTRAINT "sampling_plans_missionId_fkey" FOREIGN KEY ("missionId") REFERENCES "missions"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "sampling_quotas" ADD CONSTRAINT "sampling_quotas_planId_fkey" FOREIGN KEY ("planId") REFERENCES "sampling_plans"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "SurveyParticipant" ADD CONSTRAINT "SurveyParticipant_samplingQuotaId_fkey" FOREIGN KEY ("samplingQuotaId") REFERENCES "sampling_quotas"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "survey_participants" ADD CONSTRAINT "survey_participants_samplingQuotaId_fkey" FOREIGN KEY ("samplingQuotaId") REFERENCES "sampling_quotas"("id") ON DELETE SET NULL ON UPDATE CASCADE;

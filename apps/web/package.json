@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "turbo run build:web --filter=@scoutx/web",
-    "build:web": "prisma generate && prisma migrate deploy && next build",
+    "build:web": "prisma migrate resolve --rolled-back 20260903030000_add_sampling_plan_p10 || true && prisma generate && prisma migrate deploy && next build",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
