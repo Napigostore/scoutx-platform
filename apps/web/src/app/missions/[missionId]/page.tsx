@@ -10,6 +10,7 @@ import { RequesterLivestreamViewer } from "@/components/RequesterLivestreamViewe
 import { MissionActivityTimeline } from "@/components/MissionActivityTimeline";
 import { MissionSettlementControls } from "@/components/mission-settlement-controls";
 import { ResearchOptimizationDashboard } from "@/components/research-optimization-dashboard";
+import { ResearchAnalyticsDashboard } from "@/components/research-analytics-dashboard";
 
 interface Submission {
   id: string;
@@ -377,6 +378,8 @@ export default function MissionDetailsPage({ params }: { params: Promise<{ missi
           <RequesterLivestreamViewer missionId={missionId} />
 
           <MissionActivityTimeline missionId={missionId} currentRole="REQUESTER" />
+
+          <ResearchAnalyticsDashboard missionId={missionId} />
 
           <div className="rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-6">
             <h3 className="text-sm font-semibold text-[var(--scoutx-foreground)]">
