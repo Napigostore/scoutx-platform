@@ -116,6 +116,8 @@ model User {
   notifications                Notification[]
   researchAnomalies            ResearchAnomaly[]
   optimizationEvents           OptimizationEvent[]
+  apiKeys                      ApiKey[]
+  webhookSubscriptions         WebhookSubscription[]
 
   @@map("users")
 }
@@ -1031,3 +1033,41 @@ model SamplingQuota {
   @@index([isFull])
   @@map("sampling_quotas")
 }
+
+model ApiKey {
+  id               String    @id @default(uuid()) @db.Uuid
+  name             String
+  keyPrefix        String
+  keyHash          String    @unique
+  userId           String    @db.Uuid
+  scopes           String[]  @default(["read", "write"])
+  rateLimitPerMin  Int       @default(60)
+  expiresAt        DateTime?
+  lastUsedAt       DateTime?
+  revoked          Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([keyPrefix])
+  @@map("api_keys")
+}
+
+model WebhookSubscription {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  url       String
+  secret    String
+  events    String[] @default(["MISSION_COMPLETED", "EVIDENCE_UPLOADED", "QUOTA_REACHED"])
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("webhook_subscriptions")
+}
+
