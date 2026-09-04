@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET(request: Request, props: { params: Promise<{ missionId: string }> }) {
   const params = await props.params;
   const ctx = await getMissionParticipantContext(request, params.missionId);
-  if (ctx.error) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
+  if ("error" in ctx) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   if (!ctx.isRequester && !ctx.isAdmin) {
     return NextResponse.json({ error: "Forbidden: Requester access required" }, { status: 403 });
   }
@@ -23,7 +23,7 @@ export async function GET(request: Request, props: { params: Promise<{ missionId
 export async function POST(request: Request, props: { params: Promise<{ missionId: string }> }) {
   const params = await props.params;
   const ctx = await getMissionParticipantContext(request, params.missionId);
-  if (ctx.error) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
+  if ("error" in ctx) return NextResponse.json({ error: ctx.error }, { status: ctx.status });
   if (!ctx.isRequester && !ctx.isAdmin) {
     return NextResponse.json({ error: "Forbidden: Requester access required" }, { status: 403 });
   }
