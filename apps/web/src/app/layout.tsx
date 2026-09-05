@@ -27,17 +27,34 @@ export const metadata: Metadata = {
   title: BRAND.seo.defaultTitle,
   description: BRAND.seo.defaultDescription,
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? `https://${BRAND.domain}`),
+  icons: {
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/logo-icon.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     title: BRAND.seo.defaultTitle,
     description: BRAND.seo.defaultDescription,
     siteName: BRAND.appName,
     url: BRAND.urls.website,
+    images: [
+      {
+        url: "/logo.png",
+        width: 1024,
+        height: 1024,
+        alt: `${BRAND.appName} - ${BRAND.tagline}`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: BRAND.seo.defaultTitle,
     description: BRAND.seo.defaultDescription,
     creator: BRAND.social.twitter,
+    images: ["/logo.png"],
   },
 };
 

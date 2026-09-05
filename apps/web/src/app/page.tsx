@@ -1,5 +1,6 @@
 import { howItWorksSteps } from "@scoutx/mock-data";
 import { HeroSection } from "@/components/landing/hero-section";
+import { BrandPillarsSection } from "@/components/landing/brand-pillars";
 import { Live3ColumnMissionsSection } from "@/components/landing/live-3column-missions-section";
 import { LiveMarketplaceDiscovery } from "@/components/landing/live-marketplace-discovery";
 import { TopScoutersSection } from "@/components/landing/top-scouters-section";
@@ -15,6 +16,7 @@ export default async function HomePage() {
   return (
     <>
       <HeroSection />
+      <BrandPillarsSection />
       <Live3ColumnMissionsSection />
       <LiveMarketplaceDiscovery />
       <TopDisputesSection />

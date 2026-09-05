@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, Suspense } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { signIn } from "next-auth/react";
 import { Button, Input, Label } from "@scoutx/ui";
@@ -65,12 +67,22 @@ function SignInFormContent() {
   return (
     <div className="flex min-h-[80vh] items-center justify-center bg-[var(--scoutx-background)] px-4 py-12 sm:px-6 lg:px-8">
       <div className="w-full max-w-md space-y-8 rounded-2xl border border-[var(--scoutx-border)] bg-[var(--scoutx-card)] p-8 text-[var(--scoutx-card-foreground)] shadow-[0_20px_50px_rgba(18,32,26,0.04)] dark:shadow-none">
-        <div className="text-center">
+        <div className="flex flex-col items-center text-center">
+          <Link href="/" className="mb-3 transition-transform hover:scale-105">
+            <Image
+              src="/logo-icon.png"
+              alt="Fiwokan Logo"
+              width={64}
+              height={64}
+              priority
+              className="h-16 w-16 object-contain"
+            />
+          </Link>
           <h2 className="font-display text-3xl font-bold tracking-tight text-[var(--scoutx-foreground)]">
-            Sign in to ScoutX
+            Sign in to Fiwokan
           </h2>
           <p className="mt-2 text-sm text-[var(--scoutx-muted-foreground)]">
-            Access the global marketplace for real-world discovery
+            Global Eyes. Real Evidence. Trusted Impact.
           </p>
         </div>
 

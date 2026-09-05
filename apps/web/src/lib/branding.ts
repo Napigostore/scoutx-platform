@@ -2,8 +2,8 @@
 
 export const BRAND = {
   appName: "Fiwokan",
-  tagline: "Find Who Can.",
-  fullTagline: "Find Who Can. The Global Human Intelligence Network.",
+  tagline: "Global Eyes. Real Evidence. Trusted Impact.",
+  fullTagline: "Global Eyes. Real Evidence. Trusted Impact.",
   companyName: "Fiwokan Inc.",
   domain: "fiwokan.com",
   urls: {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { cn, Badge } from "@scoutx/ui";
 
@@ -247,27 +248,26 @@ export function LeftNavigation({
       aria-label="Mission OS Navigation"
     >
       {/* Brand */}
-      <div className="flex items-center gap-2 px-2 py-1">
-        <div className="flex h-7 w-7 items-center justify-center rounded-[var(--scoutx-radius-sm)] bg-[var(--scoutx-primary)]">
-          <svg
-            className="h-4 w-4 text-[var(--scoutx-primary-foreground)]"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"
-            />
-          </svg>
+      <Link
+        href="/"
+        className="flex items-center gap-2.5 px-2 py-1 transition-opacity hover:opacity-90"
+      >
+        <Image
+          src="/logo-icon.png"
+          alt="Fiwokan"
+          width={28}
+          height={28}
+          className="h-7 w-7 shrink-0 object-contain"
+        />
+        <div className="flex flex-col">
+          <span className="font-display text-sm font-bold leading-tight tracking-tight text-[var(--scoutx-foreground)]">
+            Fiwokan
+          </span>
+          <span className="text-[10px] font-medium leading-none text-[var(--scoutx-muted-foreground)]">
+            Mission OS
+          </span>
         </div>
-        <span className="font-display text-sm font-bold tracking-tight text-[var(--scoutx-foreground)]">
-          Mission OS
-        </span>
-      </div>
+      </Link>
 
       {/* Sections */}
       {sections.map((section) => (

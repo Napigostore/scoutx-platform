@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { AuthHeaderActions } from "@/components/auth/auth-header";
 import { BRAND } from "@/lib/branding";
 import { NotificationBell } from "@/components/notification-bell";
@@ -21,9 +22,24 @@ export function SiteHeader() {
       <div className="section-shell flex h-16 items-center justify-between gap-4">
         <Link
           href="/"
-          className="font-display text-xl font-bold tracking-tight text-[var(--scoutx-hero-from)]"
+          className="flex shrink-0 items-center gap-2.5 transition-opacity hover:opacity-90"
         >
-          {BRAND.appName}
+          <Image
+            src="/logo-header.png"
+            alt={BRAND.appName}
+            width={160}
+            height={36}
+            priority
+            className="h-8 w-auto object-contain sm:h-9 dark:hidden"
+          />
+          <Image
+            src="/logo-header-white.png"
+            alt={BRAND.appName}
+            width={160}
+            height={36}
+            priority
+            className="hidden h-8 w-auto object-contain sm:h-9 dark:block"
+          />
         </Link>
 
         {/* Desktop Navigation */}
@@ -32,7 +48,7 @@ export function SiteHeader() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-1.5 transition-colors hover:text-[var(--scoutx-foreground)] font-medium"
+              className="flex items-center gap-1.5 font-medium transition-colors hover:text-[var(--scoutx-foreground)]"
             >
               <span>{item.icon}</span>
               <span>{item.label}</span>
@@ -48,7 +64,7 @@ export function SiteHeader() {
           {/* Mobile hamburger menu toggle */}
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--scoutx-border)] text-[var(--scoutx-foreground)] md:hidden hover:bg-[var(--scoutx-muted)]"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--scoutx-border)] text-[var(--scoutx-foreground)] hover:bg-[var(--scoutx-muted)] md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle Navigation Menu"
           >
@@ -59,7 +75,7 @@ export function SiteHeader() {
 
       {/* Mobile Navigation Drawer */}
       {mobileMenuOpen && (
-        <div className="border-t border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-4 py-4 md:hidden animate-in slide-in-from-top-2">
+        <div className="animate-in slide-in-from-top-2 border-t border-[var(--scoutx-border)] bg-[var(--scoutx-card)] px-4 py-4 md:hidden">
           <nav className="flex flex-col gap-3 text-sm">
             {navItems.map((item) => (
               <Link
@@ -78,4 +94,3 @@ export function SiteHeader() {
     </header>
   );
 }
-

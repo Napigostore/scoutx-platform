@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 
 import { Button } from "@scoutx/ui";
 
@@ -19,9 +20,15 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-white shadow-sm backdrop-blur-md">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-            Field Intelligence Network
+          <div className="inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-semibold uppercase tracking-wider text-white shadow-sm backdrop-blur-md">
+            <Image
+              src="/logo-icon.png"
+              alt="Fiwokan"
+              width={18}
+              height={18}
+              className="h-4 w-4 shrink-0 object-contain"
+            />
+            Global Eyes · Real Evidence · Trusted Impact
           </div>
           <h1 className="font-display max-w-2xl text-4xl font-extrabold leading-[1.1] tracking-tight text-white sm:text-5xl md:text-6xl">
             Real World.

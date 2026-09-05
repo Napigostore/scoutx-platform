@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { BRAND } from "@/lib/branding";
 
 export function SiteFooter() {
@@ -7,8 +8,16 @@ export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-[var(--scoutx-border)] bg-[color-mix(in_srgb,var(--scoutx-hero-from)_92%,black)] text-[var(--scoutx-primary-foreground)]">
       <div className="section-shell grid gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr]">
-        <div className="space-y-3">
-          <p className="font-display text-2xl font-bold">{BRAND.appName}</p>
+        <div className="space-y-4">
+          <Link href="/" className="inline-block transition-opacity hover:opacity-90">
+            <Image
+              src="/logo-header-white.png"
+              alt={BRAND.appName}
+              width={160}
+              height={36}
+              className="h-8 w-auto object-contain sm:h-9"
+            />
+          </Link>
           <p className="max-w-sm text-sm text-white/75">
             {BRAND.fullTagline} Connect with verified local scouts to inspect, verify, and collect
             on-site evidence anywhere in the world.
