@@ -130,45 +130,105 @@ export async function getUserProfile(
   // Find user's completed / matched missions & submissions
   const scoutProfileId = user.scoutProfile?.id;
 
-  const [submissions] = await Promise.all([
-    prisma.missionSubmission.findMany({
-      where: { userId: user.id },
-      include: {
-        mission: {
-          select: {
-            id: true,
-            title: true,
-            category: true,
-            visibility: true,
-            createdAt: true,
-            expiresAt: true,
-            budgetCents: true,
-            currency: true,
-            status: true,
+  const [submissions, assignedMissions, wonMissions, earnedLedger, creditTxs, rewardedSurveys] =
+    await Promise.all([
+      prisma.missionSubmission.findMany({
+        where: { userId: user.id },
+        include: {
+          mission: {
+            select: {
+              id: true,
+              title: true,
+              category: true,
+              visibility: true,
+              createdAt: true,
+              expiresAt: true,
+              budgetCents: true,
+              currency: true,
+              status: true,
+            },
           },
         },
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    scoutProfileId
-      ? prisma.mission.findMany({
-          where: { assignedScoutId: scoutProfileId },
-          select: {
-            id: true,
-            createdAt: true,
-            expiresAt: true,
-            budgetCents: true,
-            currency: true,
-            status: true,
-            updatedAt: true,
+        orderBy: { createdAt: "desc" },
+      }),
+      scoutProfileId
+        ? prisma.mission.findMany({
+            where: { assignedScoutId: scoutProfileId },
+            select: {
+              id: true,
+              createdAt: true,
+              expiresAt: true,
+              budgetCents: true,
+              currency: true,
+              status: true,
+              updatedAt: true,
+            },
+          })
+        : Promise.resolve([]),
+      prisma.mission.findMany({
+        where: {
+          winnerId: user.id,
+          status: { in: ["REWARDED", "COMPLETED"] },
+        },
+        select: {
+          id: true,
+          title: true,
+          category: true,
+          visibility: true,
+          createdAt: true,
+          expiresAt: true,
+          budgetCents: true,
+          currency: true,
+          status: true,
+          updatedAt: true,
+        },
+        orderBy: { updatedAt: "desc" },
+      }),
+      prisma.coinLedger.findMany({
+        where: {
+          userId: user.id,
+          type: { in: ["MISSION_REWARD_RELEASE", "VOTE_REWARD"] },
+          status: "COMPLETED",
+        },
+        select: { amount: true },
+      }),
+      prisma.coinTransaction.findMany({
+        where: {
+          userId: user.id,
+          eventType: "CREDIT",
+        },
+        select: { amountCents: true },
+      }),
+      prisma.surveyParticipant.findMany({
+        where: {
+          userId: user.id,
+          status: "REWARDED",
+        },
+        include: {
+          mission: {
+            select: {
+              id: true,
+              title: true,
+              category: true,
+              visibility: true,
+              rewardPerValidSubmissionCents: true,
+              budgetCents: true,
+              createdAt: true,
+              status: true,
+              updatedAt: true,
+            },
           },
-        })
-      : Promise.resolve([]),
-  ]);
+        },
+      }),
+    ]);
 
   // Compute completed missions
   const completedSubmissions = submissions.filter(
-    (s) => s.verified || s.mission.status === "COMPLETED" || s.mission.status === "VERIFIED",
+    (s) =>
+      s.verified ||
+      s.mission.status === "COMPLETED" ||
+      s.mission.status === "VERIFIED" ||
+      s.mission.status === "REWARDED",
   );
   const rejectedSubmissions = submissions.filter(
     (s) =>
@@ -176,8 +236,22 @@ export async function getUserProfile(
       (!s.verified && (s.mission.status === "CANCELLED" || s.mission.status === "EXPIRED")),
   );
 
-  const completedCount = completedSubmissions.length;
-  const totalFinishedSubmissions = completedCount + rejectedSubmissions.length;
+  const completedMissionIds = new Set<string>();
+  for (const s of completedSubmissions) {
+    completedMissionIds.add(s.mission.id);
+  }
+  for (const m of wonMissions) {
+    completedMissionIds.add(m.id);
+  }
+  for (const sp of rewardedSurveys) {
+    completedMissionIds.add(sp.missionId);
+  }
+
+  const completedCount = completedMissionIds.size;
+  const totalFinishedSubmissions = Math.max(
+    completedCount,
+    completedCount + rejectedSubmissions.length,
+  );
 
   const hasEnoughData = completedCount > 0 || totalFinishedSubmissions > 0;
 
@@ -212,19 +286,43 @@ export async function getUserProfile(
   // 3. On-Time Rate
   let onTimeRateFormatted = "N/A";
   let onTimePercentage = 100;
-  if (completedSubmissions.length > 0) {
-    const onTimeCount = completedSubmissions.filter(
-      (s) => new Date(s.createdAt).getTime() <= new Date(s.mission.expiresAt).getTime(),
-    ).length;
-    onTimePercentage = Math.round((onTimeCount / completedSubmissions.length) * 100);
+  if (completedCount > 0) {
+    let onTimeCount = 0;
+    for (const sub of completedSubmissions) {
+      if (new Date(sub.createdAt).getTime() <= new Date(sub.mission.expiresAt).getTime()) {
+        onTimeCount++;
+      }
+    }
+    for (const m of wonMissions) {
+      if (!completedSubmissions.some((s) => s.mission.id === m.id)) {
+        if (new Date(m.updatedAt || m.createdAt).getTime() <= new Date(m.expiresAt).getTime()) {
+          onTimeCount++;
+        }
+      }
+    }
+    onTimePercentage = Math.round((onTimeCount / completedCount) * 100);
     onTimeRateFormatted = `${onTimePercentage}%`;
   }
 
-  // 4. Total Earned
-  let totalEarnedCents = 0;
+  // 4. Total Earned: compute from CoinLedger, won missions, survey rewards, and coin transactions
+  const ledgerTotalCents = earnedLedger.reduce((sum, item) => sum + item.amount, 0);
+  const creditTxTotalCents = creditTxs.reduce((sum, item) => sum + item.amountCents, 0);
+  const wonTotalCents = wonMissions.reduce((sum, m) => sum + (m.budgetCents || 0), 0);
+  const surveyTotalCents = rewardedSurveys.reduce(
+    (sum, sp) => sum + (sp.mission.rewardPerValidSubmissionCents || 1000),
+    0,
+  );
+  let subTotalCents = 0;
   for (const sub of completedSubmissions) {
-    totalEarnedCents += sub.mission.budgetCents || 0;
+    subTotalCents += sub.mission.budgetCents || 0;
   }
+
+  const totalEarnedCents = Math.max(
+    ledgerTotalCents,
+    creditTxTotalCents,
+    wonTotalCents + surveyTotalCents,
+    subTotalCents,
+  );
   const totalEarnedUsd = Math.round(totalEarnedCents / 100);
   const totalEarnedFormatted = `$${totalEarnedUsd.toLocaleString("en-US")}`;
 
@@ -294,19 +392,51 @@ export async function getUserProfile(
 
   const isSelfOrAdmin = requestingUserId === user.id || requestingUserRole === "ADMIN";
 
-  const publicWorkHistory: PublicWorkHistoryItem[] = completedSubmissions
-    .filter((s) => s.mission.visibility === "PUBLIC")
-    .map((s) => {
+  const historyMap = new Map<string, PublicWorkHistoryItem>();
+
+  for (const s of completedSubmissions) {
+    if (s.mission.visibility === "PUBLIC") {
       const usdAmount = Math.round((s.mission.budgetCents || 0) / 100);
-      return {
+      historyMap.set(s.mission.id, {
         id: s.mission.id,
         title: s.mission.title,
         category: s.mission.category,
         completedDate: s.createdAt.toISOString(),
         rewardFormatted: `$${usdAmount}`,
         status: s.mission.status,
-      };
-    });
+      });
+    }
+  }
+
+  for (const m of wonMissions) {
+    if (m.visibility === "PUBLIC" && !historyMap.has(m.id)) {
+      const usdAmount = Math.round((m.budgetCents || 0) / 100);
+      historyMap.set(m.id, {
+        id: m.id,
+        title: m.title,
+        category: m.category,
+        completedDate: (m.updatedAt || m.createdAt).toISOString(),
+        rewardFormatted: `$${usdAmount}`,
+        status: m.status,
+      });
+    }
+  }
+
+  for (const sp of rewardedSurveys) {
+    if (sp.mission.visibility === "PUBLIC" && !historyMap.has(sp.mission.id)) {
+      const usdAmount = Math.round((sp.mission.rewardPerValidSubmissionCents || 1000) / 100);
+      historyMap.set(sp.mission.id, {
+        id: sp.mission.id,
+        title: sp.mission.title,
+        category: sp.mission.category,
+        completedDate: (sp.mission.updatedAt || sp.mission.createdAt).toISOString(),
+        rewardFormatted: `$${usdAmount}`,
+        status: sp.mission.status,
+      });
+    }
+  }
+
+  const publicWorkHistory: PublicWorkHistoryItem[] = Array.from(historyMap.values());
 
   const response: UserProfileResponse = {
     user: {
