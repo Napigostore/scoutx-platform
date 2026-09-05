@@ -1,10 +1,85 @@
 import { prisma } from "@/lib/prisma";
-import { notifyApproved, notifyNonWinners, notifyDisputeCreated } from "@/lib/notification-service";
+import {
+  notifyApproved,
+  notifyNonWinners,
+  notifyDisputeCreated,
+  notifyRewardPaid,
+} from "@/lib/notification-service";
 import { recordCoinMovement } from "@/lib/coin-ledger-service";
 
 export const MAX_FUNDED_COIN = 100000000;
 export const MIN_VOTES_REQUIRED = 50;
 export const MAX_DISPUTE_ROUNDS = 4; // Initial round + max 3 re-votes
+
+export async function checkIsSoleWorker(
+  missionId: string,
+  targetWorkerUserId: string,
+  requesterUserId: string,
+): Promise<boolean> {
+  const excludedUserIds = [requesterUserId, targetWorkerUserId];
+
+  // 1. Other recipients who joined
+  const otherRecipients = await prisma.missionRecipient.count({
+    where: {
+      missionId,
+      userId: { notIn: excludedUserIds },
+    },
+  });
+  if (otherRecipients > 0) return false;
+
+  // 2. Other evidence submitters
+  const otherEvidence = await prisma.evidence.count({
+    where: {
+      missionId,
+      userId: { notIn: excludedUserIds },
+    },
+  });
+  if (otherEvidence > 0) return false;
+
+  // 3. Other mission submissions
+  const otherSubmissions = await prisma.missionSubmission.count({
+    where: {
+      missionId,
+      userId: { notIn: excludedUserIds },
+    },
+  });
+  if (otherSubmissions > 0) return false;
+
+  // 4. Other reward requests
+  const otherRewardReqs = await prisma.rewardRequest.count({
+    where: {
+      missionId,
+      userId: { notIn: excludedUserIds },
+    },
+  });
+  if (otherRewardReqs > 0) return false;
+
+  // 5. Check assigned scout
+  const mission = await prisma.mission.findUnique({
+    where: { id: missionId },
+    select: { assignedScoutId: true },
+  });
+  if (mission?.assignedScoutId) {
+    const scout = await prisma.scoutProfile.findUnique({
+      where: { id: mission.assignedScoutId },
+      select: { userId: true },
+    });
+    if (scout && !excludedUserIds.includes(scout.userId)) {
+      return false;
+    }
+  }
+
+  // 6. Other survey participants
+  const otherSurveyParticipants = await prisma.surveyParticipant.count({
+    where: {
+      missionId,
+      userId: { notIn: excludedUserIds },
+    },
+  });
+  if (otherSurveyParticipants > 0) return false;
+
+  return true;
+}
 
 export async function requesterCompleteMission(
   missionId: string,
@@ -58,7 +133,57 @@ export async function requesterCompleteMission(
     );
   }
 
+  const isSoleWorker = await checkIsSoleWorker(missionId, finalWinnerUserId, requesterUserId);
   const now = new Date();
+  const rewardCents = mission.budgetCents || 1000;
+
+  if (isSoleWorker) {
+    // Sole worker on mission: payout immediately without waiting 24h
+    const updated = await prisma.$transaction(async (tx) => {
+      await recordCoinMovement(tx, {
+        userId: finalWinnerUserId,
+        missionId: mission.id,
+        type: "MISSION_REWARD_RELEASE",
+        amountCents: rewardCents,
+        description: `Instant reward payout for sole worker on mission: ${mission.title}`,
+        idempotencyKey: `release-${mission.id}`,
+      });
+
+      const m = await tx.mission.update({
+        where: { id: missionId },
+        data: {
+          status: "REWARDED",
+          winnerId: finalWinnerUserId,
+          rewardReleasedAt: now,
+          settlementStartedAt: now,
+        },
+      });
+
+      await tx.rewardRequest.updateMany({
+        where: { missionId, userId: finalWinnerUserId, status: "PENDING" },
+        data: { status: "APPROVED", updatedAt: now },
+      });
+
+      await tx.timelineEntry.create({
+        data: {
+          missionId,
+          eventType: "REWARD_RELEASED",
+          summary: `Requester approved mission completion. Sole worker rewarded immediately ($${Math.round(rewardCents / 100)}).`,
+          actorId: requesterUserId,
+          metadata: { winnerId: finalWinnerUserId, instantPayout: true, rewardCents },
+        },
+      });
+
+      return m;
+    });
+
+    await notifyApproved(missionId, finalWinnerUserId).catch(() => {});
+    await notifyRewardPaid(missionId, finalWinnerUserId).catch(() => {});
+
+    return updated;
+  }
+
+  // Multiple workers participated: keep 24h dispute cooldown
   const updated = await prisma.mission.update({
     where: { id: missionId },
     data: {
@@ -155,6 +280,54 @@ export async function requesterRespondCompletion(
   if (action === "ACCEPT") {
     const now = new Date();
     const winnerId = mission.submission?.userId || mission.assignedScoutId || requesterUserId;
+    const isSoleWorker = await checkIsSoleWorker(missionId, winnerId, requesterUserId);
+    const rewardCents = mission.budgetCents || 1000;
+
+    if (isSoleWorker && winnerId !== requesterUserId) {
+      const updated = await prisma.$transaction(async (tx) => {
+        await recordCoinMovement(tx, {
+          userId: winnerId,
+          missionId: mission.id,
+          type: "MISSION_REWARD_RELEASE",
+          amountCents: rewardCents,
+          description: `Instant reward payout for sole worker on mission: ${mission.title}`,
+          idempotencyKey: `release-${mission.id}`,
+        });
+
+        const m = await tx.mission.update({
+          where: { id: missionId },
+          data: {
+            status: "REWARDED",
+            winnerId,
+            rewardReleasedAt: now,
+            settlementStartedAt: now,
+          },
+        });
+
+        await tx.rewardRequest.updateMany({
+          where: { missionId, userId: winnerId, status: "PENDING" },
+          data: { status: "APPROVED", updatedAt: now },
+        });
+
+        await tx.timelineEntry.create({
+          data: {
+            missionId,
+            eventType: "REWARD_RELEASED",
+            summary: `Requester accepted worker completion. Sole worker rewarded immediately ($${Math.round(rewardCents / 100)}).`,
+            actorId: requesterUserId,
+            metadata: { winnerId, instantPayout: true, rewardCents },
+          },
+        });
+
+        return m;
+      });
+
+      await notifyApproved(missionId, winnerId).catch(() => {});
+      await notifyRewardPaid(missionId, winnerId).catch(() => {});
+
+      return updated;
+    }
+
     const updated = await prisma.mission.update({
       where: { id: missionId },
       data: {
@@ -172,6 +345,9 @@ export async function requesterRespondCompletion(
         actorId: requesterUserId,
       },
     });
+
+    await notifyApproved(missionId, winnerId).catch(() => {});
+    await notifyNonWinners(missionId, winnerId).catch(() => {});
 
     return updated;
   } else {
